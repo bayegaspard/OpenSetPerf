@@ -24,7 +24,7 @@ class correctValCounter():
         #evaluate normally
         #modify outputs
         output = self.typesOfMod[type](self,output_true)
-        test = output.numpy()
+        test = output.detach().numpy()
 
         #if it is not told if the data is in distribution, it will assume based on the offset.
         if indistribution == None:
@@ -106,8 +106,10 @@ class correctValCounter():
         print(f"Correct Mean Percentage: {100*self.correct_percentage_total/correct}")
         print(f"Cutoff: {self.cutoff}")
         total_incorrect = self.count*self.classCount-correct
-        print(f"Incorrect Mean Percentage: {100*self.incorrect_percentage_total/total_incorrect}")
-        print(f"Wrong Mean Percentage: {100*self.wrong_percentage_total/self.totalWrong}")
+        if total_incorrect!=0:
+            print(f"Incorrect Mean Percentage: {100*self.incorrect_percentage_total/total_incorrect}")
+        if self.totalWrong!=0:
+            print(f"Wrong Mean Percentage: {100*self.wrong_percentage_total/self.totalWrong}")
         print(f"Accuracy: {self.accuracy().mean().item()}")
 
     def PrintUnknownEval(self):
@@ -195,7 +197,7 @@ class correctValCounter():
         output_open = []
         for logits in percentages:
             #this is where the openmax is run, I did not create the openmax
-            output_open_new, _ = OpenMaxByMaXu.openmax(self.weibullmodel, list(range(self.classCount)),logits.detach().numpy()[np.newaxis,:], 0.4)
+            output_open_new, _ = OpenMaxByMaXu.openmax(self.weibullmodel, list(range(self.classCount)),logits.detach().numpy()[np.newaxis,:], 0.4, alpha=min(self.classCount,10))
             output_open.append(torch.tensor(output_open_new).unsqueeze(dim=0))
         output_open = torch.cat(output_open, dim=0)
         return output_open

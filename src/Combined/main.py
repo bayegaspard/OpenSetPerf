@@ -1,9 +1,7 @@
 import numpy as np
-from LoadPackets import NetworkDataset
 from LoadRandom import RndDataset
 import torch
 import torch.utils.data
-from torchvision import transforms
 import torch.nn as nn
 import torch.optim as optim
 import matplotlib.pyplot as plt
@@ -35,7 +33,7 @@ torch.manual_seed(0)
 
 BATCH = 100
 CUTOFF = 0.85
-NAME = "Combined"
+NAME = os.path.basename(os.path.dirname(__file__))
 ENERGYTRAINED = False
 AUTOCUTOFF = True
 noise = 0.3
@@ -53,8 +51,9 @@ data_total = NetworkDataset(getListOfCSV(path_to_dataset),benign=True)
 unknown_data = NetworkDataset(getListOfCSV(path_to_dataset),benign=False)
 
 CLASSES = len(data_total.classes)
+CLASSES = 1
 
-random_data = RndDataset(CLASSES,transforms=transforms.Compose([transforms.Grayscale(1),transforms.Resize((100,100)), transforms.Normalize(0.8280,0.351)]))
+random_data = RndDataset(CLASSES)
 
 data_train, data_test = torch.utils.data.random_split(data_total, [len(data_total)-1000,1000])
 
@@ -80,12 +79,12 @@ eng = correctValCounter(CLASSES, cutoff=5.5)
 odin = correctValCounter(CLASSES)
 
 if ENERGYTRAINED:
-    chpt = "/src/checkpointE.pth"
+    chpt = "/checkpointE.pth"
 else:
-    chpt = "/src/checkpoint.pth"
+    chpt = "/checkpoint.pth"
 
-if os.path.exists(NAME+chpt):
-    model.load_state_dict(torch.load(NAME+chpt))
+if os.path.exists("src/"+NAME+chpt):
+    model.load_state_dict(torch.load("src/"+NAME+chpt))
 
 epochs = 10
 criterion = nn.CrossEntropyLoss().to(device)
@@ -227,7 +226,7 @@ for e in range(epochs):
     eng.zero()
     
     if e%5 == 4:
-        torch.save(model.state_dict(), NAME+chpt)
+        torch.save(model.state_dict(), "src/"+NAME+chpt)
 
     model.train()
     scheduler.step()
@@ -285,10 +284,10 @@ for batch,(X,y) in enumerate(unknowns):
         plotter[5][a] += (openoutmax[0].greater_equal(plotter[1][a])*(openoutmax[1]!=CLASSES)).sum()/26416
         plotter[7][a] += odinoutmax.greater_equal(plotter[3][a]).sum()/26416
 
-    soft.evalN(output,y, offset=26)
-    odin.evalN(output,y, offset=26, type="Odin")
-    op.evalN(output,y, offset=26, type="Open")
-    eng.evalN(output,y, offset=26, type="Energy")
+    soft.evalN(output,y, indistribution=False)
+    odin.evalN(output,y, indistribution=False, type="Odin")
+    op.evalN(output,y, indistribution=False, type="Open")
+    eng.evalN(output,y, indistribution=False, type="Energy")
     optimizer.zero_grad()
 
 print("SoftMax:")

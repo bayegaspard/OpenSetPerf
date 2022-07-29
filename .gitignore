@@ -1,2 +1,9 @@
 
 *.csv
+/.vs
+/REU-Network Detection
+/env
+/REU
+/src/Combined/__pycache__
+/src/HelperFunctions/__pycache__
+/src/__pycache__
