@@ -30,14 +30,14 @@ BATCH = 500
 CUTOFF = 0.9999999
 epochs = 10
 temperature = 0.001
-checkpoint = "checkpoint.pth"
+checkpoint = "/checkpoint.pth"
 #------------------------------------------------------------------------------------------------------
 
 #---------------------------------------------Model/data set up----------------------------------------
 EnergyCodeByWetliu.setTemp(temperature) #I dont think this works and needs to be fixed
 
 
-NAME = os.path.basename(os.path.dirname(__file__))
+NAME = "src/"+os.path.basename(os.path.dirname(__file__))
 
 #pick a device
 device = torch.device("cpu")
@@ -73,8 +73,8 @@ model = Network(CLASSES).to(device)
 soft = correctValCounter(CLASSES,cutoff=CUTOFF, confusionMat=True)
 Eng = correctValCounter(CLASSES, cutoff=CUTOFF, confusionMat=True)
 
-if os.path.exists(NAME+"/src/"+checkpoint):
-    model.load_state_dict(torch.load(NAME+"/src/"+checkpoint))
+if os.path.exists(NAME+checkpoint):
+    model.load_state_dict(torch.load(NAME+checkpoint))
     print("Loaded model checkpoint")
 
 
@@ -146,7 +146,7 @@ for e in range(epochs):
         Eng.zero()
         
         if e%5 == 4:
-            torch.save(model.state_dict(), NAME+"/src/"+checkpoint)
+            torch.save(model.state_dict(), NAME+checkpoint)
 
         model.train()
     scheduler.step()

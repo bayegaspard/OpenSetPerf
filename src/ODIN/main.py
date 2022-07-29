@@ -33,12 +33,12 @@ CUTOFF = 0.85
 noise = 0.15
 temperature = 0.001
 epochs = 1
-checkpoint = "checkpoint.pth"
+checkpoint = "/checkpoint.pth"
 #------------------------------------------------------------------------------------------------------
 
 #---------------------------------------------Model/data set up----------------------------------------
 
-NAME = os.path.basename(os.path.dirname(__file__))
+NAME = "src/"+os.path.basename(os.path.dirname(__file__))
 
 #I looked up how to make a dataset, more information in the LoadImages file
 
@@ -63,8 +63,8 @@ model = Network(CLASSES).to(device)
 soft = correctValCounter(CLASSES, cutoff= CUTOFF)
 odin = correctValCounter(CLASSES, cutoff= CUTOFF)
 
-if os.path.exists(NAME+"/src/"+checkpoint):
-    model.load_state_dict(torch.load(NAME+"/src/"+checkpoint))
+if os.path.exists(NAME+checkpoint):
+    model.load_state_dict(torch.load(NAME+checkpoint))
 
 
 criterion = nn.CrossEntropyLoss().to(device)
@@ -124,7 +124,7 @@ for e in range(epochs):
     soft.zero()
     
     if e%5 == 4:
-        torch.save(model.state_dict(), NAME+"/src/"+checkpoint)
+        torch.save(model.state_dict(), NAME+checkpoint)
 
     model.train()
     scheduler.step()

@@ -43,13 +43,13 @@ AUTOCUTOFF = True
 noise = 0.3
 temperature = 9
 epochs = 10
-checkpoint = "checkpoint.pth"
+checkpoint = "/checkpoint.pth"
 #------------------------------------------------------------------------------------------------------
 
 #---------------------------------------------Model/data set up----------------------------------------
 EnergyCodeByWetliu.setTemp(temperature) #I am not sure this works. It might need fixing                 <--fix?
 
-NAME = os.path.basename(os.path.dirname(__file__))
+NAME = "src/"+os.path.basename(os.path.dirname(__file__))
 
 #START IMAGE LOADING
 #I looked up how to make a dataset, more information in the LoadImages file
@@ -90,9 +90,9 @@ eng = correctValCounter(CLASSES, cutoff=CUTOFF)
 odin = correctValCounter(CLASSES, cutoff=CUTOFF)
 
 if ENERGYTRAINED:
-    checkpoint = "/src/E" + checkpoint
+    checkpoint = "E" + checkpoint
 else:
-    checkpoint = "/src/" + checkpoint
+    checkpoint = checkpoint
 
 if os.path.exists(NAME+checkpoint):
     model.load_state_dict(torch.load(NAME+checkpoint))

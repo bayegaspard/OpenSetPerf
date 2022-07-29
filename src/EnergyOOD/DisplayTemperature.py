@@ -23,7 +23,7 @@ import CodeFromImplementations.EnergyCodeByWetliu as EnergyCodeByWetliu
 torch.manual_seed(0)
 CLASSES = 36
 BATCH = 500
-NAME = os.path.basename(os.path.dirname(__file__))
+NAME = "src/"+os.path.basename(os.path.dirname(__file__))
 
 #pick a device
 device = torch.device("cpu")
@@ -60,8 +60,8 @@ model = Network().to(device)
 soft = correctValCounter(CLASSES,cutoff=0.96)
 Eng = correctValCounter(CLASSES, cutoff=3.65)
 
-if os.path.exists(NAME+"/src/checkpoint.pth"):
-    model.load_state_dict(torch.load(NAME+"/src/checkpoint.pth"))
+if os.path.exists(NAME+"/checkpoint.pth"):
+    model.load_state_dict(torch.load(NAME+"/checkpoint.pth"))
     print("Loaded model checkpoint")
 
 

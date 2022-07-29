@@ -34,7 +34,7 @@ epochs = 10
 
 #---------------------------------------------Model/data set up----------------------------------------
 
-NAME = os.path.basename(os.path.dirname(__file__))
+NAME = "src/"+os.path.basename(os.path.dirname(__file__))
 
 path_to_dataset = "datasets" #put the absolute path to your dataset , type "pwd" within your dataset folder from your teminal to know this path.
 

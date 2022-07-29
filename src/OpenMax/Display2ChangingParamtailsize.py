@@ -26,7 +26,7 @@ if torch.cuda.is_available():
 
 torch.manual_seed(0)
 BATCH = 500
-NAME = os.path.basename(os.path.dirname(__file__))
+NAME = "src/"+os.path.basename(os.path.dirname(__file__))
 CUTOFF = 0.5
 
 #I looked up how to make a dataset, more information in the LoadImages file
@@ -64,8 +64,8 @@ model = Network(CLASSES).to(device)
 soft = correctValCounter(CLASSES, cutoff=CUTOFF)
 op = correctValCounter(CLASSES, cutoff=CUTOFF)
 
-if os.path.exists(NAME+"/src/checkpoint 100 epochs.pth"):
-    model.load_state_dict(torch.load(NAME+"/src/checkpoint 100 epochs.pth",map_location=device))
+if os.path.exists(NAME+"/checkpoint 100 epochs.pth"):
+    model.load_state_dict(torch.load(NAME+"/checkpoint 100 epochs.pth",map_location=device))
 
 criterion = nn.CrossEntropyLoss().to(device)
 optimizer = optim.SGD(model.parameters(), lr=0.1, momentum=0.5)

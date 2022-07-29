@@ -32,12 +32,12 @@ torch.manual_seed(0)
 BATCH = 500
 CUTOFF = 0.1
 epochs = 1
-checkpoint = "checkpoint.pth"
+checkpoint = "/checkpoint.pth"
 #------------------------------------------------------------------------------------------------------
 
 #---------------------------------------------Model/data set up----------------------------------------
 
-NAME = os.path.basename(os.path.dirname(__file__))
+NAME = "src/"+os.path.basename(os.path.dirname(__file__))
 
 #I looked up how to make a dataset, more information in the LoadImages file
 #images are from: http://www.ee.surrey.ac.uk/CVSSP/demos/chars74k/
@@ -70,8 +70,8 @@ model = Network(CLASSES).to(device)
 soft = correctValCounter(CLASSES, cutoff=CUTOFF)
 op = correctValCounter(CLASSES, cutoff=CUTOFF)
 
-if os.path.exists(NAME+"/src/"+checkpoint):
-    model.load_state_dict(torch.load(NAME+"/src/"+checkpoint,map_location=device))
+if os.path.exists(NAME+checkpoint):
+    model.load_state_dict(torch.load(NAME+checkpoint,map_location=device))
 
 criterion = nn.CrossEntropyLoss().to(device)
 optimizer = optim.SGD(model.parameters(), lr=0.1, momentum=0.5)
@@ -140,7 +140,7 @@ for e in range(epochs+1):
                 op.PrintEval()
 
             if e%5 == 4:
-                torch.save(model.state_dict(), NAME+"/src/"+checkpoint)
+                torch.save(model.state_dict(), NAME+checkpoint)
 
             soft.zero()
             op.zero()

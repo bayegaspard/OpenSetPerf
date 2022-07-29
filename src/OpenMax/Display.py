@@ -26,7 +26,7 @@ import CodeFromImplementations.OpenMaxByMaXu as OpenMaxByMaXu
 device = torch.device("cpu")
 
 torch.manual_seed(0)
-NAME = os.path.basename(os.path.dirname(__file__))
+NAME = "src/"+os.path.basename(os.path.dirname(__file__))
 BATCH = 100
 
 #I looked up how to make a dataset, more information in the LoadImages file
@@ -84,8 +84,8 @@ ax4.set_ylabel("Accuracy")
 ax4.set_xlabel("Thresholds")
 
 
-if os.path.exists(NAME+"/src/checkpoint.pth"):
-    model.load_state_dict(torch.load(NAME+"/src/checkpoint.pth",map_location=torch.device("cpu")))
+if os.path.exists(NAME+"/checkpoint.pth"):
+    model.load_state_dict(torch.load(NAME+"/checkpoint.pth",map_location=torch.device("cpu")))
 else:
     sys.exit("you need a model")
 
