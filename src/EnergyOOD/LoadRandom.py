@@ -15,25 +15,22 @@ class RndDataset(Dataset):
 
 
     def __len__(self):
-        return 1000000
+        return 100000000
 
     def __getitem__(self, index):
         #hardcoding in the path is probibly not the best
         #image = Image.open("English/Img/"+self.list.iat[index, 0]+".png")
         #no it was not
-        image = torch.rand(3,150,150)
+        data = torch.rand(78)
 
         label = torch.tensor(self.classes)
 
-        #add transformations if they exist
-        if(self.transforms):
-            image = self.transforms(image)
-            #image = image/255.0
+        
 
         #output labels are in single hot encoded vectors
         if self.isOneHot:
-            return image, F.one_hot(label,self.classes+1)[:self.classes]
+            return data, F.one_hot(label,self.classes+1)[:self.classes]
         else:
-            return image, label
+            return data, label
 
     

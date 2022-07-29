@@ -1,4 +1,3 @@
-from distutils.spawn import find_executable
 import torch
 import numpy as np
 import torch.nn.functional as F
@@ -7,7 +6,7 @@ import torch.nn.functional as F
 
 class correctValCounter():
 
-    def __init__(self,num_classes: int, cutoff=0.85, confusionMat=False, temp = 1, noise=0):
+    def __init__(self,num_classes: int, type="Soft",cutoff=0.85, confusionMat=False, temp = 1, noise=0):
         self.cutoff = cutoff
         self.classCount = num_classes
         #storage of confusion matrixes can be activated
@@ -15,6 +14,9 @@ class correctValCounter():
         #ODIN stuff
         self.temp = temp
         self.noise = noise
+
+        #keep track of the type
+        self.type = type
         self.zero()
 
     
@@ -22,7 +24,7 @@ class correctValCounter():
         #evaluate normally
         #modify outputs
         output = self.typesOfMod[type](self,output_true)
-        test = output.detach().numpy()
+        test = output.numpy()
 
         #if it is not told if the data is in distribution, it will assume based on the offset.
         if indistribution == None:
@@ -125,9 +127,7 @@ class correctValCounter():
     def storeConfusion(self, path):
         if self.conf:
             import pandas as pd
-            df = pd.DataFrame(self.matrix.numpy(),columns=["Null",0,1,2,3,4,5,6,7,8,9,"A","B","C","D","E","F","G","H",
-            "I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z"], index=[0,1,2,3,4,5,6,7,8,9,
-            "A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z"])
+            df = pd.DataFrame(self.matrix.numpy())
             df.to_csv("ConfusionMatrixCSVs/"+path)
 
 
@@ -215,7 +215,7 @@ class correctValCounter():
         self.model.openMax = False
         new_percentages = torch.tensor(OdinCodeByWetliu.ODIN(self.OdinX,self.model(self.OdinX), self.model, self.temp, self.noise))
         self.model.openMax = True
-        return new_percentages
+        return new_percentages[:len(percentages)]
 
     #all functions here return a tensor, sometimes it has an extra column for unknowns
     typesOfMod = {"Soft":softMaxMod, "Open":openMaxMod, "Energy":energyMod, "Odin":odinMod}

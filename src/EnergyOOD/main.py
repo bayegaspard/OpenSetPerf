@@ -1,21 +1,27 @@
 #https://github.com/wetliu/energy_ood <- associated paper
 import numpy as np
-from LoadPackets import NetworkDataset
 import torch
 import torch.utils.data
 from torchvision import transforms
-from ModelLoader import Network
 import torch.nn as nn
 import torch.optim as optim
 import matplotlib.pyplot as plt
-import Evaluation
 import os
 import EnergyCodeByWetliu
 from LoadRandom import RndDataset
+import glob
 
+#three lines from https://xxx-cook-book.gitbooks.io/python-cook-book/content/Import/import-from-parent-folder.html
+import sys
+root_folder = os.path.abspath(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.append(root_folder)
+
+#this seems really messy
+from HelperFunctions.LoadPackets import NetworkDataset
+from HelperFunctions.Evaluation import correctValCounter
+from HelperFunctions.ModelLoader import Network
 
 torch.manual_seed(0)
-CLASSES = 36
 BATCH = 500
 NAME = "EnergyOOD"
 
@@ -25,9 +31,15 @@ if torch.cuda.is_available():
     device = torch.device("cuda:0")
 
 #I looked up how to make a dataset, more information in the LoadImages file
-#images are from: http://www.ee.surrey.ac.uk/CVSSP/demos/chars74k/
-data_total = NetworkDataset(["MachineLearningCVE/Monday-WorkingHours.pcap_ISCX.csv","MachineLearningCVE/Tuesday-WorkingHours.pcap_ISCX.csv"])
-unknown_data = NetworkDataset(["MachineLearningCVE/Wednesday-workingHours.pcap_ISCX.csv"])
+
+path_to_dataset = "datasets" #put the absolute path to your dataset , type "pwd" within your dataset folder from your teminal to know this path.
+
+def getListOfCSV(path):
+    return glob.glob(path+"/*.csv")
+
+data_total = NetworkDataset(getListOfCSV(path_to_dataset),benign=True)
+unknown_data = NetworkDataset(getListOfCSV(path_to_dataset),benign=False)
+
 
 CLASSES = len(data_total.classes)
 
@@ -44,8 +56,8 @@ rands = torch.utils.data.DataLoader(dataset=random_data, batch_size=BATCH, shuff
 model = Network(CLASSES).to(device)
 
 
-soft = Evaluation.correctValCounter(CLASSES,cutoff=0.005, confusionMat=True)
-Eng = Evaluation.correctValCounter(CLASSES, cutoff=0.5, confusionMat=True)
+soft = correctValCounter(CLASSES,cutoff=0.005, confusionMat=True)
+Eng = correctValCounter(CLASSES, cutoff=0.5, confusionMat=True)
 
 if os.path.exists(NAME+"/checkpointR.pth"):
     model.load_state_dict(torch.load(NAME+"/checkpointR.pth"))
@@ -65,7 +77,7 @@ for e in range(epochs):
         X = (X).to(device)
         y = y.to(device)
 
-        output = model(torch.cat((X,out_set.next()[0]),0))
+        _, output = model(torch.cat((X,out_set.next()[0]),0))
         out_set_out = output[len(X):]
         output = output
         lost_points = criterion(output[:len(X)], y)
@@ -92,7 +104,8 @@ for e in range(epochs):
             X = X.to(device)
             y = y.to("cpu")
 
-            output = model(X).to("cpu")
+            _, output = model(X)
+            output = output.to("cpu")
 
 
             soft.evalN(output,y)
@@ -128,7 +141,8 @@ with torch.no_grad():
             X = (X).to(device)
             y = y.to("cpu")
 
-            output = model(X).to("cpu")
+            _, output = model(X)
+            output = output.to("cpu")
 
             soft.evalN(output,y, offset=26)
             Eng.evalN(output, y, offset=26, type="Energy")

@@ -7,13 +7,21 @@ from torchvision import transforms
 import torch.nn as nn
 import torch.optim as optim
 import matplotlib.pyplot as plt
-import Evaluation
 import os
-import OdinCodeByWetliu
 import EnergyCodeByWetliu
 import OpenMaxByMaXu
-from ModelLoader import Network
 import pandas as pd
+import glob
+
+#Three lines from https://xxx-cook-book.gitbooks.io/python-cook-book/content/Import/import-from-parent-folder.html
+import sys
+root_folder = os.path.abspath(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.append(root_folder)
+
+#this seems really messy
+from HelperFunctions.LoadPackets import NetworkDataset
+from HelperFunctions.Evaluation import correctValCounter
+from HelperFunctions.ModelLoader import Network
 
 #to know it started
 print("Hello, I hope you are having a nice day!")
@@ -35,9 +43,14 @@ temprature = 9
 
 #START IMAGE LOADING
 #I looked up how to make a dataset, more information in the LoadImages file
-#images are from: http://www.ee.surrey.ac.uk/CVSSP/demos/chars74k/
-data_total = NetworkDataset(["MachineLearningCVE/Monday-WorkingHours.pcap_ISCX.csv","MachineLearningCVE/Tuesday-WorkingHours.pcap_ISCX.csv"])
-unknown_data = NetworkDataset(["MachineLearningCVE/Wednesday-workingHours.pcap_ISCX.csv"])
+
+path_to_dataset = "datasets" #put the absolute path to your dataset , type "pwd" within your dataset folder from your teminal to know this path.
+
+def getListOfCSV(path):
+    return glob.glob(path+"/*.csv")
+
+data_total = NetworkDataset(getListOfCSV(path_to_dataset),benign=True)
+unknown_data = NetworkDataset(getListOfCSV(path_to_dataset),benign=False)
 
 CLASSES = len(data_total.classes)
 
@@ -61,10 +74,10 @@ training2 = torch.utils.data.DataLoader(dataset=data_train2, batch_size=BATCH, s
 
 model = Network(CLASSES).to(device)
 
-soft = Evaluation.correctValCounter(CLASSES)
-op = Evaluation.correctValCounter(CLASSES)
-eng = Evaluation.correctValCounter(CLASSES, cutoff=5.5)
-odin = Evaluation.correctValCounter(CLASSES)
+soft = correctValCounter(CLASSES)
+op = correctValCounter(CLASSES)
+eng = correctValCounter(CLASSES, cutoff=5.5)
+odin = correctValCounter(CLASSES)
 
 if ENERGYTRAINED:
     chpt = "/checkpointE.pth"

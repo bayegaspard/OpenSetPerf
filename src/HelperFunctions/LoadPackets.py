@@ -3,10 +3,11 @@ import torch
 from torch.utils.data import Dataset
 import numpy as np
 import torch.nn as nn
+import glob
 
 #note, this is a very modified version of a dataloader found in https://www.youtube.com/watch?v=ZoZHd0Zm3RY
 class NetworkDataset(Dataset):
-    def __init__(self,csv_files,transforms=None, benign=None):
+    def __init__(self,csv_files=glob.glob("datasets/*.csv"),transforms=None, benign=None):
         self.transforms = transforms
         self.isOneHot = True
         self.list = []
@@ -19,17 +20,17 @@ class NetworkDataset(Dataset):
             #If I understand correctly this should allow you to sort just benign or malicious packets 
             #https://stackoverflow.com/questions/18172851/deleting-dataframe-row-in-pandas-based-on-column-value
             if benign == True:
-                csv = csv[" Label"=="BENIGN"]
+                csv = csv[csv[" Label"]=="BENIGN"]
             else:
                 if benign == False:
-                    csv = csv[" Label"!="BENIGN"]
+                    csv = csv[csv[" Label"]!="BENIGN"]
 
             csv.replace(np.inf, np.nan, inplace=True)
             csv.replace(-np.inf, np.nan, inplace=True)
             csv.fillna(-1,inplace=True)
             #csv.dropna(inplace=True)
 
-
+            csv.reset_index(drop=True,inplace=True)
             self.list.append(csv)
             #
             # 

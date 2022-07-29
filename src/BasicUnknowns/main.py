@@ -1,14 +1,22 @@
 import numpy as np
-from LoadPackets import NetworkDataset
+import glob
 import torch
 import torch.utils.data
-from torchvision import transforms
 import torch.nn as nn
 import torch.optim as optim
 import matplotlib.pyplot as plt
-import Evaluation
 import os
-from ModelLoader import Network
+
+#three lines from https://xxx-cook-book.gitbooks.io/python-cook-book/content/Import/import-from-parent-folder.html
+import sys
+root_folder = os.path.abspath(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))#'/Users/abroggi/Desktop/REU/Ubuntu/Github.nosync/OpenSet-Recognition-for-NIDS/src/HelperFunctions/__init__.py'
+sys.path.append(root_folder)
+
+#this seems really messy
+from HelperFunctions.LoadPackets import NetworkDataset
+from HelperFunctions.Evaluation import correctValCounter
+from HelperFunctions.ModelLoader import Network
+
 
 
 #pick a device
@@ -22,10 +30,14 @@ BATCH = 100
 CUTOFF = 0.85
 NAME = "BasicUnknowns"
 
-#I looked up how to make a dataset, more information in the LoadImages file
-#images are from: http://www.ee.surrey.ac.uk/CVSSP/demos/chars74k/
-data_total = NetworkDataset(["MachineLearningCVE/Monday-WorkingHours.pcap_ISCX.csv","MachineLearningCVE/Tuesday-WorkingHours.pcap_ISCX.csv"])
-unknown_data = NetworkDataset(["MachineLearningCVE/Wednesday-workingHours.pcap_ISCX.csv"])
+
+path_to_dataset = "datasets" #put the absolute path to your dataset , type "pwd" within your dataset folder from your teminal to know this path.
+
+def getListOfCSV(path):
+    return glob.glob(path+"/*.csv")
+
+data_total = NetworkDataset(getListOfCSV(path_to_dataset))
+unknown_data = NetworkDataset(getListOfCSV(path_to_dataset))
 
 CLASSES = len(data_total.classes)
 
@@ -37,7 +49,7 @@ unknowns = torch.utils.data.DataLoader(dataset=unknown_data, batch_size=BATCH, s
 
 
 model = Network(CLASSES).to(device)
-evaluative = Evaluation.correctValCounter(CLASSES,confusionMat=True)
+evaluative = correctValCounter(CLASSES,confusionMat=True)
 
 if os.path.exists(NAME+"/checkpointCheckingRand.pth") and False:
     model.load_state_dict(torch.load(NAME+"/checkpointCheckingRand.pth"))
@@ -55,7 +67,7 @@ for e in range(epochs):
         X = X.to(device)
         y = y.to(device)
 
-        output = model(X)
+        _, output = model(X)
         lost_points = criterion(output, y)
         optimizer.zero_grad()
         lost_points.backward()
@@ -75,7 +87,7 @@ for e in range(epochs):
             X = X.to(device)
             y = y.to("cpu")
 
-            output = model(X).to("cpu")
+            _, output = model(X).to("cpu")
             evaluative.evalN(output,y)
             
 

@@ -1,5 +1,4 @@
 import numpy as np
-from LoadPackets import NetworkDataset
 from LoadRandom import RndDataset
 import torch
 import torch.utils.data
@@ -7,13 +6,21 @@ from torchvision import transforms
 import torch.nn as nn
 import torch.optim as optim
 import matplotlib.pyplot as plt
-import Evaluation
 import os
 import OdinCodeByWetliu
 import EnergyCodeByWetliu
 import OpenMaxByMaXu
-from ModelLoader import Network
 import pandas as pd
+
+#Three lines from https://xxx-cook-book.gitbooks.io/python-cook-book/content/Import/import-from-parent-folder.html
+import sys
+root_folder = os.path.abspath(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.append(root_folder)
+
+#this seems really messy
+from HelperFunctions.LoadPackets import NetworkDataset
+from HelperFunctions.Evaluation import correctValCounter
+from HelperFunctions.ModelLoader import Network
 
 #to know it started
 print("Hello, I hope you are having a nice day!")
@@ -59,10 +66,10 @@ training2 = torch.utils.data.DataLoader(dataset=data_train2, batch_size=BATCH, s
 
 model = Network(CLASSES).to(device)
 
-soft = Evaluation.correctValCounter(CLASSES)
-op = Evaluation.correctValCounter(CLASSES)
-eng = Evaluation.correctValCounter(CLASSES, cutoff=5.5)
-odin = Evaluation.correctValCounter(CLASSES)
+soft = correctValCounter(CLASSES)
+op = correctValCounter(CLASSES)
+eng = correctValCounter(CLASSES, cutoff=5.5)
+odin = correctValCounter(CLASSES)
 
 if ENERGYTRAINED:
     chpt = "/checkpointE.pth"

@@ -1,12 +1,21 @@
 
 import torch
 import torch.utils.data
-from torchvision import transforms
 import torch.optim as optim
-import Evaluation
-from ModelLoader import Network
-#if I forget to remove this delete it. I am just practicing 
-import LoadPackets
+import glob
+
+
+#four lines from https://xxx-cook-book.gitbooks.io/python-cook-book/content/Import/import-from-parent-folder.html
+import os
+import sys
+root_folder = os.path.abspath(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.append(root_folder)
+
+#this seems really messy
+from HelperFunctions.LoadPackets import NetworkDataset
+from HelperFunctions.Evaluation import correctValCounter
+from HelperFunctions.ModelLoader import Network
+
 
 #pick a device
 device = torch.device("cpu")
@@ -14,13 +23,18 @@ if torch.cuda.is_available():
     device = torch.device("cuda:0")
 
 torch.manual_seed(0)
-CLASSES = 3
 BATCH = 1000
 CUTOFF = 0
 NAME = "BasicCNN"
 
+path_to_dataset = "datasets" #put the absolute path to your dataset , type "pwd" within your dataset folder from your teminal to know this path.
 
-data_total = LoadPackets.NetworkDataset(["MachineLearningCVE/Monday-WorkingHours.pcap_ISCX.csv","MachineLearningCVE/Tuesday-WorkingHours.pcap_ISCX.csv"])
+def getListOfCSV(path):
+    return glob.glob(path+"/*.csv")
+
+data_total = NetworkDataset(getListOfCSV(path_to_dataset))
+
+CLASSES = len(data_total.classes)
 
 data_train, data_test = torch.utils.data.random_split(data_total, [len(data_total)-1000,1000])
 
@@ -30,7 +44,7 @@ testing = torch.utils.data.DataLoader(dataset=data_test, batch_size=BATCH, shuff
 model = Network(CLASSES).to(device)
 
 
-evaluative = Evaluation.correctValCounter(CLASSES)
+evaluative = correctValCounter(CLASSES)
 
 epochs = 50
 criterion = torch.nn.CrossEntropyLoss().to(device)
@@ -49,9 +63,9 @@ scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=50, gamma=0.1)
 #plt.show()
 
 #making the items that appear less frequently have a higher penalty so that they are not missed.
-magnification = torch.tensor([1.0000e+00, 2.8636e+02, 3.8547e+02, 3.9218e+02, 4.1337e+02, 9.8373e+00,
-        2.2084e+02, 2.0665e+05, 1.5084e+03, 3.4863e+03, 1.0824e+05, 6.3142e+04,
-        1.1562e+03, 1.4303e+01, 1.7754e+01])[:CLASSES]
+# magnification = torch.tensor([1.0000e+00, 2.8636e+02, 3.8547e+02, 3.9218e+02, 4.1337e+02, 9.8373e+00,
+#         2.2084e+02, 2.0665e+05, 1.5084e+03, 3.4863e+03, 1.0824e+05, 6.3142e+04,
+#         1.1562e+03, 1.4303e+01, 1.7754e+01])[:CLASSES]
 
 for e in range(epochs):
     lost_amount = 0
@@ -63,7 +77,7 @@ for e in range(epochs):
         y = y.to(device)
 
         _, output = model(X)
-        lost_points = criterion(output, y*magnification.broadcast_to((len(y),len(magnification))))
+        lost_points = criterion(output, y)
         optimizer.zero_grad()
         lost_points.backward()
 
