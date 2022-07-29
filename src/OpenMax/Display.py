@@ -6,7 +6,6 @@ from torchvision import transforms
 import torch.nn as nn
 import torch.optim as optim
 import matplotlib.pyplot as plt
-import OpenMaxByMaXu
 import os
 import glob
 
@@ -19,6 +18,7 @@ sys.path.append(root_folder)
 from HelperFunctions.LoadPackets import NetworkDataset
 from HelperFunctions.Evaluation import correctValCounter
 from HelperFunctions.ModelLoader import Network
+import CodeFromImplementations.OpenMaxByMaXu as OpenMaxByMaXu
 
 #this file shows graphs for the openmax model. The graphs use the same axies as the openmax paper (https://www.cv-foundation.org/openaccess/content_cvpr_2016/papers/Bendale_Towards_Open_Set_CVPR_2016_paper.pdf)
 #This can be run in the same way as a 'main.py' file.
@@ -43,7 +43,7 @@ unknown_data = NetworkDataset(getListOfCSV(path_to_dataset),benign=False)
 CLASSES = len(data_total.classes)
 
 #This does not have a direct comparison.
-random_data = ImgDataset(NAME+"/listR.txt",transforms=transforms.Compose([transforms.Grayscale(1),transforms.Resize((100,100)), transforms.ToTensor(), transforms.Normalize(0.8280,0.351)]),classes=CLASSES)
+random_data = NetworkDataset(getListOfCSV(path_to_dataset))
 
 data_train, data_test = torch.utils.data.random_split(data_total, [len(data_total)-1000,1000])
 testing = torch.utils.data.DataLoader(dataset=data_test, batch_size=BATCH, shuffle=False)

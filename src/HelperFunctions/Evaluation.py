@@ -2,7 +2,11 @@ import torch
 import numpy as np
 import torch.nn.functional as F
 
-
+#three lines from https://xxx-cook-book.gitbooks.io/python-cook-book/content/Import/import-from-parent-folder.html
+import os
+import sys
+root_folder = os.path.abspath(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.append(root_folder)
 
 class correctValCounter():
 
@@ -103,7 +107,8 @@ class correctValCounter():
         correct = self.matches.sum().item()
         print(f"Count: {self.totals_for_guesses.sum().item()}/{self.count}")
         print(f"Correct: {100*correct/self.count}%")
-        print(f"Correct Mean Percentage: {100*self.correct_percentage_total/correct}")
+        if correct!=0:
+            print(f"Correct Mean Percentage: {100*self.correct_percentage_total/correct}")
         print(f"Cutoff: {self.cutoff}")
         total_incorrect = self.count*self.classCount-correct
         print(f"Incorrect Mean Percentage: {100*self.incorrect_percentage_total/total_incorrect}")
@@ -128,7 +133,7 @@ class correctValCounter():
         if self.conf:
             import pandas as pd
             df = pd.DataFrame(self.matrix.numpy())
-            df.to_csv("ConfusionMatrixCSVs/"+path)
+            df.to_csv("csvOutput/"+path)
 
 
     def zero(self):
@@ -166,9 +171,10 @@ class correctValCounter():
         return (yStarExt * percentages[:,:self.classCount].greater(self.cutoff))
     
     def energyUnknown(self, percentages:torch.Tensor):
-        import EnergyCodeByWetliu
+        import CodeFromImplementations.EnergyCodeByWetliu as Eng
+
         scores = []
-        EnergyCodeByWetliu.energyScoreCalc(scores,percentages)
+        Eng.energyScoreCalc(scores,percentages)
         yStar = torch.tensor(np.array(scores)).less_equal(-self.cutoff).squeeze(dim=0)
         return torch.cat([yStar.unsqueeze(dim=0) for x in range(self.classCount)]).rot90(k=-1)
         
@@ -191,11 +197,13 @@ class correctValCounter():
         if self.weibullmodel == None:
             print("Warning: OpenMax needs a Weibull model!")
             return None
-        import OpenMaxByMaXu
+
+        import CodeFromImplementations.OpenMaxByMaXu as Open
+
         output_open = []
         for logits in percentages:
             #this is where the openmax is run, I did not create the openmax
-            output_open_new, _ = OpenMaxByMaXu.openmax(self.weibullmodel, list(range(self.classCount)),logits.detach().numpy()[np.newaxis,:], 0.4)
+            output_open_new, _ = Open.openmax(self.weibullmodel, list(range(self.classCount)),logits.detach().numpy()[np.newaxis,:], 0.4)
             output_open.append(torch.tensor(output_open_new).unsqueeze(dim=0))
         output_open = torch.cat(output_open, dim=0)
         return output_open
@@ -211,9 +219,9 @@ class correctValCounter():
         self.noise = noise
 
     def odinMod(self, percentages:torch.Tensor):
-        import OdinCodeByWetliu
+        import CodeFromImplementations.OdinCodeByWetliu as Odin
         self.model.openMax = False
-        new_percentages = torch.tensor(OdinCodeByWetliu.ODIN(self.OdinX,self.model(self.OdinX), self.model, self.temp, self.noise))
+        new_percentages = torch.tensor(Odin.ODIN(self.OdinX,self.model(self.OdinX), self.model, self.temp, self.noise))
         self.model.openMax = True
         return new_percentages[:len(percentages)]
 
@@ -300,9 +308,9 @@ class correctValCounter():
 
     def cutoffStorage(self, newNumbers:torch.Tensor, type="Soft"):
         if type == "Energy":
-            import EnergyCodeByWetliu
+            import CodeFromImplementations.EnergyCodeByWetliu as Eng
             scores = []
-            EnergyCodeByWetliu.energyScoreCalc(scores,newNumbers)
+            Eng.energyScoreCalc(scores,newNumbers)
             highestPercent = -torch.tensor(np.array(scores)).squeeze(dim=0)
         else:
             numbers = self.typesOfMod[type](self,newNumbers)

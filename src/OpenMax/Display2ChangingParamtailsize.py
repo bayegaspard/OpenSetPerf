@@ -4,7 +4,6 @@ import torch.utils.data
 from torchvision import transforms
 import torch.nn as nn
 import torch.optim as optim
-import OpenMaxByMaXu
 import os
 import matplotlib.pyplot as plt
 import glob
@@ -18,6 +17,7 @@ sys.path.append(root_folder)
 from HelperFunctions.LoadPackets import NetworkDataset
 from HelperFunctions.Evaluation import correctValCounter
 from HelperFunctions.ModelLoader import Network
+import CodeFromImplementations.OpenMaxByMaXu as OpenMaxByMaXu
 
 #pick a device
 device = torch.device("cpu")
