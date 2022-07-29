@@ -2,7 +2,6 @@ import pandas as pd
 import torch
 from torch.utils.data import Dataset
 import numpy as np
-import torch.nn as nn
 import glob
 
 #note, this is a very modified version of a dataloader found in https://www.youtube.com/watch?v=ZoZHd0Zm3RY

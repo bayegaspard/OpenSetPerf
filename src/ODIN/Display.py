@@ -29,9 +29,9 @@ torch.manual_seed(0)
 BATCH = 100
 CUTOFF = 0.85
 noise = 0.3
-temprature = 12
+temperature = 12
 
-NAME = os.path.basename(os.path.dirname(__file__))
+NAME = "src/"+os.path.basename(os.path.dirname(__file__))
 
 #I looked up how to make a dataset, more information in the LoadImages file
 path_to_dataset = "datasets" #put the absolute path to your dataset , type "pwd" within your dataset folder from your teminal to know this path.
@@ -55,8 +55,8 @@ model = Network(CLASSES).to(device)
 soft = correctValCounter(CLASSES)
 odin = EvaluationDisplay.correctValCounter(CLASSES,cutoff=0.5)
 
-if os.path.exists(NAME+"/src/checkpoint.pth"):
-    model.load_state_dict(torch.load(NAME+"/src/checkpoint.pth"))
+if os.path.exists(NAME+"/checkpoint.pth"):
+    model.load_state_dict(torch.load(NAME+"/checkpoint.pth"))
 
 epochs = 1
 criterion = nn.CrossEntropyLoss().to(device)
@@ -91,10 +91,10 @@ for e in range(epochs):
         lost_amount += lost_points.item()
 
     for a,b in enumerate(plotter[1]):
-        scores = OdinCodeByWetliu.get_ood_scores_odin(testing,model,BATCH,0,T=temprature,noise=b,in_dist=True)
+        scores = OdinCodeByWetliu.get_ood_scores_odin(testing,model,BATCH,0,T=temperature,noise=b,in_dist=True)
         plotter[0][a] += scores[0].sum()
 
-    scores = OdinCodeByWetliu.get_ood_scores_odin(testing,model,BATCH,0,T=temprature,noise=noise,in_dist=True)
+    scores = OdinCodeByWetliu.get_ood_scores_odin(testing,model,BATCH,0,T=temperature,noise=noise,in_dist=True)
     
     model.eval()
     for batch,(X,y) in enumerate(testing):
@@ -124,9 +124,6 @@ for e in range(epochs):
 
     odin.zero()
     soft.zero()
-    
-    if e%5 == 4:
-        torch.save(model.state_dict(), NAME+"/src/checkpoint.pth")
 
     model.train()
     scheduler.step()
@@ -140,10 +137,10 @@ plotter[1] += ((torch.tensor([x+1 for x in range(15)])/5))
 model.eval()
 
 for a,b in enumerate(plotter[1]):
-    scores = OdinCodeByWetliu.get_ood_scores_odin(unknowns,model,BATCH,BATCH*len(unknowns),T=temprature,noise=b,in_dist=False)
+    scores = OdinCodeByWetliu.get_ood_scores_odin(unknowns,model,BATCH,BATCH*len(unknowns),T=temperature,noise=b,in_dist=False)
     plotter[0][a] += scores.sum()
 
-scores = OdinCodeByWetliu.get_ood_scores_odin(unknowns,model,BATCH,BATCH*len(unknowns),T=temprature,noise=noise,in_dist=False)
+scores = OdinCodeByWetliu.get_ood_scores_odin(unknowns,model,BATCH,BATCH*len(unknowns),T=temperature,noise=noise,in_dist=False)
 for batch,(X,y) in enumerate(unknowns):
     X = (X).to(device)
     y = y.to("cpu")

@@ -5,13 +5,10 @@ import torch.utils.data
 import torch.nn as nn
 import torch.optim as optim
 import matplotlib.pyplot as plt
-import EvaluationDisplay
 import os
-import EnergyCodeByWetliu
 import glob
 
-#four lines from https://xxx-cook-book.gitbooks.io/python-cook-book/content/Import/import-from-parent-folder.html
-import os
+#three lines from https://xxx-cook-book.gitbooks.io/python-cook-book/content/Import/import-from-parent-folder.html
 import sys
 root_folder = os.path.abspath(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.append(root_folder)
@@ -19,10 +16,12 @@ sys.path.append(root_folder)
 #this seems really messy
 from HelperFunctions.LoadPackets import NetworkDataset
 from HelperFunctions.ModelLoader import Network
+from HelperFunctions.EvaluationDisplay import EvaluationWithPlots as correctValCounter
+import CodeFromImplementations.EnergyCodeByWetliu as EnergyCodeByWetliu
 
 torch.manual_seed(0)
 BATCH = 500
-NAME = os.path.basename(os.path.dirname(__file__))
+NAME = "src/"+os.path.basename(os.path.dirname(__file__))
 
 #pick a device
 device = torch.device("cpu")
@@ -52,11 +51,11 @@ model = Network().to(device)
 
 
 
-soft = EvaluationDisplay.correctValCounter(CLASSES,cutoff=0.96, confusionMat=True)
-Eng = EvaluationDisplay.correctValCounter(CLASSES, cutoff=3.65, confusionMat=True)
+soft = correctValCounter(CLASSES,cutoff=0.96, confusionMat=True)
+Eng = correctValCounter(CLASSES, cutoff=3.65, confusionMat=True)
 
-if os.path.exists(NAME+"/src/checkpoint.pth"):
-    model.load_state_dict(torch.load(NAME+"/src/checkpoint.pth"))
+if os.path.exists(NAME+"/checkpoint.pth"):
+    model.load_state_dict(torch.load(NAME+"/checkpoint.pth"))
     print("Loaded model checkpoint")
 
 epochs = 1

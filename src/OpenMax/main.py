@@ -1,10 +1,10 @@
+
+#---------------------------------------------Imports------------------------------------------
 import numpy as np
 import torch
 import torch.utils.data
-from torchvision import transforms
 import torch.nn as nn
 import torch.optim as optim
-import OpenMaxByMaXu
 import os
 import glob
 
@@ -17,16 +17,27 @@ sys.path.append(root_folder)
 from HelperFunctions.LoadPackets import NetworkDataset
 from HelperFunctions.Evaluation import correctValCounter
 from HelperFunctions.ModelLoader import Network
+import CodeFromImplementations.OpenMaxByMaXu as OpenMaxByMaXu
 
 #pick a device
 device = torch.device("cpu")
 if torch.cuda.is_available():
     device = torch.device("cuda:0")
 
+
+#------------------------------------------------------------------------------------------------------
+
+#---------------------------------------------Hyperparameters------------------------------------------
 torch.manual_seed(0)
 BATCH = 500
-NAME = "OpenMax"
 CUTOFF = 0.1
+epochs = 1
+checkpoint = "/checkpoint.pth"
+#------------------------------------------------------------------------------------------------------
+
+#---------------------------------------------Model/data set up----------------------------------------
+
+NAME = "src/"+os.path.basename(os.path.dirname(__file__))
 
 #I looked up how to make a dataset, more information in the LoadImages file
 #images are from: http://www.ee.surrey.ac.uk/CVSSP/demos/chars74k/
@@ -59,18 +70,16 @@ model = Network(CLASSES).to(device)
 soft = correctValCounter(CLASSES, cutoff=CUTOFF)
 op = correctValCounter(CLASSES, cutoff=CUTOFF)
 
-if os.path.exists(NAME+"/src/checkpoint.pth"):
-    model.load_state_dict(torch.load(NAME+"/src/checkpoint.pth",map_location=device))
-    epochs = 5
-else:
-    epochs = 5
+if os.path.exists(NAME+checkpoint):
+    model.load_state_dict(torch.load(NAME+checkpoint,map_location=device))
 
-epochs = 20
 criterion = nn.CrossEntropyLoss().to(device)
 optimizer = optim.SGD(model.parameters(), lr=0.1, momentum=0.5)
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=50, gamma=0.1)
 
+#------------------------------------------------------------------------------------------------------
 
+#---------------------------------------------Training-------------------------------------------------
 
 for e in range(epochs+1):
     lost_amount = 0
@@ -88,9 +97,12 @@ for e in range(epochs+1):
 
         lost_amount += lost_points.item()
 
-    
 
-    if e>4:
+    #--------------------------------------------------------------------------------
+
+    #--------------------------------------Testing-----------------------------------
+
+    if e>4:         #<-delay here with testing because OpenMax requires 1 correct guess for each class.
         with torch.no_grad():
             model.eval()
 
@@ -128,7 +140,7 @@ for e in range(epochs+1):
                 op.PrintEval()
 
             if e%5 == 4:
-                torch.save(model.state_dict(), NAME+"/src/checkpoint.pth")
+                torch.save(model.state_dict(), NAME+checkpoint)
 
             soft.zero()
             op.zero()
@@ -136,7 +148,9 @@ for e in range(epochs+1):
             model.train()
 
 
-#Everything past here is unknowns
+#------------------------------------------------------------------------------------------------------
+
+#---------------------------------------------Unknowns-------------------------------------------------
 
 with torch.no_grad():
     unknownscore = 0
@@ -157,8 +171,8 @@ with torch.no_grad():
         output = output.to("cpu")
 
 
-        soft.evalN(output,y,offset=26)
-        op.evalN(output,y,offset=26,type="Open")
+        soft.evalN(output,y)
+        op.evalN(output,y,type="Open")
 
     print("SoftMax:")
     soft.PrintUnknownEval()

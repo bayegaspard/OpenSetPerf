@@ -1,3 +1,4 @@
+#---------------------------------------------Imports------------------------------------------
 import numpy as np
 import glob
 import torch
@@ -24,11 +25,19 @@ device = torch.device("cpu")
 if torch.cuda.is_available():
     device = torch.device("cuda:0")
 
-torch.manual_seed(0)
+#------------------------------------------------------------------------------------------------------
 
+#---------------------------------------------Hyperparameters------------------------------------------
+torch.manual_seed(0)
 BATCH = 100
 CUTOFF = 0.85
-NAME = "BasicUnknowns"
+epochs = 10
+checkpoint = "/checkpoint.pth"
+#------------------------------------------------------------------------------------------------------
+
+#---------------------------------------------Model/data set up----------------------------------------
+
+NAME = "src/"+os.path.basename(os.path.dirname(__file__))
 
 
 path_to_dataset = "datasets" #put the absolute path to your dataset , type "pwd" within your dataset folder from your teminal to know this path.
@@ -49,16 +58,18 @@ unknowns = torch.utils.data.DataLoader(dataset=unknown_data, batch_size=BATCH, s
 
 
 model = Network(CLASSES).to(device)
-evaluative = correctValCounter(CLASSES,confusionMat=True)
+evaluative = correctValCounter(CLASSES,cutoff=CUTOFF,confusionMat=True)
 
-if os.path.exists(NAME+"/src/checkpointCheckingRand.pth") and False:
-    model.load_state_dict(torch.load(NAME+"/src/checkpointCheckingRand.pth"))
+if os.path.exists(NAME+checkpoint):
+    model.load_state_dict(torch.load(NAME+checkpoint))
 
-epochs = 5
 criterion = nn.CrossEntropyLoss().to(device)
 optimizer = optim.SGD(model.parameters(), lr=0.1, momentum=0.5)
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=50, gamma=0.1)
 
+#------------------------------------------------------------------------------------------------------
+
+#---------------------------------------------Training-------------------------------------------------
 
 for e in range(epochs):
     lost_amount = 0
@@ -72,15 +83,16 @@ for e in range(epochs):
         optimizer.zero_grad()
         lost_points.backward()
 
-        #printing paramiters to check if they are moving
-        #for para in model.parameters():
-            #print(para.grad)
 
         optimizer.step()
 
         lost_amount += lost_points.item()
 
     
+    #--------------------------------------------------------------------------------
+
+    #--------------------------------------Testing-----------------------------------
+
     with torch.no_grad():
         model.eval()
         for batch,(X,y) in enumerate(testing):
@@ -97,13 +109,15 @@ for e in range(epochs):
         evaluative.zero()
         
         if e%5 == 4:
-            torch.save(model.state_dict(), NAME+"/src/checkpointCheckingRand.pth")
+            torch.save(model.state_dict(), NAME+checkpoint)
 
         model.train()
     scheduler.step()
 
 
-#Everything past here is unknowns
+#------------------------------------------------------------------------------------------------------
+
+#---------------------------------------------Unknowns-------------------------------------------------
 
 with torch.no_grad():
         model.eval()

@@ -1,3 +1,5 @@
+
+#---------------------------------------------Imports------------------------------------------
 import numpy as np
 import torch
 import torch.utils.data
@@ -22,13 +24,21 @@ device = torch.device("cpu")
 if torch.cuda.is_available():
     device = torch.device("cuda:0")
 
-torch.manual_seed(0)
-BATCH = 100
+#------------------------------------------------------------------------------------------------------
+
+#---------------------------------------------Hyperparameters------------------------------------------
+torch.manual_seed(0)    #beware contamination
+BATCH = 5000
 CUTOFF = 0.85
 noise = 0.15
-temprature = 0.001
+temperature = 0.001
+epochs = 1
+checkpoint = "/checkpoint.pth"
+#------------------------------------------------------------------------------------------------------
 
-NAME = os.path.basename(os.path.dirname(__file__))
+#---------------------------------------------Model/data set up----------------------------------------
+
+NAME = "src/"+os.path.basename(os.path.dirname(__file__))
 
 #I looked up how to make a dataset, more information in the LoadImages file
 
@@ -50,17 +60,20 @@ unknowns = torch.utils.data.DataLoader(dataset=unknown_data, batch_size=BATCH, s
 
 
 model = Network(CLASSES).to(device)
-soft = correctValCounter(CLASSES)
-odin = correctValCounter(CLASSES, cutoff= 0.95)
+soft = correctValCounter(CLASSES, cutoff= CUTOFF)
+odin = correctValCounter(CLASSES, cutoff= CUTOFF)
 
-if os.path.exists(NAME+"/src/checkpoint.pth"):
-    model.load_state_dict(torch.load(NAME+"/src/checkpoint.pth"))
+if os.path.exists(NAME+checkpoint):
+    model.load_state_dict(torch.load(NAME+checkpoint))
 
-epochs = 10
+
 criterion = nn.CrossEntropyLoss().to(device)
 optimizer = optim.SGD(model.parameters(), lr=0.1, momentum=0.5)
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=50, gamma=0.1)
 
+#------------------------------------------------------------------------------------------------------
+
+#---------------------------------------------Training-------------------------------------------------
 
 for e in range(epochs):
     lost_amount = 0
@@ -70,14 +83,11 @@ for e in range(epochs):
         X = (X).to(device)
         y = y.to(device)
 
-        output = model(X)
+        _, output = model(X)
         lost_points = criterion(output, y)
         optimizer.zero_grad()
         lost_points.backward()
 
-        #printing paramiters to check if they are moving
-        #for para in model.parameters():
-            #print(para.grad)
 
         optimizer.step()
         optimizer.zero_grad()
@@ -85,15 +95,20 @@ for e in range(epochs):
         lost_amount += lost_points.item()
 
     
+    #--------------------------------------------------------------------------------
+
+    #--------------------------------------Testing-----------------------------------
+
     model.eval()
     for batch,(X,y) in enumerate(testing):
         X = X.to(device)
         y = y.to("cpu")
 
 
-        output = model(X).to("cpu")
+        _, output = model(X)
+        output = output.to("cpu")
 
-        odin.odinSetup(X,model,temprature,noise)
+        odin.odinSetup(X,model,temperature,noise)
 
 
         soft.evalN(output,y)
@@ -109,14 +124,15 @@ for e in range(epochs):
     soft.zero()
     
     if e%5 == 4:
-        torch.save(model.state_dict(), NAME+"/src/checkpoint.pth")
+        torch.save(model.state_dict(), NAME+checkpoint)
 
     model.train()
     scheduler.step()
 
 
-#Everything past here is unknowns
+#------------------------------------------------------------------------------------------------------
 
+#---------------------------------------------Unknowns-------------------------------------------------
 
 model.eval()
 for batch,(X,y) in enumerate(unknowns):
@@ -124,12 +140,13 @@ for batch,(X,y) in enumerate(unknowns):
     y = y.to("cpu")
 
 
-    output = model(X).to("cpu")
+    _, output = model(X)
+    output = output.to("cpu")
 
-    odin.odinSetup(X,model,temprature,noise)
+    odin.odinSetup(X,model,temperature,noise)
 
-    soft.evalN(output,y, offset=26)
-    odin.evalN(output,y, offset=26, type="Odin")
+    soft.evalN(output,y, indistribution=False)
+    odin.evalN(output,y, indistribution=False, type="Odin")
 
 soft.PrintUnknownEval()
 odin.PrintUnknownEval()
@@ -137,3 +154,5 @@ soft.zero()
 odin.zero()
 
 model.train()
+
+#------------------------------------------------------------------------------------------------------

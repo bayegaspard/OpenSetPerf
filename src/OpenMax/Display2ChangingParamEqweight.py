@@ -4,7 +4,6 @@ import torch.utils.data
 from torchvision import transforms
 import torch.nn as nn
 import torch.optim as optim
-import OpenMaxByMaXu
 import os
 import matplotlib.pyplot as plt
 import glob
@@ -18,6 +17,7 @@ sys.path.append(root_folder)
 from HelperFunctions.LoadPackets import NetworkDataset
 from HelperFunctions.Evaluation import correctValCounter
 from HelperFunctions.ModelLoader import Network
+import CodeFromImplementations.OpenMaxByMaXu as OpenMaxByMaXu
 
 #pick a device
 device = torch.device("cpu")
@@ -26,7 +26,7 @@ if torch.cuda.is_available():
 
 torch.manual_seed(0)
 BATCH = 500
-NAME = os.path.basename(os.path.dirname(__file__))
+NAME = "src/"+os.path.basename(os.path.dirname(__file__))
 CUTOFF = 0.5
 
 #I looked up how to make a dataset, more information in the LoadImages file
@@ -65,8 +65,8 @@ model = Network(CLASSES).to(device)
 soft = correctValCounter(CLASSES, cutoff=CUTOFF)
 op = correctValCounter(CLASSES, cutoff=CUTOFF)
 
-if os.path.exists(NAME+"/src/checkpoint.pth"):
-    model.load_state_dict(torch.load(NAME+"/src/checkpoint.pth",map_location=device))
+if os.path.exists(NAME+"/checkpoint.pth"):
+    model.load_state_dict(torch.load(NAME+"/checkpoint.pth",map_location=device))
     epochs = 5
 else:
     epochs = 5

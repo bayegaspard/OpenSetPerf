@@ -1,4 +1,4 @@
-
+#---------------------------------------------Imports------------------------------------------
 import torch
 import torch.utils.data
 import torch.optim as optim
@@ -22,10 +22,19 @@ device = torch.device("cpu")
 if torch.cuda.is_available():
     device = torch.device("cuda:0")
 
+#------------------------------------------------------------------------------------------------------
+
+#---------------------------------------------Hyperparameters------------------------------------------
 torch.manual_seed(0)
 BATCH = 1000
 CUTOFF = 0
-NAME = os.path.basename(os.path.dirname(__file__))
+epochs = 10
+#checkpoint = "checkpoint.pth"
+#------------------------------------------------------------------------------------------------------
+
+#---------------------------------------------Model/data set up----------------------------------------
+
+NAME = "src/"+os.path.basename(os.path.dirname(__file__))
 
 path_to_dataset = "datasets" #put the absolute path to your dataset , type "pwd" within your dataset folder from your teminal to know this path.
 
@@ -44,9 +53,9 @@ testing = torch.utils.data.DataLoader(dataset=data_test, batch_size=BATCH, shuff
 model = Network(CLASSES).to(device)
 
 
-evaluative = correctValCounter(CLASSES)
+evaluative = correctValCounter(CLASSES, cutoff=CUTOFF)
 
-epochs = 50
+
 criterion = torch.nn.CrossEntropyLoss().to(device)
 optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.5)
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=50, gamma=0.1)
@@ -66,6 +75,11 @@ scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=50, gamma=0.1)
 # magnification = torch.tensor([1.0000e+00, 2.8636e+02, 3.8547e+02, 3.9218e+02, 4.1337e+02, 9.8373e+00,
 #         2.2084e+02, 2.0665e+05, 1.5084e+03, 3.4863e+03, 1.0824e+05, 6.3142e+04,
 #         1.1562e+03, 1.4303e+01, 1.7754e+01])[:CLASSES]
+
+
+#------------------------------------------------------------------------------------------------------
+
+#---------------------------------------------Training-------------------------------------------------
 
 for e in range(epochs):
     lost_amount = 0
@@ -91,6 +105,9 @@ for e in range(epochs):
 
     
 
+    #--------------------------------------------------------------------------------
+
+    #--------------------------------------Testing-----------------------------------
 
     with torch.no_grad():
         model.eval()
