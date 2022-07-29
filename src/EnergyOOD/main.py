@@ -166,8 +166,8 @@ with torch.no_grad():
             _, output = model(X)
             output = output.to("cpu")
 
-            soft.evalN(output,y, offset=26)
-            Eng.evalN(output, y, offset=26, type="Energy")
+            soft.evalN(output,y, indistribution=False)
+            Eng.evalN(output, y, indistribution=False, type="Energy")
             
         print("SoftMax:")
         soft.PrintUnknownEval()

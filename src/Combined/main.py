@@ -1,4 +1,5 @@
 #---------------------------------------------Imports------------------------------------------
+from re import I
 import numpy as np
 from LoadRandom import RndDataset
 import torch
@@ -311,10 +312,10 @@ for batch,(X,y) in enumerate(unknowns):
         plotter[5][a] += (openoutmax[0].greater_equal(plotter[1][a])*(openoutmax[1]!=CLASSES)).sum()/26416
         plotter[7][a] += odinoutmax.greater_equal(plotter[3][a]).sum()/26416
 
-    soft.evalN(output,y, offset=26)
-    odin.evalN(output,y, offset=26, type="Odin")
-    op.evalN(output,y, offset=26, type="Open")
-    eng.evalN(output,y, offset=26, type="Energy")
+    soft.evalN(output,y, indistribution=False)
+    odin.evalN(output,y, indistribution=False, type="Odin")
+    op.evalN(output,y, indistribution=False, type="Open")
+    eng.evalN(output,y, indistribution=False, type="Energy")
     optimizer.zero_grad()
 
 

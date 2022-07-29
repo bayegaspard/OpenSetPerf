@@ -206,7 +206,7 @@ class correctValCounter():
         output_open = []
         for logits in percentages:
             #this is where the openmax is run, I did not create the openmax
-            output_open_new, _ = Open.openmax(self.weibullmodel, list(range(self.classCount)),logits.detach().numpy()[np.newaxis,:], 0.4)
+            output_open_new, _ = Open.openmax(self.weibullmodel, list(range(self.classCount)),logits.detach().numpy()[np.newaxis,:], 0.4, alpha=min(self.classCount, 10))
             output_open.append(torch.tensor(output_open_new).unsqueeze(dim=0))
         output_open = torch.cat(output_open, dim=0)
         return output_open

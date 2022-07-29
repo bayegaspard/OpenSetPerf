@@ -28,11 +28,11 @@ if torch.cuda.is_available():
 
 #---------------------------------------------Hyperparameters------------------------------------------
 torch.manual_seed(0)    #beware contamination
-BATCH = 100
+BATCH = 1000
 CUTOFF = 0.85
 noise = 0.15
 temperature = 0.001
-epochs = 10
+epochs = 1
 checkpoint = "checkpoint.pth"
 #------------------------------------------------------------------------------------------------------
 
@@ -145,8 +145,8 @@ for batch,(X,y) in enumerate(unknowns):
 
     odin.odinSetup(X,model,temperature,noise)
 
-    soft.evalN(output,y, offset=26)
-    odin.evalN(output,y, offset=26, type="Odin")
+    soft.evalN(output,y, indistribution=False)
+    odin.evalN(output,y, indistribution=False, type="Odin")
 
 soft.PrintUnknownEval()
 odin.PrintUnknownEval()

@@ -31,7 +31,7 @@ if torch.cuda.is_available():
 torch.manual_seed(0)
 BATCH = 500
 CUTOFF = 0.1
-epochs = 10
+epochs = 1
 checkpoint = "checkpoint.pth"
 #------------------------------------------------------------------------------------------------------
 
@@ -171,8 +171,8 @@ with torch.no_grad():
         output = output.to("cpu")
 
 
-        soft.evalN(output,y,offset=26)
-        op.evalN(output,y,offset=26,type="Open")
+        soft.evalN(output,y)
+        op.evalN(output,y,type="Open")
 
     print("SoftMax:")
     soft.PrintUnknownEval()
