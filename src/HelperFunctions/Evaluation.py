@@ -24,11 +24,13 @@ class correctValCounter():
         self.zero()
 
     
-    def evalN(self, output_true:torch.Tensor, y:torch.Tensor, type="Soft", offset=0, unknownRejection=True, indistribution = None):
+    def evalN(self, output_true:torch.Tensor, y:torch.Tensor, type=None, offset=0, unknownRejection=True, indistribution = None):
         #evaluate normally
+        if type is None:
+            type = self.type
         #modify outputs
         output = self.typesOfMod[type](self,output_true)
-        test = output.numpy()
+        test = output.detach().numpy()
 
         #if it is not told if the data is in distribution, it will assume based on the offset.
         if indistribution == None:
@@ -112,7 +114,8 @@ class correctValCounter():
         print(f"Cutoff: {self.cutoff}")
         total_incorrect = self.count*self.classCount-correct
         print(f"Incorrect Mean Percentage: {100*self.incorrect_percentage_total/total_incorrect}")
-        print(f"Wrong Mean Percentage: {100*self.wrong_percentage_total/self.totalWrong}")
+        if self.totalWrong!=0:
+            print(f"Wrong Mean Percentage: {100*self.wrong_percentage_total/self.totalWrong}")
         print(f"Accuracy: {self.accuracy().mean().item()}")
 
     def PrintUnknownEval(self):
@@ -306,7 +309,9 @@ class correctValCounter():
     #-------------------------------------------------------------------------------------
     #crates a cutoff with a certian percent labeled to be in distribution
 
-    def cutoffStorage(self, newNumbers:torch.Tensor, type="Soft"):
+    def cutoffStorage(self, newNumbers:torch.Tensor, type=None):
+        if type is None:
+            type = self.type
         if type == "Energy":
             import CodeFromImplementations.EnergyCodeByWetliu as Eng
             scores = []
