@@ -23,7 +23,7 @@ from HelperFunctions.ModelLoader import Network
 
 torch.manual_seed(0)
 BATCH = 500
-NAME = "EnergyOOD"
+NAME = os.path.basename(os.path.dirname(__file__))
 
 #pick a device
 device = torch.device("cpu")
@@ -59,8 +59,8 @@ model = Network(CLASSES).to(device)
 soft = correctValCounter(CLASSES,cutoff=0.005, confusionMat=True)
 Eng = correctValCounter(CLASSES, cutoff=0.5, confusionMat=True)
 
-if os.path.exists(NAME+"/checkpointR.pth"):
-    model.load_state_dict(torch.load(NAME+"/checkpointR.pth"))
+if os.path.exists(NAME+"/src/checkpointR.pth"):
+    model.load_state_dict(torch.load(NAME+"/src/checkpointR.pth"))
     print("Loaded model checkpoint")
 
 epochs = 10
@@ -126,7 +126,7 @@ for e in range(epochs):
         Eng.zero()
         
         if e%5 == 4:
-            torch.save(model.state_dict(), NAME+"/checkpointR.pth")
+            torch.save(model.state_dict(), NAME+"/src/checkpointR.pth")
 
         model.train()
     scheduler.step()

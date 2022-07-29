@@ -81,8 +81,8 @@ model = Network().to(device)
 soft = EvaluationDisplay.correctValCounter(CLASSES,cutoff=0.96)
 Eng = EvaluationDisplay.correctValCounter(CLASSES, cutoff=3.65)
 
-if os.path.exists(NAME+"/checkpoint.pth"):
-    model.load_state_dict(torch.load(NAME+"/checkpoint.pth"))
+if os.path.exists(NAME+"/src/checkpoint.pth"):
+    model.load_state_dict(torch.load(NAME+"/src/checkpoint.pth"))
     print("Loaded model checkpoint")
 
 

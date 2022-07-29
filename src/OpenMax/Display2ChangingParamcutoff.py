@@ -62,8 +62,8 @@ model = Network(CLASSES).to(device)
 soft = correctValCounter(CLASSES, cutoff=CUTOFF)
 op = correctValCounter(CLASSES, cutoff=CUTOFF)
 
-if os.path.exists(NAME+"/checkpoint 100 epochs.pth"):
-    model.load_state_dict(torch.load(NAME+"/checkpoint 100 epochs.pth",map_location=device))
+if os.path.exists(NAME+"/src/checkpoint 100 epochs.pth"):
+    model.load_state_dict(torch.load(NAME+"/src/checkpoint 100 epochs.pth",map_location=device))
 
 criterion = nn.CrossEntropyLoss().to(device)
 optimizer = optim.SGD(model.parameters(), lr=0.1, momentum=0.5)

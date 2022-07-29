@@ -85,8 +85,8 @@ ax4.set_ylabel("Accuracy")
 ax4.set_xlabel("Thresholds")
 
 
-if os.path.exists(NAME+"/checkpoint.pth"):
-    model.load_state_dict(torch.load(NAME+"/checkpoint.pth",map_location=torch.device("cpu")))
+if os.path.exists(NAME+"/src/checkpoint.pth"):
+    model.load_state_dict(torch.load(NAME+"/src/checkpoint.pth",map_location=torch.device("cpu")))
 else:
     sys.exit("you need a model")
 

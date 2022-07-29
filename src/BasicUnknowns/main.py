@@ -51,8 +51,8 @@ unknowns = torch.utils.data.DataLoader(dataset=unknown_data, batch_size=BATCH, s
 model = Network(CLASSES).to(device)
 evaluative = correctValCounter(CLASSES,confusionMat=True)
 
-if os.path.exists(NAME+"/checkpointCheckingRand.pth") and False:
-    model.load_state_dict(torch.load(NAME+"/checkpointCheckingRand.pth"))
+if os.path.exists(NAME+"/src/checkpointCheckingRand.pth") and False:
+    model.load_state_dict(torch.load(NAME+"/src/checkpointCheckingRand.pth"))
 
 epochs = 5
 criterion = nn.CrossEntropyLoss().to(device)
@@ -97,7 +97,7 @@ for e in range(epochs):
         evaluative.zero()
         
         if e%5 == 4:
-            torch.save(model.state_dict(), NAME+"/checkpointCheckingRand.pth")
+            torch.save(model.state_dict(), NAME+"/src/checkpointCheckingRand.pth")
 
         model.train()
     scheduler.step()

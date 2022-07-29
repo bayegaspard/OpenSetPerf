@@ -53,8 +53,8 @@ model = Network(CLASSES).to(device)
 soft = correctValCounter(CLASSES)
 odin = correctValCounter(CLASSES, cutoff= 0.95)
 
-if os.path.exists(NAME+"/checkpoint.pth"):
-    model.load_state_dict(torch.load(NAME+"/checkpoint.pth"))
+if os.path.exists(NAME+"/src/checkpoint.pth"):
+    model.load_state_dict(torch.load(NAME+"/src/checkpoint.pth"))
 
 epochs = 10
 criterion = nn.CrossEntropyLoss().to(device)
@@ -109,7 +109,7 @@ for e in range(epochs):
     soft.zero()
     
     if e%5 == 4:
-        torch.save(model.state_dict(), NAME+"/checkpoint.pth")
+        torch.save(model.state_dict(), NAME+"/src/checkpoint.pth")
 
     model.train()
     scheduler.step()

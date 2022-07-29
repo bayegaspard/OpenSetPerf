@@ -72,9 +72,9 @@ eng = correctValCounter(CLASSES, cutoff=5.5)
 odin = correctValCounter(CLASSES)
 
 if ENERGYTRAINED:
-    chpt = "/checkpointE.pth"
+    chpt = "/src/checkpointE.pth"
 else:
-    chpt = "/checkpoint.pth"
+    chpt = "/src/checkpoint.pth"
 
 if os.path.exists(NAME+chpt):
     model.load_state_dict(torch.load(NAME+chpt))

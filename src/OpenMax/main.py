@@ -59,8 +59,8 @@ model = Network(CLASSES).to(device)
 soft = correctValCounter(CLASSES, cutoff=CUTOFF)
 op = correctValCounter(CLASSES, cutoff=CUTOFF)
 
-if os.path.exists(NAME+"/checkpoint.pth"):
-    model.load_state_dict(torch.load(NAME+"/checkpoint.pth",map_location=device))
+if os.path.exists(NAME+"/src/checkpoint.pth"):
+    model.load_state_dict(torch.load(NAME+"/src/checkpoint.pth",map_location=device))
     epochs = 5
 else:
     epochs = 5
@@ -128,7 +128,7 @@ for e in range(epochs+1):
                 op.PrintEval()
 
             if e%5 == 4:
-                torch.save(model.state_dict(), NAME+"/checkpoint.pth")
+                torch.save(model.state_dict(), NAME+"/src/checkpoint.pth")
 
             soft.zero()
             op.zero()
