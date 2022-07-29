@@ -28,7 +28,7 @@ if torch.cuda.is_available():
 
 #---------------------------------------------Hyperparameters------------------------------------------
 torch.manual_seed(0)    #beware contamination
-BATCH = 1000
+BATCH = 5000
 CUTOFF = 0.85
 noise = 0.15
 temperature = 0.001
