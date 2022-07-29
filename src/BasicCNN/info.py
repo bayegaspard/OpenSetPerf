@@ -1,14 +1,15 @@
 import LoadPackets
 import torch
+import glob
 
-data_total = LoadPackets.NetworkDataset(["MachineLearningCVE/Monday-WorkingHours.pcap_ISCX.csv",
-"MachineLearningCVE/Tuesday-WorkingHours.pcap_ISCX.csv",
-"MachineLearningCVE/Wednesday-workingHours.pcap_ISCX.csv",
-"MachineLearningCVE/Thursday-WorkingHours-Morning-WebAttacks.pcap_ISCX.csv",
-"MachineLearningCVE/Thursday-WorkingHours-Afternoon-Infilteration.pcap_ISCX.csv",
-"MachineLearningCVE/Friday-WorkingHours-Morning.pcap_ISCX.csv",
-"MachineLearningCVE/Friday-WorkingHours-Afternoon-PortScan.pcap_ISCX.csv",
-"MachineLearningCVE/Friday-WorkingHours-Afternoon-DDos.pcap_ISCX.csv"])
+
+
+path_to_dataset = "/home/designa/OpenSet-Recognition-for-NIDS/datasets" #put the absolute path to your dataset , type "pwd" within your dataset folder from your teminal to know this path.
+
+def getListOfCSV(path):
+    return glob.glob(path+"/*.csv")
+
+data_total = LoadPackets.NetworkDataset(getListOfCSV(path_to_dataset))
 
 CLASSES = len(data_total.classes)
 print(CLASSES)
