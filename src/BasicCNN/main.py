@@ -25,7 +25,7 @@ if torch.cuda.is_available():
 torch.manual_seed(0)
 BATCH = 1000
 CUTOFF = 0
-NAME = "BasicCNN"
+NAME = os.path.basename(os.path.dirname(__file__))
 
 path_to_dataset = "datasets" #put the absolute path to your dataset , type "pwd" within your dataset folder from your teminal to know this path.
 

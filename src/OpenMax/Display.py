@@ -26,8 +26,7 @@ from HelperFunctions.ModelLoader import Network
 device = torch.device("cpu")
 
 torch.manual_seed(0)
-CLASSES = 36
-NAME = "OpenMax"
+NAME = os.path.basename(os.path.dirname(__file__))
 BATCH = 100
 
 #I looked up how to make a dataset, more information in the LoadImages file

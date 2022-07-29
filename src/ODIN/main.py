@@ -23,12 +23,12 @@ if torch.cuda.is_available():
     device = torch.device("cuda:0")
 
 torch.manual_seed(0)
-CLASSES = 36
 BATCH = 100
 CUTOFF = 0.85
-NAME = "ODIN"
 noise = 0.15
 temprature = 0.001
+
+NAME = os.path.basename(os.path.dirname(__file__))
 
 #I looked up how to make a dataset, more information in the LoadImages file
 

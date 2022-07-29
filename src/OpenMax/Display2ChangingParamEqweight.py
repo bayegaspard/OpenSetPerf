@@ -26,7 +26,7 @@ if torch.cuda.is_available():
 
 torch.manual_seed(0)
 BATCH = 500
-NAME = "OpenMax"
+NAME = os.path.basename(os.path.dirname(__file__))
 CUTOFF = 0.5
 
 #I looked up how to make a dataset, more information in the LoadImages file

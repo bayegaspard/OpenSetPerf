@@ -15,7 +15,7 @@ import EnergyCodeByWetliu
 torch.manual_seed(0)
 CLASSES = 36
 BATCH = 500
-NAME = "EnergyOOD"
+NAME = os.path.basename(os.path.dirname(__file__))
 
 #pick a device
 device = torch.device("cpu")

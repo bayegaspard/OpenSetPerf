@@ -26,12 +26,12 @@ if torch.cuda.is_available():
     device = torch.device("cuda:0")
 
 torch.manual_seed(0)
-CLASSES = 36
 BATCH = 100
 CUTOFF = 0.85
-NAME = "ODIN"
 noise = 0.3
 temprature = 12
+
+NAME = os.path.basename(os.path.dirname(__file__))
 
 #I looked up how to make a dataset, more information in the LoadImages file
 path_to_dataset = "datasets" #put the absolute path to your dataset , type "pwd" within your dataset folder from your teminal to know this path.
