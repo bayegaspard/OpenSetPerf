@@ -1,17 +1,24 @@
 import sys
 import numpy as np
-from LoadPackets import NetworkDataset
 import torch
 import torch.utils.data
 from torchvision import transforms
 import torch.nn as nn
 import torch.optim as optim
 import matplotlib.pyplot as plt
-import Evaluation
-import OpenMaxByMaXu
 import os
-from ModelLoader import Network
-import pandas
+import glob
+
+#three lines from https://xxx-cook-book.gitbooks.io/python-cook-book/content/Import/import-from-parent-folder.html
+import sys
+root_folder = os.path.abspath(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.append(root_folder)
+
+#this seems really messy
+from HelperFunctions.LoadPackets import NetworkDataset
+from HelperFunctions.Evaluation import correctValCounter
+from HelperFunctions.ModelLoader import Network
+import CodeFromImplementations.OpenMaxByMaXu as OpenMaxByMaXu
 
 #this file shows graphs for the openmax model. The graphs use the same axies as the openmax paper (https://www.cv-foundation.org/openaccess/content_cvpr_2016/papers/Bendale_Towards_Open_Set_CVPR_2016_paper.pdf)
 #This can be run in the same way as a 'main.py' file.
@@ -19,19 +26,24 @@ import pandas
 device = torch.device("cpu")
 
 torch.manual_seed(0)
-CLASSES = 36
-NAME = "OpenMax"
+NAME = "src/"+os.path.basename(os.path.dirname(__file__))
 BATCH = 100
 
 #I looked up how to make a dataset, more information in the LoadImages file
 #images are from: http://www.ee.surrey.ac.uk/CVSSP/demos/chars74k/
-data_total = NetworkDataset(["MachineLearningCVE/Monday-WorkingHours.pcap_ISCX.csv","MachineLearningCVE/Tuesday-WorkingHours.pcap_ISCX.csv"])
-unknown_data = NetworkDataset(["MachineLearningCVE/Wednesday-workingHours.pcap_ISCX.csv"])
+
+path_to_dataset = "datasets" #put the absolute path to your dataset , type "pwd" within your dataset folder from your teminal to know this path.
+
+def getListOfCSV(path):
+    return glob.glob(path+"/*.csv")
+
+data_total = NetworkDataset(getListOfCSV(path_to_dataset),benign=True)
+unknown_data = NetworkDataset(getListOfCSV(path_to_dataset),benign=False)
 
 CLASSES = len(data_total.classes)
 
 #This does not have a direct comparison.
-random_data = ImgDataset(NAME+"/listR.txt",transforms=transforms.Compose([transforms.Grayscale(1),transforms.Resize((100,100)), transforms.ToTensor(), transforms.Normalize(0.8280,0.351)]),classes=CLASSES)
+random_data = NetworkDataset(getListOfCSV(path_to_dataset))
 
 data_train, data_test = torch.utils.data.random_split(data_total, [len(data_total)-1000,1000])
 testing = torch.utils.data.DataLoader(dataset=data_test, batch_size=BATCH, shuffle=False)
@@ -52,8 +64,8 @@ randoms = torch.utils.data.DataLoader(dataset=random_data, batch_size=25, shuffl
 model = Network(CLASSES).to(device)
 
 #initialize the counters, op for open because open is a keyword
-soft = Evaluation.correctValCounter(CLASSES)
-op = Evaluation.correctValCounter(CLASSES, cutoff=0.95)
+soft = correctValCounter(CLASSES)
+op = correctValCounter(CLASSES, cutoff=0.95)
 
 fig2, ax2 = plt.subplots()
 fig3, ax3 = plt.subplots()

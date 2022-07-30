@@ -2,21 +2,42 @@ import pandas as pd
 import torch
 from torch.utils.data import Dataset
 import numpy as np
-import torch.nn as nn
+import glob
 
 #note, this is a very modified version of a dataloader found in https://www.youtube.com/watch?v=ZoZHd0Zm3RY
 class NetworkDataset(Dataset):
-    def __init__(self,csv_files,transforms=None):
+    def __init__(self,csv_files=glob.glob("datasets/*.csv"),transforms=None, benign=None):
         self.transforms = transforms
         self.isOneHot = True
         self.list = []
         classlist = []
         for x,_ in enumerate(csv_files):
-            self.list.append(pd.read_csv(csv_files[x],header=0))
-            self.list[x].fillna(-1,inplace=True)
-            self.list[x].replace(np.inf, 0, inplace=True)
-            self.list[x].replace(-np.inf, 0, inplace=True)
-            classlist.append(self.list[x][" Label"].unique())
+            csv = pd.read_csv(csv_files[x],header=0)
+            #count the unique number of classes, even if you are dropping things
+            classlist.append(csv[" Label"].unique())
+
+            #If I understand correctly this should allow you to sort just benign or malicious packets 
+            #https://stackoverflow.com/questions/18172851/deleting-dataframe-row-in-pandas-based-on-column-value
+            if benign == True:
+                csv = csv[csv[" Label"]=="BENIGN"]
+            else:
+                if benign == False:
+                    csv = csv[csv[" Label"]!="BENIGN"]
+
+            csv.replace(np.inf, np.nan, inplace=True)
+            csv.replace(-np.inf, np.nan, inplace=True)
+            csv.fillna(-1,inplace=True)
+            #csv.dropna(inplace=True)
+
+            csv.reset_index(drop=True,inplace=True)
+            self.list.append(csv)
+            #
+            # 
+            
+            
+
+
+
 
         #find how many classes are in the data 
         classlist = np.concatenate(classlist)

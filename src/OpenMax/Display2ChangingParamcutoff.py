@@ -1,17 +1,23 @@
 import numpy as np
-from LoadPackets import NetworkDataset
 import torch
 import torch.utils.data
 from torchvision import transforms
 import torch.nn as nn
 import torch.optim as optim
-import Evaluation
-import OpenMaxByMaXu
 import os
 import matplotlib.pyplot as plt
-from ModelLoader import Network
+import glob
 
+#three lines from https://xxx-cook-book.gitbooks.io/python-cook-book/content/Import/import-from-parent-folder.html
+import sys
+root_folder = os.path.abspath(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.append(root_folder)
 
+#this seems really messy
+from HelperFunctions.LoadPackets import NetworkDataset
+from HelperFunctions.Evaluation import correctValCounter
+from HelperFunctions.ModelLoader import Network
+import CodeFromImplementations.OpenMaxByMaXu as OpenMaxByMaXu
 
 #pick a device
 device = torch.device("cpu")
@@ -20,14 +26,18 @@ if torch.cuda.is_available():
 
 torch.manual_seed(0)
 BATCH = 500
-NAME = "OpenMax"
+NAME = "src/"+os.path.basename(os.path.dirname(__file__))
 CUTOFF = 0.5
 
 #I looked up how to make a dataset, more information in the LoadImages file
-#images are from: http://www.ee.surrey.ac.uk/CVSSP/demos/chars74k/
-data_total = NetworkDataset(["MachineLearningCVE/Monday-WorkingHours.pcap_ISCX.csv","MachineLearningCVE/Tuesday-WorkingHours.pcap_ISCX.csv"])
-unknown_data = NetworkDataset(["MachineLearningCVE/Wednesday-workingHours.pcap_ISCX.csv"])
 
+path_to_dataset = "datasets" #put the absolute path to your dataset , type "pwd" within your dataset folder from your teminal to know this path.
+
+def getListOfCSV(path):
+    return glob.glob(path+"/*.csv")
+
+data_total = NetworkDataset(getListOfCSV(path_to_dataset),benign=True)
+unknown_data = NetworkDataset(getListOfCSV(path_to_dataset),benign=False)
 CLASSES = len(data_total.classes)
 
 data_train, data_test = torch.utils.data.random_split(data_total, [len(data_total)-1000,1000])
@@ -49,8 +59,8 @@ plotter[1] += torch.tensor([0,0.01,0.02,0.03,0.04,0.05,0.1,0.15,0.2,0.25,0.5,0.7
 
 model = Network(CLASSES).to(device)
 #initialize the counters, op for open because open is a keyword
-soft = Evaluation.correctValCounter(CLASSES, cutoff=CUTOFF)
-op = Evaluation.correctValCounter(CLASSES, cutoff=CUTOFF)
+soft = correctValCounter(CLASSES, cutoff=CUTOFF)
+op = correctValCounter(CLASSES, cutoff=CUTOFF)
 
 if os.path.exists(NAME+"/checkpoint 100 epochs.pth"):
     model.load_state_dict(torch.load(NAME+"/checkpoint 100 epochs.pth",map_location=device))

@@ -1,14 +1,23 @@
+#---------------------------------------------Imports------------------------------------------
 import numpy as np
-from LoadPackets import NetworkDataset
+import glob
 import torch
 import torch.utils.data
-from torchvision import transforms
 import torch.nn as nn
 import torch.optim as optim
 import matplotlib.pyplot as plt
-import Evaluation
 import os
-from ModelLoader import Network
+
+#three lines from https://xxx-cook-book.gitbooks.io/python-cook-book/content/Import/import-from-parent-folder.html
+import sys
+root_folder = os.path.abspath(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))#'/Users/abroggi/Desktop/REU/Ubuntu/Github.nosync/OpenSet-Recognition-for-NIDS/src/HelperFunctions/__init__.py'
+sys.path.append(root_folder)
+
+#this seems really messy
+from HelperFunctions.LoadPackets import NetworkDataset
+from HelperFunctions.Evaluation import correctValCounter
+from HelperFunctions.ModelLoader import Network
+
 
 
 #pick a device
@@ -16,16 +25,28 @@ device = torch.device("cpu")
 if torch.cuda.is_available():
     device = torch.device("cuda:0")
 
-torch.manual_seed(0)
+#------------------------------------------------------------------------------------------------------
 
+#---------------------------------------------Hyperparameters------------------------------------------
+torch.manual_seed(0)
 BATCH = 100
 CUTOFF = 0.85
-NAME = "BasicUnknowns"
+epochs = 10
+checkpoint = "/checkpoint.pth"
+#------------------------------------------------------------------------------------------------------
 
-#I looked up how to make a dataset, more information in the LoadImages file
-#images are from: http://www.ee.surrey.ac.uk/CVSSP/demos/chars74k/
-data_total = NetworkDataset(["MachineLearningCVE/Monday-WorkingHours.pcap_ISCX.csv","MachineLearningCVE/Tuesday-WorkingHours.pcap_ISCX.csv"])
-unknown_data = NetworkDataset(["MachineLearningCVE/Wednesday-workingHours.pcap_ISCX.csv"])
+#---------------------------------------------Model/data set up----------------------------------------
+
+NAME = "src/"+os.path.basename(os.path.dirname(__file__))
+
+
+path_to_dataset = "datasets" #put the absolute path to your dataset , type "pwd" within your dataset folder from your teminal to know this path.
+
+def getListOfCSV(path):
+    return glob.glob(path+"/*.csv")
+
+data_total = NetworkDataset(getListOfCSV(path_to_dataset))
+unknown_data = NetworkDataset(getListOfCSV(path_to_dataset))
 
 CLASSES = len(data_total.classes)
 
@@ -37,16 +58,18 @@ unknowns = torch.utils.data.DataLoader(dataset=unknown_data, batch_size=BATCH, s
 
 
 model = Network(CLASSES).to(device)
-evaluative = Evaluation.correctValCounter(CLASSES,confusionMat=True)
+evaluative = correctValCounter(CLASSES,cutoff=CUTOFF,confusionMat=True)
 
-if os.path.exists(NAME+"/checkpointCheckingRand.pth") and False:
-    model.load_state_dict(torch.load(NAME+"/checkpointCheckingRand.pth"))
+if os.path.exists(NAME+checkpoint):
+    model.load_state_dict(torch.load(NAME+checkpoint))
 
-epochs = 5
 criterion = nn.CrossEntropyLoss().to(device)
 optimizer = optim.SGD(model.parameters(), lr=0.1, momentum=0.5)
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=50, gamma=0.1)
 
+#------------------------------------------------------------------------------------------------------
+
+#---------------------------------------------Training-------------------------------------------------
 
 for e in range(epochs):
     lost_amount = 0
@@ -55,27 +78,28 @@ for e in range(epochs):
         X = X.to(device)
         y = y.to(device)
 
-        output = model(X)
+        _, output = model(X)
         lost_points = criterion(output, y)
         optimizer.zero_grad()
         lost_points.backward()
 
-        #printing paramiters to check if they are moving
-        #for para in model.parameters():
-            #print(para.grad)
 
         optimizer.step()
 
         lost_amount += lost_points.item()
 
     
+    #--------------------------------------------------------------------------------
+
+    #--------------------------------------Testing-----------------------------------
+
     with torch.no_grad():
         model.eval()
         for batch,(X,y) in enumerate(testing):
             X = X.to(device)
             y = y.to("cpu")
 
-            output = model(X).to("cpu")
+            _, output = model(X).to("cpu")
             evaluative.evalN(output,y)
             
 
@@ -85,13 +109,15 @@ for e in range(epochs):
         evaluative.zero()
         
         if e%5 == 4:
-            torch.save(model.state_dict(), NAME+"/checkpointCheckingRand.pth")
+            torch.save(model.state_dict(), NAME+checkpoint)
 
         model.train()
     scheduler.step()
 
 
-#Everything past here is unknowns
+#------------------------------------------------------------------------------------------------------
+
+#---------------------------------------------Unknowns-------------------------------------------------
 
 with torch.no_grad():
         model.eval()

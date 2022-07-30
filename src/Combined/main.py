@@ -1,19 +1,27 @@
+#---------------------------------------------Imports------------------------------------------
+from re import I
 import numpy as np
-from LoadPackets import NetworkDataset
 from LoadRandom import RndDataset
 import torch
 import torch.utils.data
-from torchvision import transforms
 import torch.nn as nn
 import torch.optim as optim
 import matplotlib.pyplot as plt
-import Evaluation
 import os
-import OdinCodeByWetliu
-import EnergyCodeByWetliu
-import OpenMaxByMaXu
-from ModelLoader import Network
 import pandas as pd
+import glob
+
+#Three lines from https://xxx-cook-book.gitbooks.io/python-cook-book/content/Import/import-from-parent-folder.html
+import sys
+root_folder = os.path.abspath(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.append(root_folder)
+
+#this seems really messy
+from HelperFunctions.LoadPackets import NetworkDataset
+from HelperFunctions.Evaluation import correctValCounter
+from HelperFunctions.ModelLoader import Network
+import CodeFromImplementations.EnergyCodeByWetliu as EnergyCodeByWetliu
+import CodeFromImplementations.OpenMaxByMaXu as OpenMaxByMaXu
 
 #to know it started
 print("Hello, I hope you are having a nice day!")
@@ -23,25 +31,40 @@ device = torch.device("cpu")
 if torch.cuda.is_available():
     device = torch.device("cuda:0")
 
-torch.manual_seed(0)
+#------------------------------------------------------------------------------------------------------
 
+#---------------------------------------------Hyperparameters------------------------------------------
+torch.manual_seed(0) #Beware contamination of test sets
 BATCH = 100
 CUTOFF = 0.85
-NAME = "Combined"
 ENERGYTRAINED = False
 AUTOCUTOFF = True
 noise = 0.3
-temprature = 9
+temperature = 9
+epochs = 10
+checkpoint = "/checkpoint.pth"
+#------------------------------------------------------------------------------------------------------
+
+#---------------------------------------------Model/data set up----------------------------------------
+EnergyCodeByWetliu.setTemp(temperature) #I am not sure this works. It might need fixing                 <--fix?
+
+NAME = "src/"+os.path.basename(os.path.dirname(__file__))
 
 #START IMAGE LOADING
 #I looked up how to make a dataset, more information in the LoadImages file
-#images are from: http://www.ee.surrey.ac.uk/CVSSP/demos/chars74k/
-data_total = NetworkDataset(["MachineLearningCVE/Monday-WorkingHours.pcap_ISCX.csv","MachineLearningCVE/Tuesday-WorkingHours.pcap_ISCX.csv"])
-unknown_data = NetworkDataset(["MachineLearningCVE/Wednesday-workingHours.pcap_ISCX.csv"])
+
+path_to_dataset = "datasets" #put the absolute path to your dataset , type "pwd" within your dataset folder from your teminal to know this path.
+
+def getListOfCSV(path):
+    return glob.glob(path+"/*.csv")
+
+data_total = NetworkDataset(getListOfCSV(path_to_dataset),benign=True)
+unknown_data = NetworkDataset(getListOfCSV(path_to_dataset),benign=False)
 
 CLASSES = len(data_total.classes)
+CLASSES = 1
 
-random_data = RndDataset(CLASSES,transforms=transforms.Compose([transforms.Grayscale(1),transforms.Resize((100,100)), transforms.Normalize(0.8280,0.351)]))
+random_data = RndDataset(CLASSES)
 
 data_train, data_test = torch.utils.data.random_split(data_total, [len(data_total)-1000,1000])
 
@@ -61,24 +84,32 @@ training2 = torch.utils.data.DataLoader(dataset=data_train2, batch_size=BATCH, s
 
 model = Network(CLASSES).to(device)
 
-soft = Evaluation.correctValCounter(CLASSES)
-op = Evaluation.correctValCounter(CLASSES)
-eng = Evaluation.correctValCounter(CLASSES, cutoff=5.5)
-odin = Evaluation.correctValCounter(CLASSES)
+soft = correctValCounter(CLASSES, cutoff=CUTOFF)
+op = correctValCounter(CLASSES, cutoff=CUTOFF)
+eng = correctValCounter(CLASSES, cutoff=CUTOFF)
+odin = correctValCounter(CLASSES, cutoff=CUTOFF)
 
 if ENERGYTRAINED:
-    chpt = "/checkpointE.pth"
+    checkpoint = "E" + checkpoint
 else:
-    chpt = "/checkpoint.pth"
+    checkpoint = checkpoint
 
-if os.path.exists(NAME+chpt):
-    model.load_state_dict(torch.load(NAME+chpt))
+if os.path.exists(NAME+checkpoint):
+    model.load_state_dict(torch.load(NAME+checkpoint))
 
-epochs = 10
+
 criterion = nn.CrossEntropyLoss().to(device)
 optimizer = optim.SGD(model.parameters(), lr=0.1, momentum=0.5)
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
 
+#making the items that appear less frequently have a higher penalty so that they are not missed.
+# magnification = torch.tensor([1.0000e+00, 2.8636e+02, 3.8547e+02, 3.9218e+02, 4.1337e+02, 9.8373e+00,
+#         2.2084e+02, 2.0665e+05, 1.5084e+03, 3.4863e+03, 1.0824e+05, 6.3142e+04,
+#         1.1562e+03, 1.4303e+01, 1.7754e+01])[:CLASSES]
+
+#------------------------------------------------------------------------------------------------------
+
+#---------------------------------------------Set up data collection-----------------------------------
 
 plotter = torch.zeros((8,25))
 plotter[0] += torch.tensor([x for x in range(25)])/2.5
@@ -86,10 +117,9 @@ plotter[1] += plotter[0]/10
 plotter[2] += -plotter[0]
 plotter[3] += plotter[0]/10
 
-#making the items that appear less frequently have a higher penalty so that they are not missed.
-# magnification = torch.tensor([1.0000e+00, 2.8636e+02, 3.8547e+02, 3.9218e+02, 4.1337e+02, 9.8373e+00,
-#         2.2084e+02, 2.0665e+05, 1.5084e+03, 3.4863e+03, 1.0824e+05, 6.3142e+04,
-#         1.1562e+03, 1.4303e+01, 1.7754e+01])[:CLASSES]
+#------------------------------------------------------------------------------------------------------
+
+#---------------------------------------------Training-------------------------------------------------
 
 for e in range(epochs):
     lost_amount = 0
@@ -119,10 +149,11 @@ for e in range(epochs):
         lost_amount += lost_points.item()
 
         
+    #--------------------------------------------------------------------------------
+
+    #--------------------------------------Autocutoff--------------------------------
 
     model.eval()
-
-    
 
     #these three lines somehow setup for the openmax thing
     scoresOpen, mavs, distances = OpenMaxByMaXu.compute_train_score_and_mavs_and_dists(CLASSES,training2,device,model)
@@ -134,7 +165,7 @@ for e in range(epochs):
         for batch, (X, y) in enumerate(training):
 
             #odin:
-            odin.odinSetup(X,model,temprature,noise)
+            odin.odinSetup(X,model,temperature,noise)
         
             #openmax
             op.setWeibull(weibullmodel)
@@ -151,6 +182,10 @@ for e in range(epochs):
         odin.autocutoff(0.67)
 
 
+    #--------------------------------------------------------------------------------
+
+    #--------------------------------------Testing-----------------------------------
+
     for batch,(X,y) in enumerate(testing):
         print(f"Batch: {batch}")
         X = X.to(device)
@@ -162,7 +197,7 @@ for e in range(epochs):
         output = output.to("cpu")
         
         #odin:
-        odin.odinSetup(X,model,temprature,noise)
+        odin.odinSetup(X,model,temperature,noise)
         
         #openmax
         op.setWeibull(weibullmodel)
@@ -190,7 +225,9 @@ for e in range(epochs):
         op.evalN(output, y, type="Open")
         optimizer.zero_grad()
         
-    
+    #--------------------------------------------------------------------------------
+
+    #--------------------------------------Evaluation--------------------------------
     
     print(f"-----------------------------Epoc: {e+1}-----------------------------")
     print(f"lost: {100*lost_amount/len(data_train)}")
@@ -214,7 +251,7 @@ for e in range(epochs):
     eng.zero()
     
     if e%5 == 4:
-        torch.save(model.state_dict(), NAME+chpt)
+        torch.save(model.state_dict(), NAME+checkpoint)
 
     model.train()
     scheduler.step()
@@ -229,10 +266,13 @@ plotter[2] += plotter[0]
 plotter[3] += plotter[0]/10
 
 
+
+#------------------------------------------------------------------------------------------------------
+
+#---------------------------------------------Unknowns-------------------------------------------------
+
+
 model.eval()
-
-
-
 
 #these three lines somehow setup for the openmax thing
 scoresOpen, mavs, distances = OpenMaxByMaXu.compute_train_score_and_mavs_and_dists(CLASSES,training2,device,model)
@@ -252,7 +292,7 @@ for batch,(X,y) in enumerate(unknowns):
     output = output.to("cpu")
 
     #odin:
-    odin.odinSetup(X,model,temprature,noise)
+    odin.odinSetup(X,model,temperature,noise)
     
     #openmax
     op.setWeibull(weibullmodel)
@@ -272,11 +312,16 @@ for batch,(X,y) in enumerate(unknowns):
         plotter[5][a] += (openoutmax[0].greater_equal(plotter[1][a])*(openoutmax[1]!=CLASSES)).sum()/26416
         plotter[7][a] += odinoutmax.greater_equal(plotter[3][a]).sum()/26416
 
-    soft.evalN(output,y, offset=26)
-    odin.evalN(output,y, offset=26, type="Odin")
-    op.evalN(output,y, offset=26, type="Open")
-    eng.evalN(output,y, offset=26, type="Energy")
+    soft.evalN(output,y, indistribution=False)
+    odin.evalN(output,y, indistribution=False, type="Odin")
+    op.evalN(output,y, indistribution=False, type="Open")
+    eng.evalN(output,y, indistribution=False, type="Energy")
     optimizer.zero_grad()
+
+
+#--------------------------------------------------------------------------------
+
+#--------------------------------------Evaluation--------------------------------
 
 print("SoftMax:")
 soft.PrintEval()
@@ -301,6 +346,11 @@ eng.zero()
 model.train()
 
 
+
+#------------------------------------------------------------------------------------------------------
+
+#-------------------------------Completely random data-------------------------------------------------
+
 rands = torch.utils.data.DataLoader(dataset=random_data, batch_size=500, shuffle=False)
 it = iter(rands)
 for batch in range(50):
@@ -316,7 +366,7 @@ for batch in range(50):
     output = output.to("cpu")
 
     #odin:
-    odin.odinSetup(X,model,temprature,noise)
+    odin.odinSetup(X,model,temperature,noise)
     
     #openmax
     op.setWeibull(weibullmodel)

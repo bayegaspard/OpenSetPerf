@@ -1,34 +1,54 @@
+
+#---------------------------------------------Imports------------------------------------------
 import numpy as np
-from LoadPackets import NetworkDataset
 import torch
 import torch.utils.data
-from torchvision import transforms
 import torch.nn as nn
 import torch.optim as optim
 import matplotlib.pyplot as plt
-import Evaluation
 import os
-import OdinCodeByWetliu
-from ModelLoader import Network
+import glob
 
+#three lines from https://xxx-cook-book.gitbooks.io/python-cook-book/content/Import/import-from-parent-folder.html
+import sys
+root_folder = os.path.abspath(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.append(root_folder)
+
+#this seems really messy
+from HelperFunctions.LoadPackets import NetworkDataset
+from HelperFunctions.Evaluation import correctValCounter
+from HelperFunctions.ModelLoader import Network
 
 #pick a device
 device = torch.device("cpu")
 if torch.cuda.is_available():
     device = torch.device("cuda:0")
 
-torch.manual_seed(0)
-CLASSES = 36
-BATCH = 100
+#------------------------------------------------------------------------------------------------------
+
+#---------------------------------------------Hyperparameters------------------------------------------
+torch.manual_seed(0)    #beware contamination
+BATCH = 5000
 CUTOFF = 0.85
-NAME = "ODIN"
 noise = 0.15
-temprature = 0.001
+temperature = 0.001
+epochs = 1
+checkpoint = "/checkpoint.pth"
+#------------------------------------------------------------------------------------------------------
+
+#---------------------------------------------Model/data set up----------------------------------------
+
+NAME = "src/"+os.path.basename(os.path.dirname(__file__))
 
 #I looked up how to make a dataset, more information in the LoadImages file
-#images are from: http://www.ee.surrey.ac.uk/CVSSP/demos/chars74k/
-data_total = NetworkDataset(["MachineLearningCVE/Monday-WorkingHours.pcap_ISCX.csv","MachineLearningCVE/Tuesday-WorkingHours.pcap_ISCX.csv"])
-unknown_data = NetworkDataset(["MachineLearningCVE/Wednesday-workingHours.pcap_ISCX.csv"])
+
+path_to_dataset = "datasets" #put the absolute path to your dataset , type "pwd" within your dataset folder from your teminal to know this path.
+
+def getListOfCSV(path):
+    return glob.glob(path+"/*.csv")
+
+data_total = NetworkDataset(getListOfCSV(path_to_dataset),benign=True)
+unknown_data = NetworkDataset(getListOfCSV(path_to_dataset),benign=False)
 
 CLASSES = len(data_total.classes)
 
@@ -40,17 +60,20 @@ unknowns = torch.utils.data.DataLoader(dataset=unknown_data, batch_size=BATCH, s
 
 
 model = Network(CLASSES).to(device)
-soft = Evaluation.correctValCounter(CLASSES)
-odin = Evaluation.correctValCounter(CLASSES, cutoff= 0.95)
+soft = correctValCounter(CLASSES, cutoff= CUTOFF)
+odin = correctValCounter(CLASSES, cutoff= CUTOFF)
 
-if os.path.exists(NAME+"/checkpoint.pth"):
-    model.load_state_dict(torch.load(NAME+"/checkpoint.pth"))
+if os.path.exists(NAME+checkpoint):
+    model.load_state_dict(torch.load(NAME+checkpoint))
 
-epochs = 10
+
 criterion = nn.CrossEntropyLoss().to(device)
 optimizer = optim.SGD(model.parameters(), lr=0.1, momentum=0.5)
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=50, gamma=0.1)
 
+#------------------------------------------------------------------------------------------------------
+
+#---------------------------------------------Training-------------------------------------------------
 
 for e in range(epochs):
     lost_amount = 0
@@ -60,14 +83,11 @@ for e in range(epochs):
         X = (X).to(device)
         y = y.to(device)
 
-        output = model(X)
+        _, output = model(X)
         lost_points = criterion(output, y)
         optimizer.zero_grad()
         lost_points.backward()
 
-        #printing paramiters to check if they are moving
-        #for para in model.parameters():
-            #print(para.grad)
 
         optimizer.step()
         optimizer.zero_grad()
@@ -75,15 +95,20 @@ for e in range(epochs):
         lost_amount += lost_points.item()
 
     
+    #--------------------------------------------------------------------------------
+
+    #--------------------------------------Testing-----------------------------------
+
     model.eval()
     for batch,(X,y) in enumerate(testing):
         X = X.to(device)
         y = y.to("cpu")
 
 
-        output = model(X).to("cpu")
+        _, output = model(X)
+        output = output.to("cpu")
 
-        odin.odinSetup(X,model,temprature,noise)
+        odin.odinSetup(X,model,temperature,noise)
 
 
         soft.evalN(output,y)
@@ -99,14 +124,15 @@ for e in range(epochs):
     soft.zero()
     
     if e%5 == 4:
-        torch.save(model.state_dict(), NAME+"/checkpoint.pth")
+        torch.save(model.state_dict(), NAME+checkpoint)
 
     model.train()
     scheduler.step()
 
 
-#Everything past here is unknowns
+#------------------------------------------------------------------------------------------------------
 
+#---------------------------------------------Unknowns-------------------------------------------------
 
 model.eval()
 for batch,(X,y) in enumerate(unknowns):
@@ -114,12 +140,13 @@ for batch,(X,y) in enumerate(unknowns):
     y = y.to("cpu")
 
 
-    output = model(X).to("cpu")
+    _, output = model(X)
+    output = output.to("cpu")
 
-    odin.odinSetup(X,model,temprature,noise)
+    odin.odinSetup(X,model,temperature,noise)
 
-    soft.evalN(output,y, offset=26)
-    odin.evalN(output,y, offset=26, type="Odin")
+    soft.evalN(output,y, indistribution=False)
+    odin.evalN(output,y, indistribution=False, type="Odin")
 
 soft.PrintUnknownEval()
 odin.PrintUnknownEval()
@@ -127,3 +154,5 @@ soft.zero()
 odin.zero()
 
 model.train()
+
+#------------------------------------------------------------------------------------------------------
