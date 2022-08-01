@@ -4,9 +4,11 @@ from torch.utils.data import Dataset
 import numpy as np
 import glob
 
+CLASSLIST = {0: 'BENIGN', 1: 'Infiltration', 2: 'Bot', 3: 'PortScan', 4: 'DDoS', 5: 'FTP-Patator', 6: 'SSH-Patator', 7: 'DoS slowloris', 8: 'DoS Slowhttptest', 9: 'DoS Hulk', 10: 'DoS GoldenEye', 11: 'Heartbleed', 12: 'Web Attack � Brute Force', 13: 'Web Attack � XSS', 14:'Web Attack � Sql Injection'}
+
 #note, this is a very modified version of a dataloader found in https://www.youtube.com/watch?v=ZoZHd0Zm3RY
 class NetworkDataset(Dataset):
-    def __init__(self,csv_files=glob.glob("datasets/*.csv"),transforms=None, benign=None):
+    def __init__(self,csv_files=glob.glob("datasets/*.csv"),transforms=None, benign=None, ignore=None):
         self.transforms = transforms
         self.isOneHot = True
         self.lengths = []
@@ -24,6 +26,10 @@ class NetworkDataset(Dataset):
             else:
                 if benign == False:
                     csv = csv[csv[" Label"]!="BENIGN"]
+
+            if ignore is not None:
+                for i in ignore:
+                    csv = csv[csv[" Label"]!=i]
 
             csv.replace(np.inf, np.nan, inplace=True)
             csv.replace(-np.inf, np.nan, inplace=True)
