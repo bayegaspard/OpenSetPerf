@@ -4,7 +4,6 @@ import numpy as np
 from LoadRandom import RndDataset
 import torch
 import torch.utils.data
-from torchvision import transforms
 import torch.nn as nn
 import torch.optim as optim
 import matplotlib.pyplot as plt
@@ -63,8 +62,9 @@ data_total = NetworkDataset(getListOfCSV(path_to_dataset),benign=True)
 unknown_data = NetworkDataset(getListOfCSV(path_to_dataset),benign=False)
 
 CLASSES = len(data_total.classes)
+CLASSES = 1
 
-random_data = RndDataset(CLASSES,transforms=transforms.Compose([transforms.Grayscale(1),transforms.Resize((100,100)), transforms.Normalize(0.8280,0.351)]))
+random_data = RndDataset(CLASSES)
 
 data_train, data_test = torch.utils.data.random_split(data_total, [len(data_total)-1000,1000])
 

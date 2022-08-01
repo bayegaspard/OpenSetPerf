@@ -113,7 +113,8 @@ class correctValCounter():
             print(f"Correct Mean Percentage: {100*self.correct_percentage_total/correct}")
         print(f"Cutoff: {self.cutoff}")
         total_incorrect = self.count*self.classCount-correct
-        print(f"Incorrect Mean Percentage: {100*self.incorrect_percentage_total/total_incorrect}")
+        if total_incorrect!=0:
+            print(f"Incorrect Mean Percentage: {100*self.incorrect_percentage_total/total_incorrect}")
         if self.totalWrong!=0:
             print(f"Wrong Mean Percentage: {100*self.wrong_percentage_total/self.totalWrong}")
         print(f"Accuracy: {self.accuracy().mean().item()}")
