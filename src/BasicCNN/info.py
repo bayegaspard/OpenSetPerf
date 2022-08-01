@@ -1,10 +1,17 @@
-import LoadPackets
 import torch
 import glob
 
+#four lines from https://xxx-cook-book.gitbooks.io/python-cook-book/content/Import/import-from-parent-folder.html
+import sys
+import os
+root_folder = os.path.abspath(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.append(root_folder)
+
+#this seems really messy
+from HelperFunctions import LoadPackets
 
 
-path_to_dataset = "/home/designa/OpenSet-Recognition-for-NIDS/datasets" #put the absolute path to your dataset , type "pwd" within your dataset folder from your teminal to know this path.
+path_to_dataset = "datasets" #put the absolute path to your dataset , type "pwd" within your dataset folder from your teminal to know this path.
 
 def getListOfCSV(path):
     return glob.glob(path+"/*.csv")
