@@ -4,11 +4,14 @@ from torch.utils.data import Dataset
 import numpy as np
 import glob
 
+CLASSLIST = {0: 'BENIGN', 1: 'Infiltration', 2: 'Bot', 3: 'PortScan', 4: 'DDoS', 5: 'FTP-Patator', 6: 'SSH-Patator', 7: 'DoS slowloris', 8: 'DoS Slowhttptest', 9: 'DoS Hulk', 10: 'DoS GoldenEye', 11: 'Heartbleed', 12: 'Web Attack � Brute Force', 13: 'Web Attack � XSS', 14:'Web Attack � Sql Injection'}
+
 #note, this is a very modified version of a dataloader found in https://www.youtube.com/watch?v=ZoZHd0Zm3RY
 class NetworkDataset(Dataset):
-    def __init__(self,csv_files=glob.glob("datasets/*.csv"),transforms=None, benign=None):
+    def __init__(self,csv_files=glob.glob("datasets/*.csv"),transforms=None, benign=None, ignore=None):
         self.transforms = transforms
         self.isOneHot = True
+        self.lengths = []
         self.list = []
         classlist = []
         for x,_ in enumerate(csv_files):
@@ -24,6 +27,10 @@ class NetworkDataset(Dataset):
                 if benign == False:
                     csv = csv[csv[" Label"]!="BENIGN"]
 
+            if ignore is not None:
+                for i in ignore:
+                    csv = csv[csv[" Label"]!=i]
+
             csv.replace(np.inf, np.nan, inplace=True)
             csv.replace(-np.inf, np.nan, inplace=True)
             csv.fillna(-1,inplace=True)
@@ -31,6 +38,7 @@ class NetworkDataset(Dataset):
 
             csv.reset_index(drop=True,inplace=True)
             self.list.append(csv)
+            self.lengths.append(len(csv))
             #
             # 
             
@@ -49,14 +57,14 @@ class NetworkDataset(Dataset):
 
     def __len__(self):
         total = 0
-        for list in self.list:
-            total += len(list)
+        for length in self.lengths:
+            total += length
         return total
 
     def __getitem__(self, index):
         currentlist = 0
-        while index >= len(self.list[currentlist]):
-            index = index-len(self.list[currentlist])
+        while index >= self.lengths[currentlist]:
+            index = index-self.lengths[currentlist]
             currentlist += 1
 
         currentlist = self.list[currentlist]

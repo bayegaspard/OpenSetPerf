@@ -7,9 +7,6 @@ import torch.nn as nn
 import torch.optim as optim
 import matplotlib.pyplot as plt
 import os
-import OdinCodeByWetliu
-import EnergyCodeByWetliu
-import OpenMaxByMaXu
 import pandas as pd
 
 #Three lines from https://xxx-cook-book.gitbooks.io/python-cook-book/content/Import/import-from-parent-folder.html
@@ -21,6 +18,8 @@ sys.path.append(root_folder)
 from HelperFunctions.LoadPackets import NetworkDataset
 from HelperFunctions.Evaluation import correctValCounter
 from HelperFunctions.ModelLoader import Network
+import CodeFromImplementations.EnergyCodeByWetliu as EnergyCodeByWetliu
+import CodeFromImplementations.OpenMaxByMaXu as OpenMaxByMaXu
 
 #to know it started
 print("Hello, I hope you are having a nice day!")
