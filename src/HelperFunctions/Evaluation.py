@@ -48,7 +48,7 @@ class correctValCounter():
 
         if y.dim() == 2:
             y_val = torch.argmax(y, dim=1)-offset
-            y_oh = F.one_hot(y_val,self.classCount)
+            y_oh = F.one_hot(y_val,self.classCount + (1-indistribution)) #adds 1 if it is not indistribution for unknowns
         else:
             y_val = y-offset
             y_oh = F.one_hot(y_val,self.classCount)

@@ -9,6 +9,7 @@ class NetworkDataset(Dataset):
     def __init__(self,csv_files=glob.glob("datasets/*.csv"),transforms=None, benign=None):
         self.transforms = transforms
         self.isOneHot = True
+        self.lengths = []
         self.list = []
         classlist = []
         for x,_ in enumerate(csv_files):
@@ -31,6 +32,7 @@ class NetworkDataset(Dataset):
 
             csv.reset_index(drop=True,inplace=True)
             self.list.append(csv)
+            self.lengths.append(len(csv))
             #
             # 
             
@@ -49,14 +51,14 @@ class NetworkDataset(Dataset):
 
     def __len__(self):
         total = 0
-        for list in self.list:
-            total += len(list)
+        for length in self.lengths:
+            total += length
         return total
 
     def __getitem__(self, index):
         currentlist = 0
-        while index >= len(self.list[currentlist]):
-            index = index-len(self.list[currentlist])
+        while index >= self.lengths[currentlist]:
+            index = index-self.lengths[currentlist]
             currentlist += 1
 
         currentlist = self.list[currentlist]

@@ -32,7 +32,7 @@ BATCH = 5000
 CUTOFF = 0.85
 noise = 0.15
 temperature = 0.001
-epochs = 1
+epochs = 5
 checkpoint = "/checkpoint.pth"
 #------------------------------------------------------------------------------------------------------
 
@@ -47,7 +47,7 @@ path_to_dataset = "datasets" #put the absolute path to your dataset , type "pwd"
 def getListOfCSV(path):
     return glob.glob(path+"/*.csv")
 
-data_total = NetworkDataset(getListOfCSV(path_to_dataset),benign=True)
+data_total = NetworkDataset(getListOfCSV(path_to_dataset))
 unknown_data = NetworkDataset(getListOfCSV(path_to_dataset),benign=False)
 
 CLASSES = len(data_total.classes)
@@ -84,7 +84,7 @@ for e in range(epochs):
         y = y.to(device)
 
         _, output = model(X)
-        lost_points = criterion(output, y)
+        lost_points = criterion(output, y*torch.tensor([0.1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]))
         optimizer.zero_grad()
         lost_points.backward()
 
