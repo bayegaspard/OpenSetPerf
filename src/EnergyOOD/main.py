@@ -50,13 +50,13 @@ if __name__ == "__main__":
     def getListOfCSV(path):
         return glob.glob(path+"/*.csv")
 
-    data_total = NetworkDataset(getListOfCSV(path_to_dataset),benign=True)
-    unknown_data = NetworkDataset(getListOfCSV(path_to_dataset),benign=False)
+    data_total = NetworkDataset(getListOfCSV(path_to_dataset),ignore=[1,3,11,14])
+    unknown_data = NetworkDataset(getListOfCSV(path_to_dataset),ignore=[0,2,3,4,5,6,7,8,9,10,12,13])
 
 
     CLASSES = len(data_total.classes)
 
-    random_data = RndDataset(CLASSES)
+    random_data = NetworkDataset(getListOfCSV(path_to_dataset),ignore=[0,1,2,4,5,6,7,8,9,10,11,12,13,14])
 
     data_train, data_test = torch.utils.data.random_split(data_total, [len(data_total)-1000,1000])
 
@@ -88,8 +88,9 @@ if __name__ == "__main__":
     #---------------------------------------------Training-------------------------------------------------
     for e in range(epochs):
         lost_amount = 0
-        out_set = iter(rands)
+        
         for batch, (in_set) in enumerate(training):
+            out_set = iter(rands)
             X,y = in_set
             X = (X).to(device)
             y = y.to(device)

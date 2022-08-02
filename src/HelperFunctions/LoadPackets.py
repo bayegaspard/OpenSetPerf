@@ -29,7 +29,7 @@ class NetworkDataset(Dataset):
 
             if ignore is not None:
                 for i in ignore:
-                    csv = csv[csv[" Label"]!=i]
+                    csv = csv[csv[" Label"]!=CLASSLIST[i]]
 
             csv.replace(np.inf, np.nan, inplace=True)
             csv.replace(-np.inf, np.nan, inplace=True)
