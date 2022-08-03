@@ -35,7 +35,7 @@ if __name__ == "__main__":
 
     #---------------------------------------------Hyperparameters------------------------------------------
     torch.manual_seed(0) #Beware contamination of test sets
-    BATCH = 100
+    BATCH = 10000
     CUTOFF = 0.85
     ENERGYTRAINED = False
     AUTOCUTOFF = True
@@ -98,7 +98,9 @@ if __name__ == "__main__":
         model.load_state_dict(torch.load(NAME+checkpoint))
 
 
-    criterion = nn.CrossEntropyLoss().to(device)
+    criterion = nn.CrossEntropyLoss(weight=[8.3022e-02, 5.2421e+03, 9.5990e+01, 1.1874e+00, 1.4740e+00, 2.3774e+01,
+        3.2002e+01, 3.2560e+01, 3.4318e+01, 8.1670e-01, 1.8334e+01, 1.7156e+04,
+        1.2523e+02, 2.8944e+02, 8.9865e+03]).to(device)
     optimizer = optim.SGD(model.parameters(), lr=0.1, momentum=0.5)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
 

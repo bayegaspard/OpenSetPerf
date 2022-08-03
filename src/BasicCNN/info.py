@@ -1,15 +1,23 @@
-import LoadPackets
+
 import torch
 import glob
 
 
+#four lines from https://xxx-cook-book.gitbooks.io/python-cook-book/content/Import/import-from-parent-folder.html
+import os
+import sys
+root_folder = os.path.abspath(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.append(root_folder)
 
-path_to_dataset = "/home/designa/OpenSet-Recognition-for-NIDS/datasets" #put the absolute path to your dataset , type "pwd" within your dataset folder from your teminal to know this path.
+#this seems really messy
+from HelperFunctions.LoadPackets import NetworkDataset
+
+path_to_dataset = "datasets" #put the absolute path to your dataset , type "pwd" within your dataset folder from your teminal to know this path.
 
 def getListOfCSV(path):
     return glob.glob(path+"/*.csv")
 
-data_total = LoadPackets.NetworkDataset(getListOfCSV(path_to_dataset))
+data_total = NetworkDataset(getListOfCSV(path_to_dataset))
 
 CLASSES = len(data_total.classes)
 print(CLASSES)
@@ -34,5 +42,5 @@ print(f"total number of classes {sumOfY}")
 print(f"Count of each class {data_total.classes}")
 print(f"Count rows with nan {sumofNanRows}")
 print(f"Count nan in each column {nanColumns}")
-print(f"Weights to be applied: {(len(data_total)/sumOfY)/data_total.classes}")
+print(f"Weights to be applied: {(sumOfY.sum()/len(sumOfY))/sumOfY}")
 print("Done")
