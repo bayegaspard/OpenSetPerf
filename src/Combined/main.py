@@ -41,7 +41,7 @@ if __name__ == "__main__":
     AUTOCUTOFF = True
     noise = 0.3
     temperature = 9
-    epochs = 10
+    epochs = 20
     checkpoint = "/checkpoint.pth"
     #------------------------------------------------------------------------------------------------------
 
@@ -58,18 +58,18 @@ if __name__ == "__main__":
     def getListOfCSV(path):
         return glob.glob(path+"/*.csv")
 
-    data_total = NetworkDataset(getListOfCSV(path_to_dataset),benign=True)
-    unknown_data = NetworkDataset(getListOfCSV(path_to_dataset),benign=False)
+    data_total = NetworkDataset(getListOfCSV(path_to_dataset), ignore=[14])
+    unknown_data = NetworkDataset(getListOfCSV(path_to_dataset), ignore=[13,12,0])
 
     CLASSES = len(data_total.classes)
-    CLASSES = 1
+    CLASSES = 3
 
     random_data = RndDataset(CLASSES)
 
-    data_train, data_test = torch.utils.data.random_split(data_total, [len(data_total)-1000,1000])
+    data_train, data_test = torch.utils.data.random_split(data_total, [len(data_total)-10000,10000])
 
     #create the dataloaders
-    training =  torch.utils.data.DataLoader(dataset=data_train, batch_size=BATCH, shuffle=True,num_workers=1,persistent_workers=True)
+    training =  torch.utils.data.DataLoader(dataset=data_train, batch_size=BATCH, shuffle=True, num_workers=1, persistent_workers=True)
     testing = torch.utils.data.DataLoader(dataset=data_test, batch_size=BATCH, shuffle=False)
     unknowns = torch.utils.data.DataLoader(dataset=unknown_data, batch_size=BATCH, shuffle=False)
     rands = torch.utils.data.DataLoader(dataset=random_data, batch_size=BATCH, shuffle=False)
@@ -78,7 +78,7 @@ if __name__ == "__main__":
     #Loading non one hot data for OpenMax
     data_total.isOneHot = False
     data_train2, _ = torch.utils.data.random_split(data_total, [len(data_total)-1000,1000])
-    training2 = torch.utils.data.DataLoader(dataset=data_train2, batch_size=BATCH, shuffle=True)
+    training2 = torch.utils.data.DataLoader(dataset=data_train2, batch_size=BATCH, shuffle=True, num_workers=1)
     #END IMAGE LOADING
 
 
@@ -116,7 +116,7 @@ if __name__ == "__main__":
     plotter = torch.zeros((8,25))
     plotter[0] += torch.tensor([x for x in range(25)])/2.5
     plotter[1] += plotter[0]/10
-    plotter[2] += -plotter[0]
+    plotter[2] += -plotter[0]*5
     plotter[3] += plotter[0]/10
 
     #------------------------------------------------------------------------------------------------------
@@ -150,17 +150,20 @@ if __name__ == "__main__":
 
             lost_amount += lost_points.item()
 
-            
+        
         #--------------------------------------------------------------------------------
 
         #--------------------------------------Autocutoff--------------------------------
 
         model.eval()
 
-        #these three lines somehow setup for the openmax thing
-        scoresOpen, mavs, distances = OpenMaxByMaXu.compute_train_score_and_mavs_and_dists(CLASSES,training2,device,model)
-        catagories = list(range(CLASSES))
-        weibullmodel = OpenMaxByMaXu.fit_weibull(mavs,distances,catagories,tailsize=3)
+        try:
+            #these three lines somehow setup for the openmax thing
+            scoresOpen, mavs, distances = OpenMaxByMaXu.compute_train_score_and_mavs_and_dists(CLASSES,training2,device,model)
+            catagories = list(range(CLASSES))
+            weibullmodel = OpenMaxByMaXu.fit_weibull(mavs,distances,catagories,tailsize=10)
+        except:
+            weibullmodel = weibullmodel
 
         #make a call about where the cutoff is
         if AUTOCUTOFF:
@@ -168,7 +171,7 @@ if __name__ == "__main__":
 
                 #odin:
                 odin.odinSetup(X,model,temperature,noise)
-            
+        
                 #openmax
                 op.setWeibull(weibullmodel)
 
@@ -197,13 +200,13 @@ if __name__ == "__main__":
 
             _,output = model(X)
             output = output.to("cpu")
-            
+        
             #odin:
             odin.odinSetup(X,model,temperature,noise)
-            
+        
             #openmax
             op.setWeibull(weibullmodel)
-            
+        
             #Plotting
             if e == epochs-1:
                 #things that don't need to be recalculated for plotting
@@ -213,24 +216,25 @@ if __name__ == "__main__":
                 energy = torch.tensor(np.array(energy))
                 openoutmax = op.openMaxMod(output).max(dim=1)
                 odinoutmax =odin.odinMod(output).max(dim=1)[0]
+                number = len(data_test)
 
                 for a,b in enumerate(plotter[0]):
-                    plotter[4][a] += outmax.greater_equal(b).sum()/1000
-                    plotter[6][a] += energy.less_equal(plotter[2][a]).sum()/1000
-                    plotter[5][a] += (openoutmax[0].greater_equal(plotter[1][a])*(openoutmax[1]!=CLASSES)).sum()/1000
-                    plotter[7][a] += odinoutmax.greater_equal(plotter[3][a]).sum()/1000
+                    plotter[4][a] += outmax.greater_equal(b).sum()/number
+                    plotter[6][a] += energy.less_equal(plotter[2][a]).sum()/number
+                    plotter[5][a] += (openoutmax[0].greater_equal(plotter[1][a])*(openoutmax[1]!=CLASSES)).sum()/number
+                    plotter[7][a] += odinoutmax.greater_equal(plotter[3][a]).sum()/number
 
-        
+    
             soft.evalN(output,y)
             odin.evalN(output,y, type="Odin")
             eng.evalN(output, y, type="Energy")
             op.evalN(output, y, type="Open")
             optimizer.zero_grad()
-            
+        
         #--------------------------------------------------------------------------------
 
         #--------------------------------------Evaluation--------------------------------
-        
+    
         print(f"-----------------------------Epoc: {e+1}-----------------------------")
         print(f"lost: {100*lost_amount/len(data_train)}")
         print("SoftMax:")
@@ -251,7 +255,7 @@ if __name__ == "__main__":
         soft.zero()
         op.zero()
         eng.zero()
-        
+    
         if e%5 == 4:
             torch.save(model.state_dict(), NAME+checkpoint)
 
@@ -264,7 +268,7 @@ if __name__ == "__main__":
     plotter = torch.zeros((8,25))
     plotter[0] += torch.tensor([x for x in range(25)])/2.5
     plotter[1] += plotter[0]/10
-    plotter[2] += plotter[0]
+    plotter[2] += -plotter[0]*5
     plotter[3] += plotter[0]/10
 
 
@@ -276,10 +280,13 @@ if __name__ == "__main__":
 
     model.eval()
 
-    #these three lines somehow setup for the openmax thing
-    scoresOpen, mavs, distances = OpenMaxByMaXu.compute_train_score_and_mavs_and_dists(CLASSES,training2,device,model)
-    catagories = list(range(CLASSES))
-    weibullmodel = OpenMaxByMaXu.fit_weibull(mavs,distances,catagories,tailsize=10)
+    try:
+        #these three lines somehow setup for the openmax thing
+        scoresOpen, mavs, distances = OpenMaxByMaXu.compute_train_score_and_mavs_and_dists(CLASSES,training2,device,model)
+        catagories = list(range(CLASSES))
+        weibullmodel = OpenMaxByMaXu.fit_weibull(mavs,distances,catagories,tailsize=5)
+    except:
+            weibullmodel = weibullmodel
 
 
     for batch,(X,y) in enumerate(unknowns):
@@ -295,7 +302,7 @@ if __name__ == "__main__":
 
         #odin:
         odin.odinSetup(X,model,temperature,noise)
-        
+    
         #openmax
         op.setWeibull(weibullmodel)
 
@@ -306,13 +313,14 @@ if __name__ == "__main__":
         energy = torch.tensor(np.array(energy))
         openoutmax = op.openMaxMod(output).max(dim=1)
         odinoutmax =odin.odinMod(output).max(dim=1)[0]
+        number = len(unknown_data)
 
         #Plotting
         for a,b in enumerate(plotter[0]):
-            plotter[4][a] += outmax.greater_equal(b).sum()/26416
-            plotter[6][a] += energy.less_equal(plotter[2][a]).sum()/26416
-            plotter[5][a] += (openoutmax[0].greater_equal(plotter[1][a])*(openoutmax[1]!=CLASSES)).sum()/26416
-            plotter[7][a] += odinoutmax.greater_equal(plotter[3][a]).sum()/26416
+            plotter[4][a] += outmax.greater_equal(b).sum()/number
+            plotter[6][a] += energy.less_equal(plotter[2][a]).sum()/number
+            plotter[5][a] += (openoutmax[0].greater_equal(plotter[1][a])*(openoutmax[1]!=CLASSES)).sum()/number
+            plotter[7][a] += odinoutmax.greater_equal(plotter[3][a]).sum()/number
 
         soft.evalN(output,y, indistribution=False)
         odin.evalN(output,y, indistribution=False, type="Odin")
@@ -369,7 +377,7 @@ if __name__ == "__main__":
 
         #odin:
         odin.odinSetup(X,model,temperature,noise)
-        
+    
         #openmax
         op.setWeibull(weibullmodel)
         soft.evalN(output,y)

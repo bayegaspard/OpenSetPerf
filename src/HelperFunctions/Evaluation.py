@@ -55,7 +55,7 @@ class correctValCounter():
         
 
         self.count+=len(out_val)
-        self.count_by_class+=torch.bincount(y_val,minlength=self.classCount)
+        self.count_by_class+=torch.bincount(y_val,minlength=self.classCount)[:self.classCount]
 
         if unknownRejection:
             #reject from unknown, foundunknowns is a mask to be applied to the onehot vector
@@ -207,7 +207,7 @@ class correctValCounter():
         output_open = []
         for logits in percentages:
             #this is where the openmax is run, I did not create the openmax
-            output_open_new, _ = Open.openmax(self.weibullmodel, list(range(self.classCount)),logits.detach().numpy()[np.newaxis,:], 0.05, alpha=min(self.classCount, 10))
+            output_open_new, _ = Open.openmax(self.weibullmodel, list(range(self.classCount)),logits.detach().numpy()[np.newaxis,:], 0.1, alpha=min(self.classCount, 10))
             output_open.append(torch.tensor(output_open_new).unsqueeze(dim=0))
         output_open = torch.cat(output_open, dim=0)
         return output_open
