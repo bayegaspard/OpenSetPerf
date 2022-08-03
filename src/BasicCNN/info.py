@@ -16,7 +16,7 @@ path_to_dataset = "datasets" #put the absolute path to your dataset , type "pwd"
 def getListOfCSV(path):
     return glob.glob(path+"/*.csv")
 
-data_total = LoadPackets.NetworkDataset(getListOfCSV(path_to_dataset))
+data_total = LoadPackets.NetworkDataset(getListOfCSV(path_to_dataset), ignore=[14])
 
 CLASSES = len(data_total.classes)
 print(CLASSES)
@@ -41,4 +41,5 @@ print(f"total number of classes {sumOfY}")
 print(f"Count of each class {data_total.classes}")
 print(f"Count rows with nan {sumofNanRows}")
 print(f"Count nan in each column {nanColumns}")
+print(f"Weights to be applied: {(sumOfY.sum()/len(sumOfY))/sumOfY}")
 print("Done")
