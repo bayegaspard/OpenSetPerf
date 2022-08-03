@@ -53,7 +53,7 @@ if __name__ == "__main__":
 
     data_train, data_test = torch.utils.data.random_split(data_total, [len(data_total)-1000,1000])
 
-    training =  torch.utils.data.DataLoader(dataset=data_train, batch_size=BATCH, shuffle=True)
+    training =  torch.utils.data.DataLoader(dataset=data_train, batch_size=BATCH, shuffle=True, num_workers=2)
     testing = torch.utils.data.DataLoader(dataset=data_test, batch_size=BATCH, shuffle=False)
     unknowns = torch.utils.data.DataLoader(dataset=unknown_data, batch_size=BATCH, shuffle=False)
 
@@ -64,7 +64,9 @@ if __name__ == "__main__":
     if os.path.exists(NAME+checkpoint):
         model.load_state_dict(torch.load(NAME+checkpoint))
 
-    criterion = nn.CrossEntropyLoss().to(device)
+    criterion = nn.CrossEntropyLoss(weight=torch.tensor([1.0000e+00, 2.8636e+02, 3.8547e+02, 3.9218e+02, 4.1337e+02, 9.8373e+00,
+            2.2084e+02, 2.0665e+05, 1.5084e+03, 3.4863e+03, 1.0824e+05, 6.3142e+04,
+            1.1562e+03, 1.4303e+01, 1.7754e+01])[:CLASSES]).to(device)
     optimizer = optim.SGD(model.parameters(), lr=0.1, momentum=0.5)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=50, gamma=0.1)
 

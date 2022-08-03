@@ -6,7 +6,6 @@ if __name__ == "__main__":
     import torch.utils.data
     import torch.nn as nn
     import torch.optim as optim
-    import matplotlib.pyplot as plt
     import os
     from LoadRandom import RndDataset
     import glob
@@ -51,17 +50,17 @@ if __name__ == "__main__":
     def getListOfCSV(path):
         return glob.glob(path+"/*.csv")
 
-    data_total = NetworkDataset(getListOfCSV(path_to_dataset),benign=True)
-    unknown_data = NetworkDataset(getListOfCSV(path_to_dataset),benign=False)
+    data_total = NetworkDataset(getListOfCSV(path_to_dataset),ignore=[1,3,11,14])
+    unknown_data = NetworkDataset(getListOfCSV(path_to_dataset),ignore=[0,2,3,4,5,6,7,8,9,10,12,13])
 
 
     CLASSES = len(data_total.classes)
 
-    random_data = RndDataset(CLASSES)
+    random_data = NetworkDataset(getListOfCSV(path_to_dataset),ignore=[0,1,2,4,5,6,7,8,9,10,11,12,13,14])
 
     data_train, data_test = torch.utils.data.random_split(data_total, [len(data_total)-1000,1000])
 
-    training =  torch.utils.data.DataLoader(dataset=data_train, batch_size=BATCH, shuffle=True)
+    training =  torch.utils.data.DataLoader(dataset=data_train, batch_size=BATCH, shuffle=True, num_workers=1)
     testing = torch.utils.data.DataLoader(dataset=data_test, batch_size=BATCH, shuffle=False)
     unknowns = torch.utils.data.DataLoader(dataset=unknown_data, batch_size=72, shuffle=True)
     rands = torch.utils.data.DataLoader(dataset=random_data, batch_size=BATCH, shuffle=False)
@@ -78,7 +77,9 @@ if __name__ == "__main__":
         print("Loaded model checkpoint")
 
 
-    criterion = nn.CrossEntropyLoss().to(device)
+    criterion = nn.CrossEntropyLoss(weight=torch.tensor([1.0000e+00, 2.8636e+02, 3.8547e+02, 3.9218e+02, 4.1337e+02, 9.8373e+00,
+            2.2084e+02, 2.0665e+05, 1.5084e+03, 3.4863e+03, 1.0824e+05, 6.3142e+04,
+            1.1562e+03, 1.4303e+01, 1.7754e+01])[:CLASSES]).to(device)
     optimizer = optim.SGD(model.parameters(), lr=0.1, momentum=0.5)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
 
@@ -87,8 +88,9 @@ if __name__ == "__main__":
     #---------------------------------------------Training-------------------------------------------------
     for e in range(epochs):
         lost_amount = 0
-        out_set = iter(rands)
+        
         for batch, (in_set) in enumerate(training):
+            out_set = iter(rands)
             X,y = in_set
             X = (X).to(device)
             y = y.to(device)
