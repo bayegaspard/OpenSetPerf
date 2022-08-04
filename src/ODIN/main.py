@@ -1,3 +1,5 @@
+
+
 if __name__ == "__main__":
     #---------------------------------------------Imports------------------------------------------
     import numpy as np
@@ -5,7 +7,6 @@ if __name__ == "__main__":
     import torch.utils.data
     import torch.nn as nn
     import torch.optim as optim
-    import matplotlib.pyplot as plt
     import os
     import glob
 
@@ -30,6 +31,7 @@ if __name__ == "__main__":
     torch.manual_seed(0)    #beware contamination
     BATCH = 50000
     CUTOFF = 0.85
+    AUTOCUTOFF = True
     noise = 0.15
     temperature = 0.001
     epochs = 5
@@ -60,18 +62,17 @@ if __name__ == "__main__":
 
 
     model = Network(CLASSES).to(device)
-    soft = correctValCounter(CLASSES, cutoff= CUTOFF)
-    odin = correctValCounter(CLASSES, cutoff= CUTOFF)
+    soft = correctValCounter(CLASSES, cutoff= CUTOFF, confusionMat=True)
+    odin = correctValCounter(CLASSES, cutoff= CUTOFF, confusionMat=True)
 
     if os.path.exists(NAME+checkpoint):
         model.load_state_dict(torch.load(NAME+checkpoint))
 
 
-    criterion = nn.CrossEntropyLoss(weight=torch.tensor([7.8358e-02, 9.0598e+01, 1.3912e+00, 2.2438e+01,
-        3.0205e+01, 3.0731e+01, 3.2391e+01, 7.7082e-01, 1.7305e+01, 
-        1.1819e+02, 2.7318e+02])[:CLASSES]).to(device)
-    optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.5)
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=50, gamma=0.1)
+    criterion = nn.CrossEntropyLoss(weight=torch.tensor([1.0685e-01, 1.2354e+02, 1.8971e+00, 3.0598e+01, 4.1188e+01, 4.1906e+01,
+        4.4169e+01, 1.0511e+00, 2.3597e+01, 1.6117e+02, 3.7252e+02])[:CLASSES]).to(device)
+    optimizer = optim.SGD(model.parameters(), lr=0.1, momentum=0.5)
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=2, gamma=0.1)
 
     #------------------------------------------------------------------------------------------------------
 
@@ -97,7 +98,25 @@ if __name__ == "__main__":
 
             lost_amount += lost_points.item()
 
-        
+        #--------------------------------------------------------------------------------
+
+        #--------------------------------------Autocutoff--------------------------------
+        model.eval()
+
+        #make a call about where the cutoff is
+        if AUTOCUTOFF:
+            for batch, (X, y) in enumerate(training):
+
+                #odin:
+                odin.odinSetup(X,model,temperature,noise)
+
+
+                _, output = model(X)
+
+                soft.cutoffStorage(output.detach(), "Soft")
+                odin.cutoffStorage(output.detach(), "Odin")
+            soft.autocutoff(0.73)
+            odin.autocutoff(0.67)
         #--------------------------------------------------------------------------------
 
         #--------------------------------------Testing-----------------------------------
@@ -123,6 +142,8 @@ if __name__ == "__main__":
         print(f"lost: {100*lost_amount/len(data_train)}")
         soft.PrintEval()
         odin.PrintEval()
+        soft.storeConfusion("CONFUSIONSOFT.CSV")
+        odin.storeConfusion("CONFUSIONODIN.CSV")
         odin.zero()
         soft.zero()
         
