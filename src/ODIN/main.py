@@ -28,12 +28,12 @@ if __name__ == "__main__":
 
     #---------------------------------------------Hyperparameters------------------------------------------
     torch.manual_seed(0)    #beware contamination
-    BATCH = 5000
+    BATCH = 50000
     CUTOFF = 0.85
     noise = 0.15
     temperature = 0.001
     epochs = 5
-    checkpoint = "/checkpoint.pth"
+    checkpoint = "/checkpoint2.pth"
     #------------------------------------------------------------------------------------------------------
 
     #---------------------------------------------Model/data set up----------------------------------------
@@ -47,8 +47,8 @@ if __name__ == "__main__":
     def getListOfCSV(path):
         return glob.glob(path+"/*.csv")
 
-    data_total = NetworkDataset(getListOfCSV(path_to_dataset))
-    unknown_data = NetworkDataset(getListOfCSV(path_to_dataset),benign=False)
+    data_total = NetworkDataset(getListOfCSV(path_to_dataset),ignore=[1,3,11,14])
+    unknown_data = NetworkDataset(getListOfCSV(path_to_dataset),ignore=[0,2,3,4,5,6,7,8,9,10,12,13])
 
     CLASSES = len(data_total.classes)
 
@@ -67,10 +67,10 @@ if __name__ == "__main__":
         model.load_state_dict(torch.load(NAME+checkpoint))
 
 
-    criterion = nn.CrossEntropyLoss(weight=torch.tensor([1.0000e+00, 2.8636e+02, 3.8547e+02, 3.9218e+02, 4.1337e+02, 9.8373e+00,
-            2.2084e+02, 2.0665e+05, 1.5084e+03, 3.4863e+03, 1.0824e+05, 6.3142e+04,
-            1.1562e+03, 1.4303e+01, 1.7754e+01])[:CLASSES]).to(device)
-    optimizer = optim.SGD(model.parameters(), lr=0.1, momentum=0.5)
+    criterion = nn.CrossEntropyLoss(weight=torch.tensor([7.8358e-02, 9.0598e+01, 1.3912e+00, 2.2438e+01,
+        3.0205e+01, 3.0731e+01, 3.2391e+01, 7.7082e-01, 1.7305e+01, 
+        1.1819e+02, 2.7318e+02])[:CLASSES]).to(device)
+    optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.5)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=50, gamma=0.1)
 
     #------------------------------------------------------------------------------------------------------
@@ -86,6 +86,7 @@ if __name__ == "__main__":
             y = y.to(device)
 
             _, output = model(X)
+            #output = torch.nn.functional.softmax(output,dim=1)
             lost_points = criterion(output, y)
             optimizer.zero_grad()
             lost_points.backward()
@@ -147,8 +148,8 @@ if __name__ == "__main__":
 
         odin.odinSetup(X,model,temperature,noise)
 
-        soft.evalN(output,y, indistribution=False)
-        odin.evalN(output,y, indistribution=False, type="Odin")
+        soft.evalN(output,y, indistribution=False, offset=-CLASSES)
+        odin.evalN(output,y, indistribution=False, type="Odin", offset=-CLASSES)
 
     soft.PrintUnknownEval()
     odin.PrintUnknownEval()

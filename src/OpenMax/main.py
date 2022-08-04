@@ -173,8 +173,8 @@ if __name__ == "__main__":
             output = output.to("cpu")
 
 
-            soft.evalN(output,y)
-            op.evalN(output,y,type="Open")
+            soft.evalN(output,y, offset=-CLASSES)
+            op.evalN(output,y, offset=-CLASSES,type="Open")
 
         print("SoftMax:")
         soft.PrintUnknownEval()

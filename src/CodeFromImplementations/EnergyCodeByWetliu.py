@@ -6,7 +6,7 @@ import numpy as np
 
 #I have added this section because the original used an arguement parser to define args and I do not need that (or know how to use it)
 class consts:
-    def __init__(self,score="energy",m_in=-8,m_out=0,Temp=0.00001):
+    def __init__(self,score="energy",m_in=-1,m_out=0,Temp=0.00001):
         self.score = score
         #the defaults for the m_in and m_out are NOT the defaults in the arguement parser (those were too big and made the model unable to train)
         self.m_in=m_in

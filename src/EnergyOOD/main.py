@@ -168,8 +168,8 @@ if __name__ == "__main__":
                 _, output = model(X)
                 output = output.to("cpu")
 
-                soft.evalN(output,y, indistribution=False)
-                Eng.evalN(output, y, indistribution=False, type="Energy")
+                soft.evalN(output,y, offset=-CLASSES)
+                Eng.evalN(output, y, offset=-CLASSES, type="Energy")
                 
             print("SoftMax:")
             soft.PrintUnknownEval()

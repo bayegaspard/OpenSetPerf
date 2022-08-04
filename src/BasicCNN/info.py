@@ -16,7 +16,7 @@ path_to_dataset = "datasets" #put the absolute path to your dataset , type "pwd"
 def getListOfCSV(path):
     return glob.glob(path+"/*.csv")
 
-data_total = LoadPackets.NetworkDataset(getListOfCSV(path_to_dataset), ignore=[14])
+data_total = LoadPackets.NetworkDataset(getListOfCSV(path_to_dataset),ignore=[1,3,11,14])
 
 CLASSES = len(data_total.classes)
 print(CLASSES)

@@ -8,25 +8,17 @@ CLASSLIST = {0: 'BENIGN', 1: 'Infiltration', 2: 'Bot', 3: 'PortScan', 4: 'DDoS',
 
 #note, this is a very modified version of a dataloader found in https://www.youtube.com/watch?v=ZoZHd0Zm3RY
 class NetworkDataset(Dataset):
-    def __init__(self,csv_files=glob.glob("datasets/*.csv"),transforms=None, benign=None, ignore=None):
-        self.transforms = transforms
+    def __init__(self,csv_files=glob.glob("datasets/*.csv"), ignore=None):
         self.isOneHot = True
         self.lengths = []
         self.list = []
         classlist = []
         for x,_ in enumerate(csv_files):
             csv = pd.read_csv(csv_files[x],header=0)
-            #count the unique number of classes, even if you are dropping things
-            classlist.append(csv[" Label"].unique())
+            
 
-            #If I understand correctly this should allow you to sort just benign or malicious packets 
+            #this deletes anything that is in the ignored classes
             #https://stackoverflow.com/questions/18172851/deleting-dataframe-row-in-pandas-based-on-column-value
-            if benign == True:
-                csv = csv[csv[" Label"]=="BENIGN"]
-            else:
-                if benign == False:
-                    csv = csv[csv[" Label"]!="BENIGN"]
-
             if ignore is not None:
                 for i in ignore:
                     csv = csv[csv[" Label"]!=CLASSLIST[i]]
@@ -36,11 +28,14 @@ class NetworkDataset(Dataset):
             csv.fillna(-1,inplace=True)
             #csv.dropna(inplace=True)
 
+            #reindex without dropped values
             csv.reset_index(drop=True,inplace=True)
+            #add to list
             self.list.append(csv)
             self.lengths.append(len(csv))
-            #
-            # 
+
+            #count the unique number of classes
+            classlist.append(csv[" Label"].unique())
             
             
 
@@ -74,19 +69,17 @@ class NetworkDataset(Dataset):
         data = torch.tensor(data.astype(np.float))
 
         label = currentlist[" Label"][index]
-        label = self.classes[label]
+        if type(label) is str:
+            label = self.classes[label]
         label = torch.tensor(label)
 
-        #add transformations if they exist
-        if(self.transforms):
-            data = self.transforms(data)
-            #image = image/255.0
 
         #output labels are in single hot encoded vectors
         if self.isOneHot:
-            return data, np.eye(len(self.classes))[label]
-        else:
-            return data, label
+            label = np.eye(len(self.classes))[label]
+        
+
+        return data, label
 
 
 def leftOutMask(classes:int,batchsize, itemLeftOut:int):
