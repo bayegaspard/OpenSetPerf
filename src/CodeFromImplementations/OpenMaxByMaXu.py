@@ -1,6 +1,7 @@
 #From https://github.com/ma-xu/Open-Set-Recognition/blob/26a8a1cca199f4e23df98abca6893e3eef3307da/OSR/OpenMax/openmax.py
 #this code is not mine, it was created by someone called ma-xu, and it reproduces the results of the paper "Towards Open Set Deep Networks" https://www.cv-foundation.org/openaccess/content_cvpr_2016/papers/Bendale_Towards_Open_Set_CVPR_2016_paper.pdf
 #Note: is this enough recognition that this is not my code?
+#Note: I added np.unique() to line 44 because it was having trouble generating weibull models when the model outputs a lot of identical responses. NOTE: I am not sure if this is allowed or not but it gets it to work better?
 
 
 import numpy as np
@@ -41,7 +42,7 @@ def fit_weibull(means, dists, categories, tailsize=20, distance_type='eucos'):
         weibull_model[category_name]['weibull_model'] = []
         for channel in range(mean.shape[0]):
             mr = libmr.MR()
-            tailtofit = np.sort(dist[distance_type][channel, :])[-tailsize:]
+            tailtofit = np.sort(np.unique(dist[distance_type][channel, :]))[-tailsize:]
             mr.fit_high(tailtofit, len(tailtofit))
             weibull_model[category_name]['weibull_model'].append(mr)
 

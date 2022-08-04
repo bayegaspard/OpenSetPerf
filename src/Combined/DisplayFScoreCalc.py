@@ -7,9 +7,6 @@ import torch.nn as nn
 import torch.optim as optim
 import matplotlib.pyplot as plt
 import os
-import OdinCodeByWetliu
-import EnergyCodeByWetliu
-import OpenMaxByMaXu
 import pandas as pd
 
 #Three lines from https://xxx-cook-book.gitbooks.io/python-cook-book/content/Import/import-from-parent-folder.html
@@ -21,6 +18,8 @@ sys.path.append(root_folder)
 from HelperFunctions.LoadPackets import NetworkDataset
 from HelperFunctions.Evaluation import correctValCounter
 from HelperFunctions.ModelLoader import Network
+import CodeFromImplementations.EnergyCodeByWetliu as EnergyCodeByWetliu
+import CodeFromImplementations.OpenMaxByMaXu as OpenMaxByMaXu
 
 #to know it started
 print("Hello, I hope you are having a nice day!")
@@ -30,17 +29,25 @@ device = torch.device("cpu")
 if torch.cuda.is_available():
     device = torch.device("cuda:0")
 
-torch.manual_seed(0)
+#------------------------------------------------------------------------------------------------------
+
+#---------------------------------------------Hyperparameters------------------------------------------
+torch.manual_seed(0) #Beware contamination of test sets
 BATCH = 1000
 CUTOFF = 0.85
-NAME = "Combined"
 ENERGYTRAINED = False
+AUTOCUTOFF = True
 noise = 0.3
-temprature = 3
+temperature = 9
+epochs = 10
+checkpoint = "/checkpoint.pth"
+#------------------------------------------------------------------------------------------------------
 
-#START IMAGE LOADING
-#I looked up how to make a dataset, more information in the LoadImages file
-#images are from: http://www.ee.surrey.ac.uk/CVSSP/demos/chars74k/
+#---------------------------------------------Model/data set up----------------------------------------
+
+NAME = "src/"+os.path.basename(os.path.dirname(__file__))
+
+
 data_total = NetworkDataset(["MachineLearningCVE/Monday-WorkingHours.pcap_ISCX.csv","MachineLearningCVE/Tuesday-WorkingHours.pcap_ISCX.csv"])
 unknown_data = NetworkDataset(["MachineLearningCVE/Wednesday-workingHours.pcap_ISCX.csv"])
 
@@ -113,7 +120,7 @@ for batch,(X,y) in enumerate(testing):
     output = output.to("cpu")
     
     #odin:
-    odin.odinSetup(X,model,temprature,noise)
+    odin.odinSetup(X,model,temperature,noise)
     
     #openmax
     op.setWeibull(weibullmodel)
@@ -135,7 +142,7 @@ for a,b in enumerate(plotter[0]):
     odin.cutoff = plotter[3][a]
 
     #odin:
-    odin.odinSetup(XArray,model,temprature,noise)
+    odin.odinSetup(XArray,model,temperature,noise)
 
     soft.evalN(outArray,yArray)
     odin.evalN(outArray,yArray, type="Odin")
@@ -191,7 +198,7 @@ for batch,(X,y) in enumerate(unknowns):
     output = output.to("cpu")
     
     #odin:
-    odin.odinSetup(X,model,temprature,noise)
+    odin.odinSetup(X,model,temperature,noise)
     
     #openmax
     op.setWeibull(weibullmodel)
@@ -213,7 +220,7 @@ for a,b in enumerate(plotter[0]):
     odin.cutoff = plotter[3][a]
 
     #odin:
-    odin.odinSetup(XArray,model,temprature,noise)
+    odin.odinSetup(XArray,model,temperature,noise)
 
     soft.evalN(output,y, offset=0, indistribution=False)
     odin.evalN(output,y, offset=0, indistribution=False, type="Odin")
