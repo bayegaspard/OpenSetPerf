@@ -41,5 +41,7 @@ print(f"total number of classes {sumOfY}")
 print(f"Count of each class {data_total.classes}")
 print(f"Count rows with nan {sumofNanRows}")
 print(f"Count nan in each column {nanColumns}")
+
+#Equation gotten from: https://youtu.be/Kp31wfHpG2c?t=242
 print(f"Weights to be applied: {(sumOfY.sum()/len(sumOfY))/sumOfY}")
 print("Done")
