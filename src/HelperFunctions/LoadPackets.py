@@ -12,6 +12,7 @@ class NetworkDataset(Dataset):
         self.isOneHot = True
         self.lengths = []
         self.list = []
+        self.holdout = pd.DataFrame()
         classlist = []
         for x,_ in enumerate(csv_files):
             csv = pd.read_csv(csv_files[x],header=0)
@@ -28,6 +29,10 @@ class NetworkDataset(Dataset):
             csv.fillna(-1,inplace=True)
             #csv.dropna(inplace=True)
 
+            uniqueLabels = csv[" Label"].unique()
+            for classname in uniqueLabels:
+                self.holdout = pd.concat([self.holdout,csv[csv[" Label"]==classname].head()])
+
             #reindex without dropped values
             csv.reset_index(drop=True,inplace=True)
             #add to list
@@ -35,7 +40,7 @@ class NetworkDataset(Dataset):
             self.lengths.append(len(csv))
 
             #count the unique number of classes
-            classlist.append(csv[" Label"].unique())
+            classlist.append(uniqueLabels)
             
             
 

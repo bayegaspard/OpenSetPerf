@@ -34,7 +34,7 @@ if __name__ == "__main__":
     AUTOCUTOFF = True
     noise = 0.15
     temperature = 0.001
-    epochs = 5
+    epochs = 1
     checkpoint = "/checkpoint2.pth"
     #------------------------------------------------------------------------------------------------------
 
@@ -54,7 +54,7 @@ if __name__ == "__main__":
 
     CLASSES = len(data_total.classes)
 
-    data_train, data_test = torch.utils.data.random_split(data_total, [len(data_total)-1000,1000])
+    data_train, data_test = torch.utils.data.random_split(data_total, [len(data_total)-10000,10000])
 
     training =  torch.utils.data.DataLoader(dataset=data_train, batch_size=BATCH, shuffle=True, num_workers=1)
     testing = torch.utils.data.DataLoader(dataset=data_test, batch_size=BATCH, shuffle=False)

@@ -152,7 +152,7 @@ if __name__ == "__main__":
         #--------------------------------------------------------------------------------
 
         #--------------------------------------Autocutoff--------------------------------
-        if e > 2:
+        try:
             model.eval()
 
             try:
@@ -259,6 +259,9 @@ if __name__ == "__main__":
 
             model.train()
             scheduler.step()
+        except:
+            print("doge")
+    
 
 
     #Everything past here is unknowns
@@ -284,7 +287,7 @@ if __name__ == "__main__":
         catagories = list(range(CLASSES))
         weibullmodel = OpenMaxByMaXu.fit_weibull(mavs,distances,catagories,tailsize=5)
     except:
-            weibullmodel = weibullmodel
+        weibullmodel = weibullmodel
 
 
     for batch,(X,y) in enumerate(unknowns):
