@@ -145,3 +145,5 @@ if __name__ == "__main__":
             evaluative.zero()
             
             model.train()
+
+    print(f"Program took: {time.time() - start_time}")
