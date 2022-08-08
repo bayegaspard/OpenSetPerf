@@ -84,7 +84,7 @@ class NetworkDataset(Dataset):
             label = np.eye(len(self.classes))[label]
         
 
-        return data, label
+        return data.double(), label
 
 
     def getHoldout(self):
