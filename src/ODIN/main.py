@@ -1,3 +1,5 @@
+
+
 if __name__ == "__main__":
     #---------------------------------------------Imports------------------------------------------
     import numpy as np
@@ -5,7 +7,6 @@ if __name__ == "__main__":
     import torch.utils.data
     import torch.nn as nn
     import torch.optim as optim
-    import matplotlib.pyplot as plt
     import os
     import glob
 
@@ -28,12 +29,13 @@ if __name__ == "__main__":
 
     #---------------------------------------------Hyperparameters------------------------------------------
     torch.manual_seed(0)    #beware contamination
-    BATCH = 5000
+    BATCH = 50000
     CUTOFF = 0.85
+    AUTOCUTOFF = True
     noise = 0.15
     temperature = 0.001
-    epochs = 5
-    checkpoint = "/checkpoint.pth"
+    epochs = 1
+    checkpoint = "/checkpoint2.pth"
     #------------------------------------------------------------------------------------------------------
 
     #---------------------------------------------Model/data set up----------------------------------------
@@ -47,12 +49,12 @@ if __name__ == "__main__":
     def getListOfCSV(path):
         return glob.glob(path+"/*.csv")
 
-    data_total = NetworkDataset(getListOfCSV(path_to_dataset))
-    unknown_data = NetworkDataset(getListOfCSV(path_to_dataset),benign=False)
+    data_total = NetworkDataset(getListOfCSV(path_to_dataset),ignore=[1,3,11,14])
+    unknown_data = NetworkDataset(getListOfCSV(path_to_dataset),ignore=[0,2,3,4,5,6,7,8,9,10,12,13])
 
     CLASSES = len(data_total.classes)
 
-    data_train, data_test = torch.utils.data.random_split(data_total, [len(data_total)-1000,1000])
+    data_train, data_test = torch.utils.data.random_split(data_total, [len(data_total)-10000,10000])
 
     training =  torch.utils.data.DataLoader(dataset=data_train, batch_size=BATCH, shuffle=True, num_workers=1)
     testing = torch.utils.data.DataLoader(dataset=data_test, batch_size=BATCH, shuffle=False)
@@ -60,18 +62,17 @@ if __name__ == "__main__":
 
 
     model = Network(CLASSES).to(device)
-    soft = correctValCounter(CLASSES, cutoff= CUTOFF)
-    odin = correctValCounter(CLASSES, cutoff= CUTOFF)
+    soft = correctValCounter(CLASSES, cutoff= CUTOFF, confusionMat=True)
+    odin = correctValCounter(CLASSES, cutoff= CUTOFF, confusionMat=True)
 
     if os.path.exists(NAME+checkpoint):
         model.load_state_dict(torch.load(NAME+checkpoint))
 
 
-    criterion = nn.CrossEntropyLoss(weight=torch.tensor([1.0000e+00, 2.8636e+02, 3.8547e+02, 3.9218e+02, 4.1337e+02, 9.8373e+00,
-            2.2084e+02, 2.0665e+05, 1.5084e+03, 3.4863e+03, 1.0824e+05, 6.3142e+04,
-            1.1562e+03, 1.4303e+01, 1.7754e+01])[:CLASSES]).to(device)
+    criterion = nn.CrossEntropyLoss(weight=torch.tensor([1.0685e-01, 1.2354e+02, 1.8971e+00, 3.0598e+01, 4.1188e+01, 4.1906e+01,
+        4.4169e+01, 1.0511e+00, 2.3597e+01, 1.6117e+02, 3.7252e+02])[:CLASSES]).to(device)
     optimizer = optim.SGD(model.parameters(), lr=0.1, momentum=0.5)
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=50, gamma=0.1)
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=2, gamma=0.1)
 
     #------------------------------------------------------------------------------------------------------
 
@@ -86,6 +87,7 @@ if __name__ == "__main__":
             y = y.to(device)
 
             _, output = model(X)
+            #output = torch.nn.functional.softmax(output,dim=1)
             lost_points = criterion(output, y)
             optimizer.zero_grad()
             lost_points.backward()
@@ -96,7 +98,25 @@ if __name__ == "__main__":
 
             lost_amount += lost_points.item()
 
-        
+        #--------------------------------------------------------------------------------
+
+        #--------------------------------------Autocutoff--------------------------------
+        model.eval()
+
+        #make a call about where the cutoff is
+        if AUTOCUTOFF:
+            for batch, (X, y) in enumerate(training):
+
+                #odin:
+                odin.odinSetup(X,model,temperature,noise)
+
+
+                _, output = model(X)
+
+                soft.cutoffStorage(output.detach(), "Soft")
+                odin.cutoffStorage(output.detach(), "Odin")
+            soft.autocutoff(0.73)
+            odin.autocutoff(0.67)
         #--------------------------------------------------------------------------------
 
         #--------------------------------------Testing-----------------------------------
@@ -122,6 +142,8 @@ if __name__ == "__main__":
         print(f"lost: {100*lost_amount/len(data_train)}")
         soft.PrintEval()
         odin.PrintEval()
+        soft.storeConfusion("CONFUSIONSOFT.CSV")
+        odin.storeConfusion("CONFUSIONODIN.CSV")
         odin.zero()
         soft.zero()
         
@@ -147,8 +169,8 @@ if __name__ == "__main__":
 
         odin.odinSetup(X,model,temperature,noise)
 
-        soft.evalN(output,y, indistribution=False)
-        odin.evalN(output,y, indistribution=False, type="Odin")
+        soft.evalN(output,y, indistribution=False, offset=-CLASSES)
+        odin.evalN(output,y, indistribution=False, type="Odin", offset=-CLASSES)
 
     soft.PrintUnknownEval()
     odin.PrintUnknownEval()

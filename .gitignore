@@ -10,3 +10,5 @@
 *.DS_Store
 test.py
 *.pyc
+src/SyntheticDataMine.py
+src/SyntheticDataSMOTE.py

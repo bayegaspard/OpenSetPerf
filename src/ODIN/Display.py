@@ -4,7 +4,6 @@ import torch.utils.data
 import torch.nn as nn
 import torch.optim as optim
 import matplotlib.pyplot as plt
-import EvaluationDisplay
 import os
 import OdinCodeByWetliu
 import glob
@@ -16,8 +15,8 @@ sys.path.append(root_folder)
 
 #this seems really messy
 from HelperFunctions.LoadPackets import NetworkDataset
-from HelperFunctions.Evaluation import correctValCounter
 from HelperFunctions.ModelLoader import Network
+from HelperFunctions.EvaluationDisplay import EvaluationWithPlots
 
 
 #pick a device
@@ -39,8 +38,9 @@ path_to_dataset = "datasets" #put the absolute path to your dataset , type "pwd"
 def getListOfCSV(path):
     return glob.glob(path+"/*.csv")
 
-data_total = NetworkDataset(getListOfCSV(path_to_dataset),benign=True)
-unknown_data = NetworkDataset(getListOfCSV(path_to_dataset),benign=False)
+
+data_total = NetworkDataset(getListOfCSV(path_to_dataset),ignore=[1,3,11,14])
+unknown_data = NetworkDataset(getListOfCSV(path_to_dataset),ignore=[0,2,3,4,5,6,7,8,9,10,12,13])
 
 CLASSES = len(data_total.classes)
 
@@ -52,8 +52,9 @@ unknowns = torch.utils.data.DataLoader(dataset=unknown_data, batch_size=BATCH, s
 
 
 model = Network(CLASSES).to(device)
-soft = correctValCounter(CLASSES)
-odin = EvaluationDisplay.correctValCounter(CLASSES,cutoff=0.5)
+model.openMax=False
+soft = EvaluationWithPlots(CLASSES)
+odin = EvaluationWithPlots(CLASSES,cutoff=0.5)
 
 if os.path.exists(NAME+"/checkpoint.pth"):
     model.load_state_dict(torch.load(NAME+"/checkpoint.pth"))
@@ -77,6 +78,7 @@ for e in range(epochs):
         y = y.to(device)
 
         output = model(X)
+
         lost_points = criterion(output, y)
         optimizer.zero_grad()
         lost_points.backward()
@@ -101,13 +103,11 @@ for e in range(epochs):
         X = X.to(device)
         y = y.to("cpu")
 
-        output = model(X).to("cpu")
-        if (batch+1)*BATCH <= len(scores[0]):
-            odin.odinUnknownSave(scores[0][BATCH*batch:BATCH*(batch+1)])
-            #odin.cutoffPlotVals(scores[0][BATCH*batch:BATCH*(batch+1)])
-        else:
-            odin.odinUnknownSave(scores[0][BATCH*batch:])
-            #odin.cutoffPlotVals(scores[0][BATCH*batch:])
+        output = model(X)
+        output = output.to("cpu")
+        #odin:
+        odin.odinSetup(X,model,temperature,noise)
+
         soft.evalN(output.detach(),y)
         odin.evalN(output.detach(),y, type="Odin")
         
@@ -145,18 +145,15 @@ for batch,(X,y) in enumerate(unknowns):
     X = (X).to(device)
     y = y.to("cpu")
 
-    output = model(X).to("cpu")
+    output = model(X)
+    output = output.to("cpu")
 
-    if (batch+1)*BATCH < len(scores):
-        odin.odinUnknownSave(scores[BATCH*batch:BATCH*(batch+1)])
-        #odin.cutoffPlotVals(scores[BATCH*batch:BATCH*(batch+1)])
-    else:
-        odin.odinUnknownSave(scores[BATCH*batch:])
-        #odin.cutoffPlotVals(scores[BATCH*batch:])
-    
+    #odin:
+    odin.odinSetup(X,model,temperature,noise)
 
-    soft.evalN(output,y, offset=26)
-    odin.evalN(output,y, offset=26, type="Odin")
+
+    soft.evalN(output,y, offset=-CLASSES)
+    odin.evalN(output,y, offset=-CLASSES, type="Odin")
     
 
 soft.PrintUnknownEval()

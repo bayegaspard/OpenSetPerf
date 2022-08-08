@@ -58,11 +58,10 @@ if __name__ == "__main__":
     def getListOfCSV(path):
         return glob.glob(path+"/*.csv")
 
-    data_total = NetworkDataset(getListOfCSV(path_to_dataset), ignore=[14])
-    unknown_data = NetworkDataset(getListOfCSV(path_to_dataset), ignore=[13,12,0])
+    data_total = NetworkDataset(getListOfCSV(path_to_dataset),ignore=[1,3,11,14])
+    unknown_data = NetworkDataset(getListOfCSV(path_to_dataset),ignore=[0,2,3,4,5,6,7,8,9,10,12,13])
 
     CLASSES = len(data_total.classes)
-    CLASSES = 3
 
     random_data = RndDataset(CLASSES)
 
@@ -98,16 +97,15 @@ if __name__ == "__main__":
         model.load_state_dict(torch.load(NAME+checkpoint))
 
 
-    criterion = nn.CrossEntropyLoss(weight=[8.3022e-02, 5.2421e+03, 9.5990e+01, 1.1874e+00, 1.4740e+00, 2.3774e+01,
-        3.2002e+01, 3.2560e+01, 3.4318e+01, 8.1670e-01, 1.8334e+01, 1.7156e+04,
-        1.2523e+02, 2.8944e+02, 8.9865e+03]).to(device)
+    criterion = nn.CrossEntropyLoss(weight=torch.tensor([1.0685e-01, 1.2354e+02, 1.8971e+00, 3.0598e+01, 4.1188e+01, 4.1906e+01,
+        4.4169e+01, 1.0511e+00, 2.3597e+01, 1.6117e+02, 3.7252e+02])).to(device)
     optimizer = optim.SGD(model.parameters(), lr=0.1, momentum=0.5)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
 
     #making the items that appear less frequently have a higher penalty so that they are not missed.
-    # magnification = torch.tensor([1.0000e+00, 2.8636e+02, 3.8547e+02, 3.9218e+02, 4.1337e+02, 9.8373e+00,
+    # weight=torch.tensor([1.0000e+00, 2.8636e+02, 3.8547e+02, 3.9218e+02, 4.1337e+02, 9.8373e+00,
     #         2.2084e+02, 2.0665e+05, 1.5084e+03, 3.4863e+03, 1.0824e+05, 6.3142e+04,
-    #         1.1562e+03, 1.4303e+01, 1.7754e+01])[:CLASSES]
+    #         1.1562e+03, 1.4303e+01, 1.7754e+01])
 
     #------------------------------------------------------------------------------------------------------
 
@@ -154,113 +152,116 @@ if __name__ == "__main__":
         #--------------------------------------------------------------------------------
 
         #--------------------------------------Autocutoff--------------------------------
-
-        model.eval()
-
         try:
-            #these three lines somehow setup for the openmax thing
-            scoresOpen, mavs, distances = OpenMaxByMaXu.compute_train_score_and_mavs_and_dists(CLASSES,training2,device,model)
-            catagories = list(range(CLASSES))
-            weibullmodel = OpenMaxByMaXu.fit_weibull(mavs,distances,catagories,tailsize=10)
-        except:
-            weibullmodel = weibullmodel
+            model.eval()
 
-        #make a call about where the cutoff is
-        if AUTOCUTOFF:
-            for batch, (X, y) in enumerate(training):
+            try:
+                #these three lines somehow setup for the openmax thing
+                scoresOpen, mavs, distances = OpenMaxByMaXu.compute_train_score_and_mavs_and_dists(CLASSES,training2,device,model)
+                catagories = list(range(CLASSES))
+                weibullmodel = OpenMaxByMaXu.fit_weibull(mavs,distances,catagories,tailsize=10)
+            except:
+                weibullmodel = weibullmodel
 
+            #make a call about where the cutoff is
+            if AUTOCUTOFF:
+                for batch, (X, y) in enumerate(training):
+
+                    #odin:
+                    odin.odinSetup(X,model,temperature,noise)
+            
+                    #openmax
+                    op.setWeibull(weibullmodel)
+
+                    _, output = model(X)
+
+                    soft.cutoffStorage(output.detach(), "Soft")
+                    eng.cutoffStorage(output.detach(), "Energy")
+                    op.cutoffStorage(output.detach(), "Open")
+                    odin.cutoffStorage(output.detach(), "Odin")
+                soft.autocutoff(0.73)
+                eng.autocutoff(0.76)    
+                op.autocutoff(0.85)
+                odin.autocutoff(0.67)
+
+
+            #--------------------------------------------------------------------------------
+
+            #--------------------------------------Testing-----------------------------------
+
+            for batch,(X,y) in enumerate(testing):
+                print(f"Batch: {batch}")
+                X = X.to(device)
+                y = y.to("cpu")
+
+
+
+                _,output = model(X)
+                output = output.to("cpu")
+            
                 #odin:
                 odin.odinSetup(X,model,temperature,noise)
-        
+            
                 #openmax
                 op.setWeibull(weibullmodel)
+            
+                #Plotting
+                if e == epochs-1:
+                    #things that don't need to be recalculated for plotting
+                    outmax = output.max(dim=1)[0]
+                    energy = []
+                    EnergyCodeByWetliu.energyScoreCalc(energy,output)
+                    energy = torch.tensor(np.array(energy))
+                    openoutmax = op.openMaxMod(output).max(dim=1)
+                    odinoutmax =odin.odinMod(output).max(dim=1)[0]
+                    number = len(data_test)
 
-                _, output = model(X)
+                    for a,b in enumerate(plotter[0]):
+                        plotter[4][a] += outmax.greater_equal(b).sum()/number
+                        plotter[6][a] += energy.less_equal(plotter[2][a]).sum()/number
+                        plotter[5][a] += (openoutmax[0].greater_equal(plotter[1][a])*(openoutmax[1]!=CLASSES)).sum()/number
+                        plotter[7][a] += odinoutmax.greater_equal(plotter[3][a]).sum()/number
 
-                soft.cutoffStorage(output.detach(), "Soft")
-                eng.cutoffStorage(output.detach(), "Energy")
-                op.cutoffStorage(output.detach(), "Open")
-                odin.cutoffStorage(output.detach(), "Odin")
-            soft.autocutoff(0.73)
-            eng.autocutoff(0.76)    
-            op.autocutoff(0.85)
-            odin.autocutoff(0.67)
-
-
-        #--------------------------------------------------------------------------------
-
-        #--------------------------------------Testing-----------------------------------
-
-        for batch,(X,y) in enumerate(testing):
-            print(f"Batch: {batch}")
-            X = X.to(device)
-            y = y.to("cpu")
-
-
-
-            _,output = model(X)
-            output = output.to("cpu")
         
-            #odin:
-            odin.odinSetup(X,model,temperature,noise)
-        
-            #openmax
-            op.setWeibull(weibullmodel)
-        
-            #Plotting
-            if e == epochs-1:
-                #things that don't need to be recalculated for plotting
-                outmax = output.max(dim=1)[0]
-                energy = []
-                EnergyCodeByWetliu.energyScoreCalc(energy,output)
-                energy = torch.tensor(np.array(energy))
-                openoutmax = op.openMaxMod(output).max(dim=1)
-                odinoutmax =odin.odinMod(output).max(dim=1)[0]
-                number = len(data_test)
+                soft.evalN(output,y)
+                odin.evalN(output,y, type="Odin")
+                eng.evalN(output, y, type="Energy")
+                op.evalN(output, y, type="Open")
+                optimizer.zero_grad()
+            
+            #--------------------------------------------------------------------------------
 
-                for a,b in enumerate(plotter[0]):
-                    plotter[4][a] += outmax.greater_equal(b).sum()/number
-                    plotter[6][a] += energy.less_equal(plotter[2][a]).sum()/number
-                    plotter[5][a] += (openoutmax[0].greater_equal(plotter[1][a])*(openoutmax[1]!=CLASSES)).sum()/number
-                    plotter[7][a] += odinoutmax.greater_equal(plotter[3][a]).sum()/number
+            #--------------------------------------Evaluation--------------------------------
+        
+            print(f"-----------------------------Epoc: {e+1}-----------------------------")
+            print(f"lost: {100*lost_amount/len(data_train)}")
+            print("SoftMax:")
+            soft.PrintEval()
+            print("OpenMax:")
+            op.PrintEval()
+            print("Energy:")
+            eng.PrintEval()
+            print("ODIN:")
+            odin.PrintEval()
 
+            #save data
+            df = pd.DataFrame(plotter.numpy(), columns=plotter[0].numpy(), index=["SoftVal", "OpenVal", "EnergyVal", "ODINVal", "Soft", "Open", "Energy", "ODIN"])
+            df = df.transpose()
+            df.to_csv("Scores for In distribution.csv")
+
+            odin.zero()
+            soft.zero()
+            op.zero()
+            eng.zero()
+        
+            if e%5 == 4:
+                torch.save(model.state_dict(), NAME+checkpoint)
+
+            model.train()
+            scheduler.step()
+        except:
+            print("doge")
     
-            soft.evalN(output,y)
-            odin.evalN(output,y, type="Odin")
-            eng.evalN(output, y, type="Energy")
-            op.evalN(output, y, type="Open")
-            optimizer.zero_grad()
-        
-        #--------------------------------------------------------------------------------
-
-        #--------------------------------------Evaluation--------------------------------
-    
-        print(f"-----------------------------Epoc: {e+1}-----------------------------")
-        print(f"lost: {100*lost_amount/len(data_train)}")
-        print("SoftMax:")
-        soft.PrintEval()
-        print("OpenMax:")
-        op.PrintEval()
-        print("Energy:")
-        eng.PrintEval()
-        print("ODIN:")
-        odin.PrintEval()
-
-        #save data
-        df = pd.DataFrame(plotter.numpy(), columns=plotter[0].numpy(), index=["SoftVal", "OpenVal", "EnergyVal", "ODINVal", "Soft", "Open", "Energy", "ODIN"])
-        df = df.transpose()
-        df.to_csv("Scores for In distribution.csv")
-
-        odin.zero()
-        soft.zero()
-        op.zero()
-        eng.zero()
-    
-        if e%5 == 4:
-            torch.save(model.state_dict(), NAME+checkpoint)
-
-        model.train()
-        scheduler.step()
 
 
     #Everything past here is unknowns
@@ -286,7 +287,7 @@ if __name__ == "__main__":
         catagories = list(range(CLASSES))
         weibullmodel = OpenMaxByMaXu.fit_weibull(mavs,distances,catagories,tailsize=5)
     except:
-            weibullmodel = weibullmodel
+        weibullmodel = weibullmodel
 
 
     for batch,(X,y) in enumerate(unknowns):
@@ -322,10 +323,10 @@ if __name__ == "__main__":
             plotter[5][a] += (openoutmax[0].greater_equal(plotter[1][a])*(openoutmax[1]!=CLASSES)).sum()/number
             plotter[7][a] += odinoutmax.greater_equal(plotter[3][a]).sum()/number
 
-        soft.evalN(output,y, indistribution=False)
-        odin.evalN(output,y, indistribution=False, type="Odin")
-        op.evalN(output,y, indistribution=False, type="Open")
-        eng.evalN(output,y, indistribution=False, type="Energy")
+        soft.evalN(output,y, offset=-CLASSES)
+        odin.evalN(output,y, offset=-CLASSES, type="Odin")
+        op.evalN(output,y, offset=-CLASSES, type="Open")
+        eng.evalN(output,y, offset=-CLASSES, type="Energy")
         optimizer.zero_grad()
 
 

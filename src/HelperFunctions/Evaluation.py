@@ -48,7 +48,7 @@ class correctValCounter():
 
         if y.dim() == 2:
             y_val = torch.argmax(y, dim=1)-offset
-            y_oh = F.one_hot(y_val,self.classCount + (1-self.indistribution))[:,:self.classCount] #adds 1 if it is not indistribution for unknowns
+            y_oh = F.one_hot(y_val,max(y_val.max().item(),self.classCount)+1)[:,:self.classCount]
         else:
             y_val = y-offset
             y_oh = F.one_hot(y_val,self.classCount)
@@ -79,10 +79,21 @@ class correctValCounter():
         #confusion matrix
         if self.conf:
             for num, x in enumerate(zip(y_val,out_val)):
-                if out_oh[num].max().item() != 0:
-                    self.matrix[x[0].item()][x[1].item()+1] += 1
+                #Correct value
+                if x[0] >= self.classCount:
+                    x0 = 0
                 else:
-                    self.matrix[x[0].item()][0] += 1
+                    x0 = x[0] +1
+
+                #Guessed value
+                if out_oh[num].max().item() == 0:
+                    x1 = 0
+                else:
+                    x1 = x[1] +1
+
+                #0 is unknowns
+                self.matrix[x0][x1] += 1
+
 
 
         #totals the number of times each class was guessed
@@ -155,7 +166,7 @@ class correctValCounter():
         #data storage stuff
         self.plotPercentageList = []
         if self.conf:
-            self.matrix = torch.zeros((self.classCount,self.classCount+1))
+            self.matrix = torch.zeros((self.classCount+1,self.classCount+1))
         self.highestPercentStorage = torch.zeros(1)
         
 
