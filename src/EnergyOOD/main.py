@@ -1,4 +1,7 @@
 #https://github.com/wetliu/energy_ood <- associated paper
+import time
+start_time = time.time()
+
 if __name__ == "__main__":
     #---------------------------------------------Imports------------------------------------------
     import numpy as np
@@ -25,11 +28,11 @@ if __name__ == "__main__":
 
     #---------------------------------------------Hyperparameters------------------------------------------
     torch.manual_seed(0)
-    BATCH = 500
+    BATCH = 5000
     CUTOFF = 0.9999999
-    epochs = 10
+    epochs = 1
     temperature = 0.001
-    checkpoint = "/checkpoint.pth"
+    checkpoint = "/checkpoint2.pth"
     #------------------------------------------------------------------------------------------------------
 
     #---------------------------------------------Model/data set up----------------------------------------
@@ -58,7 +61,7 @@ if __name__ == "__main__":
 
     random_data = NetworkDataset(getListOfCSV(path_to_dataset),ignore=[0,1,2,4,5,6,7,8,9,10,11,12,13,14])
 
-    data_train, data_test = torch.utils.data.random_split(data_total, [len(data_total)-1000,1000])
+    data_train, data_test = torch.utils.data.random_split(data_total, [len(data_total)-10000,10000])
 
     training =  torch.utils.data.DataLoader(dataset=data_train, batch_size=BATCH, shuffle=True, num_workers=1)
     testing = torch.utils.data.DataLoader(dataset=data_test, batch_size=BATCH, shuffle=False)
@@ -79,13 +82,17 @@ if __name__ == "__main__":
 
     criterion = nn.CrossEntropyLoss(weight=torch.tensor([1.0685e-01, 1.2354e+02, 1.8971e+00, 3.0598e+01, 4.1188e+01, 4.1906e+01,
         4.4169e+01, 1.0511e+00, 2.3597e+01, 1.6117e+02, 3.7252e+02])[:CLASSES]).to(device)
-    optimizer = optim.SGD(model.parameters(), lr=0.1, momentum=0.5)
+    optimizer = optim.SGD(model.parameters(), lr=0.05, momentum=0.5)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
+
+    #for timing
+    epoch_avrg = 0
 
     #------------------------------------------------------------------------------------------------------
 
     #---------------------------------------------Training-------------------------------------------------
     for e in range(epochs):
+        epoch_start = time.time()
         lost_amount = 0
         
         for batch, (in_set) in enumerate(training):
@@ -109,11 +116,15 @@ if __name__ == "__main__":
             lost_amount += lost_points.item()
 
 
-            # soft.cutoffStorage(output[:len(X)].detach(), "Soft")
-            # Eng.cutoffStorage(output[:len(X)].detach(), "Energy")
+            soft.cutoffStorage(output[:len(X)].detach(), "Soft")
+            Eng.cutoffStorage(output[:len(X)].detach(), "Energy")
 
-        # soft.autocutoff()
-        # Eng.autocutoff()
+        soft.autocutoff()
+        Eng.autocutoff()
+
+        epoch_time = time.time() - epoch_start
+        epoch_avrg = (epoch_avrg*e + time.time())/(e+1)
+        print(f"Epoch took: {epoch_time} seconds")
 
         #--------------------------------------------------------------------------------
 
@@ -181,3 +192,4 @@ if __name__ == "__main__":
             Eng.zero()
 
             model.train()
+    print(f"Program took: {time.time() - start_time}")

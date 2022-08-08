@@ -84,7 +84,16 @@ class NetworkDataset(Dataset):
             label = np.eye(len(self.classes))[label]
         
 
-        return data, label
+        return data.double(), label
+
+
+    def getHoldout(self):
+        data = self.holdout[:,len(self.holdout[0])-1].to_numpy()
+        labels = np.array()
+        for x in self.holdout:
+            labels += self.classes[x[len(x)]]
+
+        return zip(data,labels)
 
 
 def leftOutMask(classes:int,batchsize, itemLeftOut:int):

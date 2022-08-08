@@ -103,6 +103,8 @@ for e in range(epochs):
         X = X.to(device)
         y = y.to("cpu")
 
+        model.openMax = False
+
         output = model(X)
         output = output.to("cpu")
         #odin:
@@ -137,6 +139,7 @@ plotter[1] += ((torch.tensor([x+1 for x in range(15)])/5))
 model.eval()
 
 for a,b in enumerate(plotter[1]):
+    model.openMax = False
     scores = OdinCodeByWetliu.get_ood_scores_odin(unknowns,model,BATCH,BATCH*len(unknowns),T=temperature,noise=b,in_dist=False)
     plotter[0][a] += scores.sum()
 
@@ -145,11 +148,13 @@ for batch,(X,y) in enumerate(unknowns):
     X = (X).to(device)
     y = y.to("cpu")
 
+    model.openMax = False
     output = model(X)
     output = output.to("cpu")
 
     #odin:
     odin.odinSetup(X,model,temperature,noise)
+    
 
 
     soft.evalN(output,y, offset=-CLASSES)
