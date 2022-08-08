@@ -1,3 +1,6 @@
+import time
+start_time = time.time()
+
 if __name__ == "__main__":
     #---------------------------------------------Imports------------------------------------------
     import numpy as np
@@ -29,8 +32,9 @@ if __name__ == "__main__":
 
     #---------------------------------------------Hyperparameters------------------------------------------
     torch.manual_seed(0)
-    BATCH = 500
+    BATCH = 5000
     CUTOFF = 0.1
+    AUTOCUTOFF = True
     epochs = 1
     checkpoint = "/checkpoint.pth"
     #------------------------------------------------------------------------------------------------------
@@ -78,12 +82,16 @@ if __name__ == "__main__":
     optimizer = optim.SGD(model.parameters(), lr=0.1, momentum=0.5)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=50, gamma=0.1)
 
+    #for timing
+    epoch_avrg = 0
+
     #------------------------------------------------------------------------------------------------------
 
     #---------------------------------------------Training-------------------------------------------------
 
     for e in range(epochs+1):
         lost_amount = 0
+        epoch_start = time.time()
         for batch, (X, y) in enumerate(training):
             X = X.to(device)
             y = y.to(device)
@@ -98,23 +106,47 @@ if __name__ == "__main__":
 
             lost_amount += lost_points.item()
 
+        epoch_time = time.time() - epoch_start
+        epoch_avrg = (epoch_avrg*e + time.time())/(e+1)
+        print(f"Epoch took: {epoch_time} seconds")
+
+#       --------------------------------------------------------------------------------
+
+        #--------------------------------------Autocutoff--------------------------------
+        model.eval()
+
+        #make a call about where the cutoff is
+        if AUTOCUTOFF:
+            op.setWeibull(weibullmodel)
+            for batch, (X, y) in enumerate(training):
+
+                
+                
+
+                _, output = model(X)
+
+                soft.cutoffStorage(output.detach(), "Soft")
+                op.cutoffStorage(output.detach(), "Open")
+            soft.autocutoff(0.73)
+            op.autocutoff(0.67)
+
 
         #--------------------------------------------------------------------------------
 
         #--------------------------------------Testing-----------------------------------
 
-        if e>4:         #<-delay here with testing because OpenMax requires 1 correct guess for each class.
+        try:       
             with torch.no_grad():
                 model.eval()
 
                 unknownscore = 0
-                if e>8:
-                    #these three lines somehow setup for the openmax thing
-                    scores, mavs, distances = OpenMaxByMaXu.compute_train_score_and_mavs_and_dists(CLASSES,training2,device,model)
-                    catagories = list(range(CLASSES))
-                    weibullmodel = OpenMaxByMaXu.fit_weibull(mavs,distances,catagories,tailsize=10)
+                
+                #these three lines somehow setup for the openmax thing
+                scores, mavs, distances = OpenMaxByMaXu.compute_train_score_and_mavs_and_dists(CLASSES,training2,device,model)
+                catagories = list(range(CLASSES))
+                weibullmodel = OpenMaxByMaXu.fit_weibull(mavs,distances,catagories,tailsize=10)
 
-                    op.setWeibull(weibullmodel)
+                op.setWeibull(weibullmodel)
 
                 for batch,(X,y) in enumerate(testing):
                     X = X.to(device)
@@ -147,7 +179,8 @@ if __name__ == "__main__":
                 op.zero()
 
                 model.train()
-
+        except:
+            print("doge")
 
     #------------------------------------------------------------------------------------------------------
 
@@ -184,3 +217,5 @@ if __name__ == "__main__":
         op.zero()
         
         model.train()
+
+    print(f"Program took: {time.time() - start_time}")

@@ -99,11 +99,12 @@ def radar_factory(num_vars, frame='circle'):
 
 data = [['OpenSet Risk', 'Accessibility', 'Replication', 'Speed', 'Computational Demand', 'Maintainability', 'Community', 'Reliability', 'Practicability'],
         ('Basecase', [
-            [0.88, 0.01, 0.03, 0.03, 0.00, 0.06, 0.01, 0.00, 0.00],
-            [0.07, 0.95, 0.04, 0.05, 0.00, 0.02, 0.01, 0.00, 0.00],
-            [0.01, 0.02, 0.85, 0.19, 0.05, 0.10, 0.00, 0.00, 0.00],
-            [0.02, 0.01, 0.07, 0.01, 0.21, 0.12, 0.98, 0.00, 0.00],
-            [0.01, 0.01, 0.02, 0.71, 0.74, 0.70, 0.00, 0.00, 0.00]])]
+            [0, 1, 1, 0, 0.00, 1, 0.4, 0.00, 0.00],
+            [1, 1, 0.6, 0, 0.00, 0.3, 0.13, 0.00, 0.00],
+            [0, 1, 0.6, 0, 0.00, 1, 0.59, 0.00, 0.00],
+            [0, 1, 0.7, 0, 0.00, 0.8, 1, 0.00, 0.00]])]
+
+labels_names = ["SoftMax", "OpenMax", "Energy OOD", "ODIN"]
 
 N = len(data[0])
 theta = radar_factory(N, frame='polygon')
@@ -117,10 +118,13 @@ fig.subplots_adjust(top=0.85, bottom=0.05)
 ax.set_rgrids([0.2, 0.4, 0.6, 0.8])
 ax.set_title(title,  position=(0.5, 1.1), ha='center')
 
+labels = iter(labels_names)
+
 for d in case_data:
     line = ax.plot(theta, d)
-    ax.fill(theta, d,  alpha=0.25)
+    ax.fill(theta, d,  alpha=0.25, label=labels.__next__())
 ax.set_varlabels(spoke_labels)
+ax.legend(loc=4)
 
 plt.show()
 

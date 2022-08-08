@@ -1,3 +1,6 @@
+import time
+start_time = time.time()
+
 if __name__ == "__main__":
     #---------------------------------------------Imports------------------------------------------
     import numpy as np
@@ -69,11 +72,15 @@ if __name__ == "__main__":
     optimizer = optim.SGD(model.parameters(), lr=0.1, momentum=0.5)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=50, gamma=0.1)
 
+    #for timing
+    epoch_avrg = 0
+
     #------------------------------------------------------------------------------------------------------
 
     #---------------------------------------------Training-------------------------------------------------
 
     for e in range(epochs):
+        epoch_start = time.time()
         lost_amount = 0
 
         for batch, (X, y) in enumerate(training):
@@ -90,6 +97,9 @@ if __name__ == "__main__":
 
             lost_amount += lost_points.item()
 
+        epoch_time = time.time() - epoch_start
+        epoch_avrg = (epoch_avrg*e + time.time())/(e+1)
+        print(f"Epoch took: {epoch_time} seconds")
         
         #--------------------------------------------------------------------------------
 

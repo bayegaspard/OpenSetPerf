@@ -1,3 +1,6 @@
+import time
+start_time = time.time()
+
 if __name__ == "__main__":
     #---------------------------------------------Imports------------------------------------------
     import numpy as np
@@ -117,11 +120,15 @@ if __name__ == "__main__":
     plotter[2] += -plotter[0]*5
     plotter[3] += plotter[0]/10
 
+    #for timing
+    epoch_avrg = 0
+
     #------------------------------------------------------------------------------------------------------
 
     #---------------------------------------------Training-------------------------------------------------
 
     for e in range(epochs):
+        epoch_start = time.time()
         lost_amount = 0
         out_set = iter(rands)
         for batch, (X, y) in enumerate(training):
@@ -148,7 +155,11 @@ if __name__ == "__main__":
 
             lost_amount += lost_points.item()
 
-        
+        epoch_time = time.time() - epoch_start
+        epoch_avrg = (epoch_avrg*e + time.time())/(e+1)
+        print(f"Epoch took: {epoch_time} seconds")
+
+
         #--------------------------------------------------------------------------------
 
         #--------------------------------------Autocutoff--------------------------------
@@ -356,7 +367,8 @@ if __name__ == "__main__":
     eng.zero()
     model.train()
 
-
+    #End timing here
+    print(f"Program took: {time.time() - start_time}")
 
     #------------------------------------------------------------------------------------------------------
 

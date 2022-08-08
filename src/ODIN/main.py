@@ -1,4 +1,5 @@
-
+import time
+start_time = time.time()
 
 if __name__ == "__main__":
     #---------------------------------------------Imports------------------------------------------
@@ -9,6 +10,7 @@ if __name__ == "__main__":
     import torch.optim as optim
     import os
     import glob
+    
 
     #three lines from https://xxx-cook-book.gitbooks.io/python-cook-book/content/Import/import-from-parent-folder.html
     import sys
@@ -29,11 +31,11 @@ if __name__ == "__main__":
 
     #---------------------------------------------Hyperparameters------------------------------------------
     torch.manual_seed(0)    #beware contamination
-    BATCH = 50000
+    BATCH = 5000
     CUTOFF = 0.85
     AUTOCUTOFF = True
     noise = 0.15
-    temperature = 0.001
+    temperature = 5
     epochs = 1
     checkpoint = "/checkpoint2.pth"
     #------------------------------------------------------------------------------------------------------
@@ -74,12 +76,17 @@ if __name__ == "__main__":
     optimizer = optim.SGD(model.parameters(), lr=0.1, momentum=0.5)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=2, gamma=0.1)
 
+    #for timing
+    epoch_avrg = 0
+
     #------------------------------------------------------------------------------------------------------
 
     #---------------------------------------------Training-------------------------------------------------
 
     for e in range(epochs):
+        epoch_start = time.time()
         lost_amount = 0
+        loss_avrg = 0
 
         for batch, (X, y) in enumerate(training):
 
@@ -92,11 +99,18 @@ if __name__ == "__main__":
             optimizer.zero_grad()
             lost_points.backward()
 
+            loss_avrg = (loss_avrg*batch + lost_points)/(batch+1)
+            if batch%10 == 0:
+                print(f"loss avrage: {loss_avrg}")
 
             optimizer.step()
             optimizer.zero_grad()
 
             lost_amount += lost_points.item()
+
+        epoch_time = time.time() - epoch_start
+        epoch_avrg = (epoch_avrg*e + time.time())/(e+1)
+        print(f"Epoch took: {epoch_time} seconds")
 
         #--------------------------------------------------------------------------------
 
@@ -180,3 +194,5 @@ if __name__ == "__main__":
     model.train()
 
     #------------------------------------------------------------------------------------------------------
+
+    print(f"Program took: {time.time() - start_time}")
