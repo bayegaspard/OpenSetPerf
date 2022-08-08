@@ -35,7 +35,7 @@ if __name__ == "__main__":
     torch.manual_seed(0)
     BATCH = 100
     CUTOFF = 0.85
-    epochs = 10
+    epochs = 1
     checkpoint = "/checkpoint.pth"
     #------------------------------------------------------------------------------------------------------
 
