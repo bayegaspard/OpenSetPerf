@@ -96,6 +96,10 @@ if __name__ == "__main__":
             optimizer.step()
 
             lost_amount += lost_points.item()
+            evaluative.cutoffStorage(output[:len(X)].detach(), "Soft")
+            
+
+        evaluative.autocutoff()
 
         epoch_time = time.time() - epoch_start
         epoch_avrg = (epoch_avrg*e + time.time())/(e+1)
