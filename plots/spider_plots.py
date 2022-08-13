@@ -99,10 +99,10 @@ def radar_factory(num_vars, frame='circle'):
 
 data = [['OpenSet Risk', 'Accessibility', 'Replication', 'Speed', 'Computational Demand', 'Maintainability', 'Community', 'Reliability', 'Practicability'],
         ('Basecase', [
-            [0, 1, 1, 0, 0.00, 1, 0.4, 0.00, 0.00],
-            [1, 1, 0.6, 0, 0.00, 0.3, 0.13, 0.00, 0.00],
-            [0, 1, 0.6, 0, 0.00, 1, 0.59, 0.00, 0.00],
-            [0, 1, 0.7, 0, 0.00, 0.8, 1, 0.00, 0.00]])]
+            [0, 1, 1, 0.69, 0, 1, 0.4, 0.00, 0.90],
+            [1, 1, 0.6, 0.00, 0, 0.3, 0.13, 0.00, 0.80],
+            [0, 1, 0.6, 0.43, 0, 1, 0.59, 0.00, 0.10],
+            [0, 1, 0.7, 1, 0, 0.8, 1, 0.00, 0.60]])]
 
 labels_names = ["SoftMax", "OpenMax", "Energy OOD", "ODIN"]
 

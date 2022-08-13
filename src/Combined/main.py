@@ -1,4 +1,5 @@
 import time
+
 start_time = time.time()
 
 if __name__ == "__main__":
@@ -38,14 +39,14 @@ if __name__ == "__main__":
 
     #---------------------------------------------Hyperparameters------------------------------------------
     torch.manual_seed(0) #Beware contamination of test sets
-    BATCH = 10000
+    BATCH = 1000
     CUTOFF = 0.85
     ENERGYTRAINED = False
     AUTOCUTOFF = True
     noise = 0.3
     temperature = 9
-    epochs = 20
-    checkpoint = "/checkpoint.pth"
+    epochs = 1
+    checkpoint = "/checkpointFinal.pth"
     #------------------------------------------------------------------------------------------------------
 
     #---------------------------------------------Model/data set up----------------------------------------
@@ -61,19 +62,19 @@ if __name__ == "__main__":
     def getListOfCSV(path):
         return glob.glob(path+"/*.csv")
 
-    data_total = NetworkDataset(getListOfCSV(path_to_dataset),ignore=[1,3,11,14])
-    unknown_data = NetworkDataset(getListOfCSV(path_to_dataset),ignore=[0,2,3,4,5,6,7,8,9,10,12,13])
+    data_total = NetworkDataset(getListOfCSV(path_to_dataset),ignore=[1,2,3,11,12,13,14])
+    unknown_data = NetworkDataset(getListOfCSV(path_to_dataset),ignore=[0,3,4,5,6,7,8,9,10])
 
     CLASSES = len(data_total.classes)
 
     random_data = RndDataset(CLASSES)
 
-    data_train, data_test = torch.utils.data.random_split(data_total, [len(data_total)-10000,10000])
+    data_train, data_test = torch.utils.data.random_split(data_total, [len(data_total)-4000,4000])
 
     #create the dataloaders
     training =  torch.utils.data.DataLoader(dataset=data_train, batch_size=BATCH, shuffle=True, num_workers=1, persistent_workers=True)
     testing = torch.utils.data.DataLoader(dataset=data_test, batch_size=BATCH, shuffle=False)
-    unknowns = torch.utils.data.DataLoader(dataset=unknown_data, batch_size=BATCH, shuffle=False)
+    unknowns = torch.utils.data.DataLoader(dataset=unknown_data, batch_size=BATCH, shuffle=False, num_workers=1, persistent_workers=True)
     rands = torch.utils.data.DataLoader(dataset=random_data, batch_size=BATCH, shuffle=False)
 
 
@@ -100,8 +101,7 @@ if __name__ == "__main__":
         model.load_state_dict(torch.load(NAME+checkpoint))
 
 
-    criterion = nn.CrossEntropyLoss(weight=torch.tensor([1.0685e-01, 1.2354e+02, 1.8971e+00, 3.0598e+01, 4.1188e+01, 4.1906e+01,
-        4.4169e+01, 1.0511e+00, 2.3597e+01, 1.6117e+02, 3.7252e+02])).to(device)
+    criterion = nn.CrossEntropyLoss(weight=torch.tensor([ 0.1467,  2.6045, 42.0071, 56.5461, 57.5315, 60.6388,  1.4431, 32.3960])).to(device)
     optimizer = optim.SGD(model.parameters(), lr=0.1, momentum=0.5)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
 
@@ -114,11 +114,18 @@ if __name__ == "__main__":
 
     #---------------------------------------------Set up data collection-----------------------------------
 
-    plotter = torch.zeros((8,25))
+    plotter = torch.zeros((4,25))
     plotter[0] += torch.tensor([x for x in range(25)])/2.5
-    plotter[1] += plotter[0]/10
-    plotter[2] += -plotter[0]*5
-    plotter[3] += plotter[0]/10
+    plotter[1] += plotter[0]/5
+    plotter[2] += -plotter[0]*8
+    plotter[3] += plotter[0]/5
+
+    types=["Soft","Open","Energy","Odin"]
+
+    evaluators = []
+    for a,x in enumerate(plotter):
+        evaluators.append([correctValCounter(CLASSES, cutoff=y, type=types[a]) for y in x.numpy()])
+
 
     #for timing
     epoch_avrg = 0
@@ -163,6 +170,7 @@ if __name__ == "__main__":
         #--------------------------------------------------------------------------------
 
         #--------------------------------------Autocutoff--------------------------------
+        #THIS TRY BLOCK NEEDS TO BE REMOVED IT IS BEING ANNOYING
         try:
             model.eval()
 
@@ -217,21 +225,29 @@ if __name__ == "__main__":
                 op.setWeibull(weibullmodel)
             
                 #Plotting
+                #THE PLOTTING CAN BE IMPROVED BY CALCULATING MOST OF THE STUFF OUTSIDE OF THE INNER LOOP
                 if e == epochs-1:
                     #things that don't need to be recalculated for plotting
-                    outmax = output.max(dim=1)[0]
-                    energy = []
-                    EnergyCodeByWetliu.energyScoreCalc(energy,output)
-                    energy = torch.tensor(np.array(energy))
-                    openoutmax = op.openMaxMod(output).max(dim=1)
-                    odinoutmax =odin.odinMod(output).max(dim=1)[0]
-                    number = len(data_test)
+                    # outmax = output.max(dim=1)[0]
+                    # energy = []
+                    # EnergyCodeByWetliu.energyScoreCalc(energy,output)
+                    # energy = torch.tensor(np.array(energy))
+                    # openoutmax = op.openMaxMod(output).max(dim=1)
+                    # odinoutmax =odin.odinMod(output).max(dim=1)[0]
+                    # number = len(data_test)
 
-                    for a,b in enumerate(plotter[0]):
-                        plotter[4][a] += outmax.greater_equal(b).sum()/number
-                        plotter[6][a] += energy.less_equal(plotter[2][a]).sum()/number
-                        plotter[5][a] += (openoutmax[0].greater_equal(plotter[1][a])*(openoutmax[1]!=CLASSES)).sum()/number
-                        plotter[7][a] += odinoutmax.greater_equal(plotter[3][a]).sum()/number
+                    for a in range(4):
+                        #Not valid metrics
+                        # plotter[4][a] += outmax.greater_equal(b).sum()/number
+                        # plotter[6][a] += energy.less_equal(plotter[2][a]).sum()/number
+                        # plotter[5][a] += (openoutmax[0].greater_equal(plotter[1][a])*(openoutmax[1]!=CLASSES)).sum()/number
+                        # plotter[7][a] += odinoutmax.greater_equal(plotter[3][a]).sum()/number
+                        for x in evaluators[a]:
+                            if x.type == "Open":
+                                x.setWeibull(weibullmodel)
+                            if x.type == "Odin":
+                                x.odinSetup(X,model,temperature,noise)
+                            x.evalN(output,y)
 
         
                 soft.evalN(output,y)
@@ -256,9 +272,15 @@ if __name__ == "__main__":
             odin.PrintEval()
 
             #save data
-            df = pd.DataFrame(plotter.numpy(), columns=plotter[0].numpy(), index=["SoftVal", "OpenVal", "EnergyVal", "ODINVal", "Soft", "Open", "Energy", "ODIN"])
-            df = df.transpose()
-            df.to_csv("Scores for In distribution.csv")
+            
+            if e == epochs-1:
+                for a in range(4):
+                    for x in evaluators[a]:
+                        x.defineOtherEval()
+                df = pd.DataFrame([(x.otherEval.f1_measure for x in y) for y in evaluators],index=["Soft", "Open", "Energy", "ODIN"], columns=plotter[0].numpy())
+                df = pd.concat((df,pd.DataFrame(plotter,index=["SoftVal", "OpenVal", "EnergyVal", "ODINVal"], columns=plotter[0].numpy()))) 
+                df = df.transpose()
+                df.to_csv("Scores for In distribution.csv")
 
             odin.zero()
             soft.zero()
@@ -275,20 +297,14 @@ if __name__ == "__main__":
     
 
 
-    #Everything past here is unknowns
-    #reset Plotter
-    plotter = torch.zeros((8,25))
-    plotter[0] += torch.tensor([x for x in range(25)])/2.5
-    plotter[1] += plotter[0]/10
-    plotter[2] += -plotter[0]*5
-    plotter[3] += plotter[0]/10
-
-
 
     #------------------------------------------------------------------------------------------------------
 
     #---------------------------------------------Unknowns-------------------------------------------------
 
+    evaluators = []
+    for a,x in enumerate(plotter):
+        evaluators.append([correctValCounter(CLASSES, cutoff=y, type=types[a]) for y in x.numpy()])
 
     model.eval()
 
@@ -328,11 +344,17 @@ if __name__ == "__main__":
         number = len(unknown_data)
 
         #Plotting
-        for a,b in enumerate(plotter[0]):
-            plotter[4][a] += outmax.greater_equal(b).sum()/number
-            plotter[6][a] += energy.less_equal(plotter[2][a]).sum()/number
-            plotter[5][a] += (openoutmax[0].greater_equal(plotter[1][a])*(openoutmax[1]!=CLASSES)).sum()/number
-            plotter[7][a] += odinoutmax.greater_equal(plotter[3][a]).sum()/number
+        for a in range(4):
+            # plotter[4][a] += outmax.greater_equal(b).sum()/number
+            # plotter[6][a] += energy.less_equal(plotter[2][a]).sum()/number
+            # plotter[5][a] += (openoutmax[0].greater_equal(plotter[1][a])*(openoutmax[1]!=CLASSES)).sum()/number
+            # plotter[7][a] += odinoutmax.greater_equal(plotter[3][a]).sum()/number
+            for x in evaluators[a]:
+                if x.type == "Open":
+                    x.setWeibull(weibullmodel)
+                if x.type == "Odin":
+                    x.odinSetup(X,model,temperature,noise)
+                x.evalN(output,y, offset=-CLASSES)
 
         soft.evalN(output,y, offset=-CLASSES)
         odin.evalN(output,y, offset=-CLASSES, type="Odin")
@@ -356,7 +378,15 @@ if __name__ == "__main__":
 
 
     #save data
-    df = pd.DataFrame(plotter.numpy(),index=["SoftVal", "OpenVal", "EnergyVal", "ODINVal", "Soft", "Open", "Energy", "ODIN"], columns=plotter[0].numpy())
+    for a in range(4):
+        for x in evaluators[a]:
+            if x.type == "Open":
+                x.setWeibull(weibullmodel)
+            if x.type == "Odin":
+                x.odinSetup(X,model,temperature,noise)
+            x.defineOtherEval()
+    df = pd.DataFrame([(x.otherEval.f1_measure for x in y) for y in evaluators],index=["Soft", "Open", "Energy", "ODIN"], columns=plotter[0].numpy())
+    df = pd.concat((df,pd.DataFrame(plotter,index=["SoftVal", "OpenVal", "EnergyVal", "ODINVal"], columns=plotter[0].numpy()))) 
     df = df.transpose()
     df.to_csv("Scores for Out distribution.csv")
 

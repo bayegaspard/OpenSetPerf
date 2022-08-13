@@ -88,12 +88,15 @@ class NetworkDataset(Dataset):
 
 
     def getHoldout(self):
-        data = self.holdout[:,len(self.holdout[0])-1].to_numpy()
-        labels = np.array()
-        for x in self.holdout:
-            labels += self.classes[x[len(x)]]
+        data = self.holdout.iloc[:,:-1]
+        data = data.to_numpy()
+        labels = []
+        for x in self.holdout.iloc[1:,-1]:
+            labels.append(self.classes[x])
 
-        return zip(data,labels)
+        labels = np.array(labels)
+
+        return zip(torch.tensor(data),torch.tensor(labels))
 
 
 def leftOutMask(classes:int,batchsize, itemLeftOut:int):

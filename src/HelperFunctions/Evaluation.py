@@ -8,6 +8,9 @@ import sys
 root_folder = os.path.abspath(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.append(root_folder)
 
+from CodeFromImplementations.EvaluationByMaXu import Evaluation as OtherEval
+import CodeFromImplementations.PlotterByMaXu as plot
+
 class correctValCounter():
 
     def __init__(self,num_classes: int, type="Soft",cutoff=0.85, confusionMat=False, temp = 1, noise=0):
@@ -48,9 +51,14 @@ class correctValCounter():
 
         if y.dim() == 2:
             y_val = torch.argmax(y, dim=1)-offset
-            y_oh = F.one_hot(y_val,max(y_val.max().item(),self.classCount)+1)[:,:self.classCount]
+            #This makes all out of distribution data to be the same class
+            y_val = torch.minimum(y_val, self.classCount * torch.ones(y_val.shape)).to(torch.int64)
+            test = max(y_val.max().item(),self.classCount)+1
+            y_oh = F.one_hot(y_val, num_classes = max(y_val.max().item(),self.classCount)+1)[:,:self.classCount]
         else:
             y_val = y-offset
+            #This makes all out of distribution data to be the same class
+            y_val = torch.minimum(y_val, self.classCount * torch.ones(y_val.shape)).to(torch.int64)
             y_oh = F.one_hot(y_val,self.classCount)
         
 
@@ -61,6 +69,14 @@ class correctValCounter():
             #reject from unknown, foundunknowns is a mask to be applied to the onehot vector
             foundknowns = self.typesOfUnknown[type](self,output)
             out_oh = out_oh*foundknowns
+
+            
+        #reversing the lists because the onehot in the other eval assumes the dimentions.
+        #WE REALLY SHOULD IMPLEMENT WHAT WE WANT FROM THE OTHER EVAL OURSELVES BECAUSE SKLEARN DOES NOT WORK WELL WITH THE DATA WE HAVE
+        self.otherEvalStorage[0] = torch.cat((self.otherEvalStorage[0],(torch.argmax(out_oh)+self.classCount*(1-out_oh.sum(dim=1)))))
+        self.otherEvalStorage[1] = torch.cat((self.otherEvalStorage[1],(y_val)))
+        self.otherEvalStorage[2] = torch.cat((self.otherEvalStorage[2],(foundknowns)))
+
 
         #holds percentages
         percentages = output[:,:self.classCount]
@@ -117,20 +133,24 @@ class correctValCounter():
         self.mean_highest += (out_oh*percentages).swapdims(0,1).sum(dim=1)
 
     def PrintEval(self):
+        self.defineOtherEval()
+
         correct = self.matches.sum().item()
         print(f"Count: {self.totals_for_guesses.sum().item()}/{self.count}")
         print(f"Correct: {100*correct/self.count}%")
-        if correct!=0:
-            print(f"Correct Mean Percentage: {100*self.correct_percentage_total/correct}")
+        # if correct!=0:
+        #     print(f"Correct Mean Percentage: {100*self.correct_percentage_total/correct}")
         print(f"Cutoff: {self.cutoff}")
         total_incorrect = self.count*self.classCount-correct
         if total_incorrect!=0:
             print(f"Incorrect Mean Percentage: {100*self.incorrect_percentage_total/total_incorrect}")
         if self.totalWrong!=0:
             print(f"Wrong Mean Percentage: {100*self.wrong_percentage_total/self.totalWrong}")
-        print(f"Accuracy: {self.accuracy().mean().item()}")
+        print(f"Accuracy: {self.otherEval.accuracy}")
+        print(f"F-score: {self.otherEval.f1_measure}")
 
     def PrintUnknownEval(self):
+        self.defineOtherEval()
 
         print("-----------------------------Unknowns-----------------------------")
         print("It guessed:")
@@ -142,7 +162,12 @@ class correctValCounter():
         print("With mean percentages of:")
         print(100*self.mean_highest/self.totals_for_guesses)
         print(f"Percent guessed correctly: {self.matches.sum()/self.count}")
-        print(f"Accuracy: {self.accuracy().mean().item()}")
+        print(f"Accuracy: {self.otherEval.accuracy}")
+        print(f"F-score: {self.otherEval.f1_measure}")
+
+    def defineOtherEval(self):
+        #WE SHOULD REPLACE THIS WITH OUR OWN CODE. IT SENDS OUT A LOT OF ERRORS
+        self.otherEval = OtherEval(self.otherEvalStorage[0],self.otherEvalStorage[1],self.otherEvalStorage[2])
 
     def storeConfusion(self, path):
         if self.conf:
@@ -168,6 +193,9 @@ class correctValCounter():
         if self.conf:
             self.matrix = torch.zeros((self.classCount+1,self.classCount+1))
         self.highestPercentStorage = torch.zeros(1)
+
+        #OK, so the other eval needs all the values at the start. I will store them here
+        self.otherEvalStorage = [torch.empty(0),torch.empty(0),torch.empty(0)]
         
 
     #---------------------------------------------------------------------------------------------
