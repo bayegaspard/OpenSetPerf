@@ -37,7 +37,7 @@ if __name__ == "__main__":
     noise = 0.15
     temperature = 5
     epochs = 1
-    checkpoint = "/checkpoint2.pth"
+    checkpoint = "/checkpointFinal.pth"
     #------------------------------------------------------------------------------------------------------
 
     #---------------------------------------------Model/data set up----------------------------------------
@@ -51,8 +51,8 @@ if __name__ == "__main__":
     def getListOfCSV(path):
         return glob.glob(path+"/*.csv")
 
-    data_total = NetworkDataset(getListOfCSV(path_to_dataset),ignore=[1,3,11,14])
-    unknown_data = NetworkDataset(getListOfCSV(path_to_dataset),ignore=[0,2,3,4,5,6,7,8,9,10,12,13])
+    data_total = NetworkDataset(getListOfCSV(path_to_dataset),ignore=[1,2,3,11,12,13,14])
+    unknown_data = NetworkDataset(getListOfCSV(path_to_dataset),ignore=[0,3,4,5,6,7,8,9,10])
 
     CLASSES = len(data_total.classes)
 
@@ -71,9 +71,8 @@ if __name__ == "__main__":
         model.load_state_dict(torch.load(NAME+checkpoint))
 
 
-    criterion = nn.CrossEntropyLoss(weight=torch.tensor([1.0685e-01, 1.2354e+02, 1.8971e+00, 3.0598e+01, 4.1188e+01, 4.1906e+01,
-        4.4169e+01, 1.0511e+00, 2.3597e+01, 1.6117e+02, 3.7252e+02])[:CLASSES]).to(device)
-    optimizer = optim.SGD(model.parameters(), lr=0.1, momentum=0.5)
+    criterion = nn.CrossEntropyLoss(weight=torch.tensor([ 0.1467,  2.6045, 42.0071, 56.5461, 57.5315, 60.6388,  1.4431, 32.3960])[:CLASSES]).to(device)
+    optimizer = optim.SGD(model.parameters(), lr=0.5, momentum=0.5)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=2, gamma=0.1)
 
     #for timing

@@ -32,10 +32,10 @@ if __name__ == "__main__":
 
     #---------------------------------------------Hyperparameters------------------------------------------
     torch.manual_seed(0)
-    BATCH = 5000
+    BATCH = 1000
     CUTOFF = 0.1
     AUTOCUTOFF = True
-    epochs = 1
+    epochs = 20
     checkpoint = "/checkpoint.pth"
     #------------------------------------------------------------------------------------------------------
 
@@ -60,10 +60,14 @@ if __name__ == "__main__":
     testing = torch.utils.data.DataLoader(dataset=data_test, batch_size=BATCH, shuffle=False)
     training =  torch.utils.data.DataLoader(dataset=data_train, batch_size=BATCH, shuffle=True, num_workers=1)
 
-    #this needs to be improved 
-    data_total.isOneHot = False
-    data_train2, _ = torch.utils.data.random_split(data_total, [len(data_total)-1000,1000])
-    training2 = torch.utils.data.DataLoader(dataset=data_train2, batch_size=BATCH, shuffle=True)
+
+    holdout_data = data_total.getHoldout()
+    # #this needs to be improved 
+    # data_total.isOneHot = False
+    # data_train2, _ = torch.utils.data.random_split(data_total, [len(data_total)-1000,1000])
+    # training2 = torch.utils.data.DataLoader(dataset=data_train2, batch_size=BATCH, shuffle=True)
+
+    # data_total.isOneHot = True
 
     #load the unknown data
     unknowns = torch.utils.data.DataLoader(dataset=unknown_data, batch_size=BATCH, shuffle=False)
@@ -110,41 +114,45 @@ if __name__ == "__main__":
         epoch_avrg = (epoch_avrg*e + time.time())/(e+1)
         print(f"Epoch took: {epoch_time} seconds")
 
-#       --------------------------------------------------------------------------------
 
-        #--------------------------------------Autocutoff--------------------------------
-        model.eval()
+        try:  
+            #--------------------------------------------------------------------------------
 
-        #make a call about where the cutoff is
-        if AUTOCUTOFF:
-            op.setWeibull(weibullmodel)
-            for batch, (X, y) in enumerate(training):
+            #--------------------------------------Autocutoff--------------------------------
+            model.eval()
 
-                
-                
-
-                _, output = model(X)
-
-                soft.cutoffStorage(output.detach(), "Soft")
-                op.cutoffStorage(output.detach(), "Open")
-            soft.autocutoff(0.73)
-            op.autocutoff(0.67)
+            #these three lines somehow setup for the openmax thing
+            scores, mavs, distances = OpenMaxByMaXu.compute_train_score_and_mavs_and_dists(CLASSES,holdout_data,device,model)
+            catagories = list(range(CLASSES))
+            weibullmodel = OpenMaxByMaXu.fit_weibull(mavs,distances,catagories,tailsize=10)
 
 
-        #--------------------------------------------------------------------------------
+            #make a call about where the cutoff is
+            if AUTOCUTOFF:
+                op.setWeibull(weibullmodel)
+                for batch, (X, y) in enumerate(training):
 
-        #--------------------------------------Testing-----------------------------------
+                    
+                    
 
-        try:       
+                    _, output = model(X)
+
+                    soft.cutoffStorage(output.detach(), "Soft")
+                    op.cutoffStorage(output.detach(), "Open")
+                soft.autocutoff(0.73)
+                op.autocutoff(0.67)
+
+
+            #--------------------------------------------------------------------------------
+
+            #--------------------------------------Testing-----------------------------------
+
+             
             with torch.no_grad():
-                model.eval()
 
                 unknownscore = 0
                 
-                #these three lines somehow setup for the openmax thing
-                scores, mavs, distances = OpenMaxByMaXu.compute_train_score_and_mavs_and_dists(CLASSES,training2,device,model)
-                catagories = list(range(CLASSES))
-                weibullmodel = OpenMaxByMaXu.fit_weibull(mavs,distances,catagories,tailsize=10)
+                
 
                 op.setWeibull(weibullmodel)
 
@@ -190,7 +198,7 @@ if __name__ == "__main__":
         unknownscore = 0
         model.eval()
         #these three lines somehow setup for the openmax thing
-        scores, mavs, distances = OpenMaxByMaXu.compute_train_score_and_mavs_and_dists(CLASSES,training2,device,model)
+        scores, mavs, distances = OpenMaxByMaXu.compute_train_score_and_mavs_and_dists(CLASSES,holdout_data,device,model)
         catagories = list(range(CLASSES))
         weibullmodel = OpenMaxByMaXu.fit_weibull(mavs,distances,catagories,tailsize=10)
 

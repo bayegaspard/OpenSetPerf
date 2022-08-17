@@ -33,9 +33,10 @@ if __name__ == "__main__":
 
     #---------------------------------------------Hyperparameters------------------------------------------
     torch.manual_seed(0)
-    BATCH = 100
+    BATCH = 5000
     CUTOFF = 0.85
-    epochs = 1
+    AUTOCUTOFF = True
+    epochs = 20
     checkpoint = "/checkpoint.pth"
     #------------------------------------------------------------------------------------------------------
 
@@ -51,6 +52,8 @@ if __name__ == "__main__":
 
     data_total = NetworkDataset(getListOfCSV(path_to_dataset),ignore=[1,3,11,14])
     unknown_data = NetworkDataset(getListOfCSV(path_to_dataset),ignore=[0,2,3,4,5,6,7,8,9,10,12,13])
+
+    data_total.getHoldout()
 
     CLASSES = len(data_total.classes)
 
@@ -96,15 +99,27 @@ if __name__ == "__main__":
             optimizer.step()
 
             lost_amount += lost_points.item()
-            evaluative.cutoffStorage(output[:len(X)].detach(), "Soft")
+            #evaluative.cutoffStorage(output[:len(X)].detach(), "Soft")
             
 
-        evaluative.autocutoff()
+        #evaluative.autocutoff()
 
         epoch_time = time.time() - epoch_start
         epoch_avrg = (epoch_avrg*e + time.time())/(e+1)
         print(f"Epoch took: {epoch_time} seconds")
         
+        #make a call about where the cutoff is
+        if AUTOCUTOFF:
+            for batch, (X, y) in enumerate(training):
+
+                
+                
+
+                _, output = model(X)
+
+                evaluative.cutoffStorage(output.detach(), "Soft")
+            evaluative.autocutoff(0.73)
+
         #--------------------------------------------------------------------------------
 
         #--------------------------------------Testing-----------------------------------
@@ -115,7 +130,8 @@ if __name__ == "__main__":
                 X = X.to(device)
                 y = y.to("cpu")
 
-                _, output = model(X).to("cpu")
+                _, output = model(X)
+                output = output.to("cpu")
                 evaluative.evalN(output,y)
                 
 
@@ -141,7 +157,8 @@ if __name__ == "__main__":
                 X = X.to(device)
                 y = y.to("cpu")
 
-                output = model(X).to("cpu")
+                _, output = model(X)
+                output = output.to("cpu")
                 evaluative.evalN(output,y, indistribution=False)
 
             evaluative.PrintUnknownEval()

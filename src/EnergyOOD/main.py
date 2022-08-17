@@ -1,5 +1,6 @@
 #https://github.com/wetliu/energy_ood <- associated paper
 import time
+
 start_time = time.time()
 
 if __name__ == "__main__":
@@ -30,7 +31,8 @@ if __name__ == "__main__":
     torch.manual_seed(0)
     BATCH = 5000
     CUTOFF = 0.9999999
-    epochs = 1
+    AUTOCUTOFF = True
+    epochs = 20
     temperature = 0.001
     checkpoint = "/checkpoint2.pth"
     #------------------------------------------------------------------------------------------------------
@@ -116,15 +118,26 @@ if __name__ == "__main__":
             lost_amount += lost_points.item()
 
 
-            soft.cutoffStorage(output[:len(X)].detach(), "Soft")
-            Eng.cutoffStorage(output[:len(X)].detach(), "Energy")
-
-        soft.autocutoff()
-        Eng.autocutoff()
+            
 
         epoch_time = time.time() - epoch_start
         epoch_avrg = (epoch_avrg*e + time.time())/(e+1)
         print(f"Epoch took: {epoch_time} seconds")
+
+
+        #make a call about where the cutoff is
+        if AUTOCUTOFF:
+            for batch, (X, y) in enumerate(training):
+
+                
+                
+
+                _, output = model(X)
+
+                soft.cutoffStorage(output.detach(), "Soft")
+                Eng.cutoffStorage(output.detach(), "Energy")
+            soft.autocutoff(0.73)
+            Eng.autocutoff(0.67)
 
         #--------------------------------------------------------------------------------
 
