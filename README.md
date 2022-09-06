@@ -7,7 +7,7 @@ A Practitioner's Guide to the Performance of Deep-Learning Based Open Set Recogn
 ```
 pip3 install -r requirements.txt
 ```
-## Note: If you don't have pip3 installed, you can use the command below to install one.
+##### Note: If you don't have pip3 installed, you can use the command below to install one.
 sudo apt-get install python3-pip
 - Navigate to the `OpenSetPerf` root directory and run the following command:
 ```
