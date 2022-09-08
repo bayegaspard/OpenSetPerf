@@ -50,4 +50,4 @@ A Practitioner's Guide to the Performance of Deep-Learning Based Open Set Recogn
   - Contains the `spider_plots.py` which contain code to draw a spider plot for qualitative algorithmic evaluation.
 - `datasets`
   - We place the NIDS dataset in this folder.
-
+##### Note : This repository is still undergoing experimentation. It may not have perfect graphs, and results at this moment but we are working to improve the code.
