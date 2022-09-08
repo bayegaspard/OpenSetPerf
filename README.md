@@ -1,31 +1,29 @@
-### OpenSetPerf
+## OpenSetPerf
 A Practitioner's Guide to the Performance of Deep-Learning Based Open Set Recognition Algorithms for Network Intrusion Detection Systems
-#### Usage
 
-
-Steps to run:
+### Steps to run:
 
 - Clone the repository using : `git clone https://github.com/bayegaspard/OpenSetPerf.git`
 - Download the [Payload-Byte NIDS Dataset](https://github.com/Yasir-ali-farrukh/Payload-Byte/tree/main/Data) 
 - Navigate to the root folder and place the downloaded CSV file in the `dataset` folder. New structure will be `dataset\Payload_data_CICIDS2017.csv`
 ##### Note: If you don't have pip3 installed, you can use the command below to install one.
-```sudo apt-get install python3-pip
-```
+
+`sudo apt-get install python3-pip
+`
 - Navigate to the `src` directory using the command `cd OpenSetPerf\src` directory.
 - Install required packages using the command below:
-```pip3 install -r requirements.txt
-```
+`pip3 install -r requirements.txt
+`
 - Choose either `BasicCNN`, `BasicUnknowns`, `OpenMax`, `combined` or `EnergyOOD`
 - Within the folder in `OpenSetPerf\src`, run the main program using the command: `python3 `"step_6_folder_name"`/main.py`
 
 
-## Notes:
-
+##### Notes:
 Some folders have an extra runable file called `Display.py` that uses `matplotlib` to draw a graph like the ones in the original paper.
 Unfortunately the graphs for `OpenMax` do not turn out exactly like the paper's, it is currently unknown why.
 
 
-### Items in main folder: 
+##### Items in main folder: 
 
 - `requirements.txt`
   - File containing the version numbers of the required external libraries
