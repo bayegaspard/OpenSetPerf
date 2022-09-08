@@ -3,7 +3,8 @@ A Practitioner's Guide to the Performance of Deep-Learning Based Open Set Recogn
 
 ### Steps to run:
 
-- Clone the repository using : `git clone https://github.com/bayegaspard/OpenSetPerf.git`
+- Clone the repository using : 
+`git clone https://github.com/bayegaspard/OpenSetPerf.git`
 - Download the [Payload-Byte NIDS Dataset](https://github.com/Yasir-ali-farrukh/Payload-Byte/tree/main/Data) 
 - Navigate to the root folder and place the downloaded CSV file in the `dataset` folder. New structure will be `dataset\Payload_data_CICIDS2017.csv`
 ##### Note: If you don't have pip3 installed, you can use the command below to install one.
@@ -23,7 +24,7 @@ Some folders have an extra runable file called `Display.py` that uses `matplotli
 Unfortunately the graphs for `OpenMax` do not turn out exactly like the paper's, it is currently unknown why.
 
 
-##### Items in main folder: 
+##### Items in `src` folder: 
 
 - `requirements.txt`
   - File containing the version numbers of the required external libraries
