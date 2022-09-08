@@ -18,12 +18,6 @@ A Practitioner's Guide to the Performance of Deep-Learning Based Open Set Recogn
 - Choose either `BasicCNN`, `BasicUnknowns`, `OpenMax`, `combined` or `EnergyOOD`
 - Within the folder in `OpenSetPerf\src`, run the main program using the command: `python3 `"step_6_folder_name"`/main.py`
 
-
-##### Notes:
-Some folders have an extra runable file called `Display.py` that uses `matplotlib` to draw a graph like the ones in the original paper.
-Unfortunately the graphs for `OpenMax` do not turn out exactly like the paper's, it is currently unknown why.
-
-
 ##### Items in `src` folder: 
 
 - `requirements.txt`
@@ -51,55 +45,8 @@ Unfortunately the graphs for `OpenMax` do not turn out exactly like the paper's,
 - `Combined`
   - Implements SoftMax, OpenMax, EnergyOOD, and ODIN.
   - Main will save CSVs of results in the parent folder.
+- `Plots`
+  - Contains the `spider_plots.py` which contain code to draw a spider plot for qualitative algorithmic evaluation.
+- `datasets`
+  - We place the NIDS dataset in this folder.
 
-### Items inside each folder:
-- `Buildinglist.py`
-  - This is the file that updates and recreates the lists for all of the names of the images.
-  - Change this file and re run it if you want to split the data diffrently
-
-- `list.txt`
-  - This is the file that contains a the names of all the images that you want to classify and what class they are part of.
-
-- `list2.txt`
-  - This version of list contains the values of items you want to be classified as Unknown.
-
-- `LoadImages.py`
-  - This contains a viersion of Dataloader specifically for images and the format of list.txt
-
-- `ModelLoader.py`
-  -This contains the model class and structure.
-
-- `External code file`
-  - Any one of "OpenMaxByMaXu", "EnergyCodeByWetliu", or "OdinCodeByWetliu"
-  - These files contain mainly code that was not made by me. I did my best not to modify it at all and say where it came from.
-  - They mainly serve as the implementations of the formulas found in papers.
-
-- `Evaluation.py`
-  - This is the big file. It handels the output of the model and can give you back reports on the data.
-  - It needs to be created with the correctValCounter class, the name is old.
-  - If you want it to be able to save a confusion matrix for you, it needs confusionMat set to true.
-  - Use EvalN to evaluate any one of the 4 model interpreters, 
-  ```
-  type= 
-  --"Soft" for SoftMax
-  --"Open" for OpenMax, needs a weibull model to be set with setWeibull()
-  --"Energy" for Energy OOD
-  --"Odin" for ODIN, needs odinSetup(param) to be run
-  ```
-  - I have done my best to keep all versions of Evaluation.py to be the same in all folders for ease of comparison.
-
-- `main.py`
-  - This is the file that runs the training and testing loop.
-  - The only big diffrence is that Energy OOD has an addition to the training loss function.
-  - This file is very similar to all other versions.
-
-- `checkpoint.pth`
-  - This is a saved model.
-  - The saves automatically load.
-  - The models usually save every 5 epocs and overwrite the old save.
-  - All saves are using torch seed 0 so that they split off the same training and testing sets. (Beware contaimination)
-
-- `Dispaly.py`
-  - Does not exist in all folders
-  - Does not train a model. A checkpoint is needed.
-  - Either displays data in a matplotlib pyplot or saves data in a CSV
