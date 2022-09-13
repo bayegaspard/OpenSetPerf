@@ -15,7 +15,6 @@ A Practitioner's Guide to the Performance of Deep-Learning Based Open Set Recogn
 - Navigate to the `src` directory using the command `cd OpenSetPerf\src` directory.
 - It is recommended to perform this test in a virtual environment. This step is optional.
 ```
-sudo apt-get isntall python3-pip
 pip3 install virtualenv
 virtualenv opensetperf
 source opensetper/bin/activate
