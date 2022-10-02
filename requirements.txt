@@ -7,3 +7,4 @@ Pillow>=9.1.0
 Cython
 libmr>=0.1.9
 sklearn
+bokeh
