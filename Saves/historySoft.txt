@@ -1,0 +1,36 @@
+
+num_epochs 5 {'val_loss': 2.643185615539551, 'val_acc': 0.2572402060031891, 'val_avgUnknown': 0.25, 'train_loss': 9.948094367980957, 'epoch': 0}
+num_epochs 5 {'val_loss': 2.587620973587036, 'val_acc': 0.3049403727054596, 'val_avgUnknown': 0.25, 'train_loss': 22.312265396118164, 'epoch': 1}
+num_epochs 5 {'val_loss': 2.6038858890533447, 'val_acc': 0.3066439628601074, 'val_avgUnknown': 0.25, 'train_loss': 14.73965072631836, 'epoch': 2}
+num_epochs 5 {'val_loss': 2.5750670433044434, 'val_acc': 0.3304940462112427, 'val_avgUnknown': 0.25, 'train_loss': 15.083443641662598, 'epoch': 3}
+num_epochs 5 {'val_loss': 2.556685447692871, 'val_acc': 0.347529798746109, 'val_avgUnknown': 0.25, 'train_loss': 10.69861888885498, 'epoch': 4}
+
+num_epochs 5 {'val_loss': 2.6239383220672607, 'val_acc': 0.28109028935432434, 'val_avgUnknown': 0.25, 'train_loss': 14.075912475585938, 'epoch': 0}
+num_epochs 5 {'val_loss': 2.6062936782836914, 'val_acc': 0.2947189211845398, 'val_avgUnknown': 0.25, 'train_loss': 23.46543312072754, 'epoch': 1}
+num_epochs 5 {'val_loss': 2.599250555038452, 'val_acc': 0.3321976065635681, 'val_avgUnknown': 0.25, 'train_loss': 21.91550636291504, 'epoch': 2}
+num_epochs 5 {'val_loss': 2.5761756896972656, 'val_acc': 0.34582623839378357, 'val_avgUnknown': 0.25, 'train_loss': 18.159996032714844, 'epoch': 3}
+num_epochs 5 {'val_loss': 2.589433193206787, 'val_acc': 0.3219761550426483, 'val_avgUnknown': 0.25, 'train_loss': 13.001578330993652, 'epoch': 4}
+
+num_epochs 5 {'val_loss': 2.6343283653259277, 'val_acc': 0.2674616575241089, 'val_avgUnknown': 0.25, 'train_loss': 9.708810806274414, 'epoch': 0}
+num_epochs 5 {'val_loss': 2.5986287593841553, 'val_acc': 0.30323678255081177, 'val_avgUnknown': 0.25, 'train_loss': 18.726232528686523, 'epoch': 1}
+num_epochs 5 {'val_loss': 2.5963635444641113, 'val_acc': 0.30323678255081177, 'val_avgUnknown': 0.25, 'train_loss': 9.730502128601074, 'epoch': 2}
+num_epochs 5 {'val_loss': 2.576085090637207, 'val_acc': 0.3747870624065399, 'val_avgUnknown': 0.25, 'train_loss': 8.354100227355957, 'epoch': 3}
+num_epochs 5 {'val_loss': 2.5739219188690186, 'val_acc': 0.35434412956237793, 'val_avgUnknown': 0.25, 'train_loss': 6.122263431549072, 'epoch': 4}
+
+num_epochs 5 {'val_loss': 2.693148136138916, 'val_acc': 0.19761499762535095, 'val_avgUnknown': 56.30006408691406, 'train_loss': 11.224743843078613, 'epoch': 0}
+num_epochs 5 {'val_loss': 2.582843542098999, 'val_acc': 0.3219761550426483, 'val_avgUnknown': 55.722068786621094, 'train_loss': 24.970123291015625, 'epoch': 1}
+num_epochs 5 {'val_loss': 2.586906671524048, 'val_acc': 0.3066439628601074, 'val_avgUnknown': 45.087886810302734, 'train_loss': 20.912303924560547, 'epoch': 2}
+num_epochs 5 {'val_loss': 2.5869715213775635, 'val_acc': 0.29131174087524414, 'val_avgUnknown': 36.63768005371094, 'train_loss': 15.72341537475586, 'epoch': 3}
+num_epochs 5 {'val_loss': 2.5739784240722656, 'val_acc': 0.3049403727054596, 'val_avgUnknown': 30.799785614013672, 'train_loss': 10.442519187927246, 'epoch': 4}
+
+num_epochs 5 {'val_loss': 2.6750564575195312, 'val_acc': 0.2214650809764862, 'val_avgUnknown': 58.38880157470703, 'train_loss': 14.173626899719238, 'epoch': 0}
+num_epochs 5 {'val_loss': 2.6133840084075928, 'val_acc': 0.27597954869270325, 'val_avgUnknown': 56.99615478515625, 'train_loss': 28.06087875366211, 'epoch': 1}
+num_epochs 5 {'val_loss': 2.5957510471343994, 'val_acc': 0.2998296320438385, 'val_avgUnknown': 55.963645935058594, 'train_loss': 24.746999740600586, 'epoch': 2}
+num_epochs 5 {'val_loss': 2.5911612510681152, 'val_acc': 0.2998296320438385, 'val_avgUnknown': 46.380279541015625, 'train_loss': 22.104188919067383, 'epoch': 3}
+num_epochs 5 {'val_loss': 2.566086769104004, 'val_acc': 0.3270868957042694, 'val_avgUnknown': 35.82980728149414, 'train_loss': 18.189821243286133, 'epoch': 4}
+
+num_epochs 5 {'val_loss': 2.608623743057251, 'val_acc': 0.27597954869270325, 'val_avgUnknown': 32.16950607299805, 'train_loss': 10.739370346069336, 'epoch': 0}
+num_epochs 5 {'val_loss': 2.6333537101745605, 'val_acc': 0.2572402060031891, 'val_avgUnknown': 32.38710021972656, 'train_loss': 14.877143859863281, 'epoch': 1}
+num_epochs 5 {'val_loss': 2.617746353149414, 'val_acc': 0.2640545070171356, 'val_avgUnknown': 31.198223114013672, 'train_loss': 11.09033489227295, 'epoch': 2}
+num_epochs 5 {'val_loss': 2.6062121391296387, 'val_acc': 0.2947189211845398, 'val_avgUnknown': 25.79227066040039, 'train_loss': 9.233123779296875, 'epoch': 3}
+num_epochs 5 {'val_loss': 2.6024169921875, 'val_acc': 0.3424190878868103, 'val_avgUnknown': 19.802715301513672, 'train_loss': 6.554858684539795, 'epoch': 4}

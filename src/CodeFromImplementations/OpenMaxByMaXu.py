@@ -8,6 +8,7 @@ import numpy as np
 import scipy.spatial.distance as spd
 import torch
 
+
 import libmr
 
 
@@ -136,7 +137,8 @@ def compute_train_score_and_mavs_and_dists(train_class_num,trainloader,device,ne
             inputs, targets = inputs.to(device), targets.to(device)
 
             # this must cause error for cifar
-            _, outputs = net(inputs)
+            #_, outputs = net(inputs)                   <--this was from the orignial OpenMax implementation
+            outputs = net(inputs)                       #<-this was a replacement
             for score, t in zip(outputs, targets):
                 # print(f"torch.argmax(score) is {torch.argmax(score)}, t is {t}")
                 if torch.argmax(score) == t:
@@ -145,3 +147,35 @@ def compute_train_score_and_mavs_and_dists(train_class_num,trainloader,device,ne
     mavs = np.array([np.mean(x, axis=0) for x in scores])  # (C, 1, C)
     dists = [compute_channel_distances(mcv, score) for mcv, score in zip(mavs, scores)]
     return scores, mavs, dists
+
+
+#This was not a function before!
+def openmaxevaluation(scores,labels,args,dict):
+    trainloader = dict["loader"]
+    device = dict["device"]
+    net = dict["net"]
+    #The following is from lines 186 to 207 from https://github.com/ma-xu/Open-Set-Recognition/blob/master/OSR/OpenMax/cifar100.py
+    # Get the prdict results.
+    scores = torch.cat(scores,dim=0).cpu().numpy()
+    labels = torch.cat(labels,dim=0).cpu().numpy()
+    scores = np.array(scores)[:, np.newaxis, :]
+    labels = np.array(labels)
+
+    # Fit the weibull distribution from training data.
+    print("Fittting Weibull distribution...")
+    _, mavs, dists = compute_train_score_and_mavs_and_dists(args.train_class_num, trainloader, device, net)
+    categories = list(range(0, args.train_class_num))
+    weibull_model = fit_weibull(mavs, dists, categories, args.weibull_tail, "euclidean")
+
+    pred_softmax, pred_softmax_threshold, pred_openmax = [], [], []
+    score_softmax, score_openmax = [], []
+    for score in scores:
+        so, ss = openmax(weibull_model, categories, score,
+                        0.5, args.weibull_alpha, "euclidean")  # openmax_prob, softmax_prob
+        pred_softmax.append(np.argmax(ss))
+        pred_softmax_threshold.append(np.argmax(ss) if np.max(ss) >= args.weibull_threshold else args.train_class_num)
+        pred_openmax.append(np.argmax(so) if np.max(so) >= args.weibull_threshold else args.train_class_num)
+        score_softmax.append(ss)
+        score_openmax.append(so)
+    #end copied code
+    return score_openmax

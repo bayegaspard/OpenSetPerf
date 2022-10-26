@@ -14,7 +14,7 @@ import warnings
 
 
 def main():
-    warnings.filterwarnings('ignore')  # "error", "ignore", "always", "default", "module" or "once"
+    #warnings.filterwarnings('ignore')  # "error", "ignore", "always", "default", "module" or "once"
     os.environ['TORCH'] = torch.__version__
     print(torch.__version__)
     unknownVals = [2,3,13,14]
@@ -23,9 +23,9 @@ def main():
         knownVals.remove(un)
 
     # get the data and create a test set and train set
-    train = Dataload.Dataset("Payload_data_CICIDS2017_Sorted",use=knownVals)
+    train = Dataload.Dataset("NewMainFolder/Payload_data_CICIDS2017",use=knownVals)
     train, test = torch.utils.data.random_split(train, [len(train) - len(train)//4,len(train)//4])  # randomly takes 4000 lines to use as a testing dataset
-    unknowns = Dataload.Dataset("Payload_data_CICIDS2017_Sorted",use=unknownVals,unknownData=True)
+    unknowns = Dataload.Dataset("NewMainFolder/Payload_data_CICIDS2017",use=unknownVals,unknownData=True)
     test = torch.utils.data.ConcatDataset([test,unknowns])
     #test = unknowns
 
@@ -100,10 +100,8 @@ def main():
             epoch_loss = torch.stack(batch_losses).mean()  # Combine losses
             batch_accs = [x['val_acc'] for x in outputs]
             epoch_acc = torch.stack(batch_accs).mean()  # Combine accuracies
-            if self.end.type != "energy":
-                batch_unkn = [x['val_avgUnknown'] for x in outputs]
-            else:
-                batch_unkn = self.end.Save_score
+            batch_unkn = self.end.Save_score
+            self.end.Save_score = []
             epoch_unkn = torch.stack(batch_unkn).mean()  # Combine Unknowns
             
             return {'val_loss': epoch_loss.item(), 'val_acc': epoch_acc.item(),"val_avgUnknown":epoch_unkn.item()}
