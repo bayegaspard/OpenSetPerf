@@ -1,6 +1,0 @@
-
-num_epochs 5 {'val_loss': 2.3007264137268066, 'val_acc': 0.4787052869796753, 'val_avgUnknown': 28.73843765258789, 'train_loss': 6.57036828994751, 'epoch': 0}
-num_epochs 5 {'val_loss': 2.279510974884033, 'val_acc': 0.48040884733200073, 'val_avgUnknown': 21.815349578857422, 'train_loss': 6.276666164398193, 'epoch': 1}
-num_epochs 5 {'val_loss': 2.259995937347412, 'val_acc': 0.4838160276412964, 'val_avgUnknown': 16.998788833618164, 'train_loss': 4.443630695343018, 'epoch': 2}
-num_epochs 5 {'val_loss': 2.2735164165496826, 'val_acc': 0.4838160276412964, 'val_avgUnknown': 13.726924896240234, 'train_loss': 3.354870080947876, 'epoch': 3}
-num_epochs 5 {'val_loss': 2.284245729446411, 'val_acc': 0.4787052869796753, 'val_avgUnknown': 11.695267677307129, 'train_loss': 2.1242904663085938, 'epoch': 4}

@@ -144,7 +144,6 @@ class EndLayers():
         scores = torch.tensor(np.array(scores_open))
         self.Save_score.append(scores.squeeze().mean())
         scores.squeeze_().unsqueeze_(0)
-        print("THIS IS NOT WORKING AT THE MOMENT BECAUSE WE DO NOT KNOW WHAT IT OUTPUTS")
         return torch.cat((percentages,scores),dim=0)
     
     def energyMod(self, percentages:torch.Tensor):

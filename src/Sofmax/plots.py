@@ -1,3 +1,4 @@
+import os
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -11,6 +12,7 @@ from sklearn.metrics import (precision_score, recall_score,
                              f1_score)
 import itertools
 import numpy as np
+import pandas as pd
 
 
 
@@ -150,6 +152,14 @@ def plot_confusion_matrix(cm, classes,
 # plt.show()
 
 def write_hist_to_file(lst,num_epochs,type=""):
+    
+    lst[0]["type"] = type
+    if os.path.exists("Saves/history.csv"):
+        hist = pd.read_csv("Saves/history.csv",index_col=0)
+        hist = pd.concat((hist,pd.DataFrame.from_dict(lst)))
+    else:
+        hist = pd.DataFrame.from_dict(lst)
+    hist.to_csv("Saves/history.csv")
     with open(f'Saves/history{type}.txt', 'a') as fp:
         #fp.write(f"history for {num_epochs} \n")
         fp.write("\n")
@@ -158,6 +168,15 @@ def write_hist_to_file(lst,num_epochs,type=""):
             fp.write(f"num_epochs {num_epochs} "+str(item)+"\n")
         print('Writing history Done')
 def write_scores_to_file(lst,num_epochs,type=""):
+    thisRun = pd.DataFrame.from_dict(lst)
+    thisRun["type"] = type
+    if os.path.exists("Saves/scores.csv"):
+        hist = pd.read_csv("Saves/scores.csv",index_col=0)
+        hist.loc[len(hist)] = thisRun.iloc[0]
+    else:
+        hist = thisRun
+    
+    hist.to_csv("Saves/scores.csv")
     with open(f'Saves/scores{type}.txt', 'a') as fp:
         fp.write("\n")
         for item in lst:

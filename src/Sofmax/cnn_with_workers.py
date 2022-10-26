@@ -296,7 +296,7 @@ def main():
 # plt.imshow(X[3].view(47,32))
 # plt.show()
     
-    num_epochs = 5
+    num_epochs = 1
     opt_func = torch.optim.Adam
     lr = 0.001
 
@@ -309,8 +309,8 @@ def main():
         history_finaltyped = []
         history_finaltyped += fit(num_epochs, lr, model, train_loader, val_loader, opt_func)
         y_test, y_pred = plots.convert_to_1d(Y_test,y_pred)
-        recall = recall_score(y_test,y_pred,average='weighted')
-        precision = precision_score(y_test,y_pred,average='weighted')
+        recall = recall_score(y_test,y_pred,average='weighted',zero_division=0)
+        precision = precision_score(y_test,y_pred,average='weighted',zero_division=0)
         f1 = 2 * (precision * recall) / (precision + recall)
         # auprc = average_precision_score(y_test, y_pred, average='samples')
         score_list = [recall,precision,f1]
@@ -351,8 +351,8 @@ def main():
                           title='Confusion matrix')
     plt.show()
 
-    recall = recall_score(y_test,y_pred,average='weighted')
-    precision = precision_score(y_test,y_pred,average='weighted')
+    recall = recall_score(y_test,y_pred,average='weighted',zero_division=0)
+    precision = precision_score(y_test,y_pred,average='weighted',zero_division=0)
     f1 = 2 * (precision * recall) / (precision + recall)
     # auprc = average_precision_score(y_test, y_pred, average='samples')
     score_list = [recall,precision,f1]
