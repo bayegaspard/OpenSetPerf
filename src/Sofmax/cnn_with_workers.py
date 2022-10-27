@@ -14,7 +14,7 @@ import warnings
 
 
 def main():
-    warnings.filterwarnings('ignore')  # "error", "ignore", "always", "default", "module" or "once"
+    #warnings.filterwarnings('ignore')  # "error", "ignore", "always", "default", "module" or "once"
     os.environ['TORCH'] = torch.__version__
     print(torch.__version__)
     unknownVals = [2,3,13,14]
@@ -23,9 +23,9 @@ def main():
         knownVals.remove(un)
 
     # get the data and create a test set and train set
-    train = Dataload.Dataset("Payload_data_CICIDS2017_Sorted",use=knownVals)
+    train = Dataload.Dataset("NewMainFolder/Payload_data_CICIDS2017",use=knownVals)
     train, test = torch.utils.data.random_split(train, [len(train) - len(train)//4,len(train)//4])  # randomly takes 4000 lines to use as a testing dataset
-    unknowns = Dataload.Dataset("Payload_data_CICIDS2017_Sorted",use=unknownVals,unknownData=True)
+    unknowns = Dataload.Dataset("NewMainFolder/Payload_data_CICIDS2017",use=unknownVals,unknownData=True)
     test = torch.utils.data.ConcatDataset([test,unknowns])
     #test = unknowns
 
@@ -100,10 +100,8 @@ def main():
             epoch_loss = torch.stack(batch_losses).mean()  # Combine losses
             batch_accs = [x['val_acc'] for x in outputs]
             epoch_acc = torch.stack(batch_accs).mean()  # Combine accuracies
-            if self.end.type != "energy":
-                batch_unkn = [x['val_avgUnknown'] for x in outputs]
-            else:
-                batch_unkn = self.end.Save_score
+            batch_unkn = self.end.Save_score
+            self.end.Save_score = []
             epoch_unkn = torch.stack(batch_unkn).mean()  # Combine Unknowns
             
             return {'val_loss': epoch_loss.item(), 'val_acc': epoch_acc.item(),"val_avgUnknown":epoch_unkn.item()}
@@ -298,7 +296,7 @@ def main():
 # plt.imshow(X[3].view(47,32))
 # plt.show()
     
-    num_epochs = 5
+    num_epochs = 1
     opt_func = torch.optim.Adam
     lr = 0.001
 
@@ -311,8 +309,8 @@ def main():
         history_finaltyped = []
         history_finaltyped += fit(num_epochs, lr, model, train_loader, val_loader, opt_func)
         y_test, y_pred = plots.convert_to_1d(Y_test,y_pred)
-        recall = recall_score(y_test,y_pred,average='weighted')
-        precision = precision_score(y_test,y_pred,average='weighted')
+        recall = recall_score(y_test,y_pred,average='weighted',zero_division=0)
+        precision = precision_score(y_test,y_pred,average='weighted',zero_division=0)
         f1 = 2 * (precision * recall) / (precision + recall)
         # auprc = average_precision_score(y_test, y_pred, average='samples')
         score_list = [recall,precision,f1]
@@ -353,8 +351,8 @@ def main():
                           title='Confusion matrix')
     plt.show()
 
-    recall = recall_score(y_test,y_pred,average='weighted')
-    precision = precision_score(y_test,y_pred,average='weighted')
+    recall = recall_score(y_test,y_pred,average='weighted',zero_division=0)
+    precision = precision_score(y_test,y_pred,average='weighted',zero_division=0)
     f1 = 2 * (precision * recall) / (precision + recall)
     # auprc = average_precision_score(y_test, y_pred, average='samples')
     score_list = [recall,precision,f1]

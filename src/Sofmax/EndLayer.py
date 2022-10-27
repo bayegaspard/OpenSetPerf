@@ -69,7 +69,7 @@ class EndLayers():
         scores = -scores.squeeze().unsqueeze(dim=1)
         print(scores.sum()/len(scores))
         #Just store this for later
-        self.Save_score = [x for x in self.Save_score].append(scores.sum()/len(scores))
+        self.Save_score.append(scores.mean())
         #once the dimentions are how we want them we test if it is above the cutoff
         scores = scores.greater_equal(self.cutoff).to(torch.int)
         #Then we run precentages through a softmax to get a nice score
@@ -88,6 +88,7 @@ class EndLayers():
     #This is the section for modifying the outputs for the final layer
 
     def softMaxMod(self,percentages:torch.Tensor):
+        self.Save_score.append(percentages.max(dim=1)[0].mean())
         return torch.softmax(percentages, dim=1)
 
     
@@ -126,6 +127,7 @@ class EndLayers():
             errorreturn = torch.zeros((percentages.size()))
             unknownColumn =torch.ones(len(percentages)).unsqueeze(1)
             errorreturn = torch.cat((errorreturn,unknownColumn),1)
+            self.Save_score.append(torch.zeros(0))
             return errorreturn
 
         try:
@@ -136,11 +138,12 @@ class EndLayers():
             errorreturn = torch.zeros((percentages.size()))
             unknownColumn =torch.ones(len(percentages)).unsqueeze(1)
             errorreturn = torch.cat((errorreturn,unknownColumn),1)
+            self.Save_score.append(torch.zeros(0))
             return errorreturn
         print(scores_open)
         scores = torch.tensor(np.array(scores_open))
+        self.Save_score.append(scores.squeeze().mean())
         scores.squeeze_().unsqueeze_(0)
-        print("THIS IS NOT WORKING AT THE MOMENT BECAUSE WE DO NOT KNOW WHAT IT OUTPUTS")
         return torch.cat((percentages,scores),dim=0)
     
     def energyMod(self, percentages:torch.Tensor):
@@ -160,6 +163,10 @@ class EndLayers():
         new_percentages = torch.tensor(Odin.ODIN(self.OdinX,self.model(self.OdinX), self.model, self.temp, self.noise))
         self.model.openMax = True
         return new_percentages[:len(percentages)]
+
+    def iiMod(self, percentages:torch.Tensor):
+        #https://arxiv.org/pdf/1802.04365.pdf
+        return percentages
 
     #all functions here return a tensor, sometimes it has an extra column for unknowns
     typesOfMod = {"Soft":softMaxMod, "Open":openMaxMod, "Energy":energyMod, "Odin":odinMod}
