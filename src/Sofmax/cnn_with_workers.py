@@ -71,6 +71,10 @@ def main():
             # data = to_device(data, device)
             # labels = to_device(labels, device)
             out = self(data)  # Generate predictions
+            if self.end.type == "COOL":
+                labels = self.end.COOL_Label_Mod(labels)
+                out = torch.split(out.unsqueeze(dim=1),15, dim=2)
+                out = torch.cat(out,dim=1)
             loss = F.cross_entropy(out, labels)  # Calculate loss
             return loss
 
@@ -213,6 +217,8 @@ def main():
             self.dropout = nn.Dropout()
             self.fc1 = nn.Linear(11904, 256)
             self.fc2 = nn.Linear(256, 15)
+            n=3 #This is the DOO for COOL, I will need to make some way of easily editing it.
+            self.COOL = nn.Linear(256, 15*n)
 
             self.end = EndLayers(15,type="Soft")
             
@@ -226,7 +232,11 @@ def main():
             x = self.layer2(x)
             x = self.flatten(x)
             x = F.relu(self.fc1(x))
-            x = self.fc2(self.dropout(x))
+            x = self.dropout(x)
+            if self.end.type!="COOL":
+                x = self.fc2(x)
+            else:
+                x = self.COOL(x)
             # print("in forward", F.log_softmax(x, dim=1))
             return x
             return F.log_softmax(x, dim=1)
@@ -300,7 +310,7 @@ def main():
     opt_func = torch.optim.Adam
     lr = 0.001
 
-    for x in ["Soft","Open","Energy"]:
+    for x in ["COOL","Soft","Open","Energy"]:
         model = Net()
         model.to(device)
         model.end.type=x

@@ -15,16 +15,20 @@ class EndLayers():
         self.cutoff = cutoff
         self.classCount = num_classes
         self.type = type
+        self.DOO = 3    #Degree of Overcompleteness for COOL
         self.args = None
         self.Save_score = []        #this is really not great but I don't have time to find something better.
 
 
-    
+
     def endlayer(self, output_true:torch.Tensor, y:torch.Tensor, type=None, offset=0):
         #check if a type is specified
         if type is None:
             type = self.type
         
+        if type == "COOL":
+            type = "Soft"
+
         #modify outputs
         if type != "Open":
             output_modified = self.typesOfMod[type](self,output_true)
@@ -163,6 +167,30 @@ class EndLayers():
         new_percentages = torch.tensor(Odin.ODIN(self.OdinX,self.model(self.OdinX), self.model, self.temp, self.noise))
         self.model.openMax = True
         return new_percentages[:len(percentages)]
+
+    def COOL_Label_Mod(self, targets:torch.Tensor):
+        new = []
+        for target in targets:
+            #DOO stands for degree of overcompletness and it is the number of nodes per class.
+            l = torch.zeros(self.DOO,self.classCount)
+            val = 1/self.DOO
+            for i in range(self.DOO):
+                l[(i),(target)] = val
+            #l = torch.nn.functional.one_hot(targets, num_classes=self.classCount).unsqueeze(dim=1).repeat_interleave(3,dim=1)/self.DOO
+            new.append(l)
+        targets = torch.stack(new)
+        return targets
+
+    def COOL_predict_Mod(self, prediction:torch.Tensor):
+        new = []
+        for predict in prediction:
+            l = torch.ones(self.classCount)
+            for i in range(self.DOO):
+                for j in range(self.classCount):
+                    l[j] = l[j]*predict[(j)+(i)*self.classCount]*self.DOO
+            new.append(l)
+        targets = torch.stack(new)
+        return targets
 
     def iiMod(self, percentages:torch.Tensor):
         #https://arxiv.org/pdf/1802.04365.pdf
