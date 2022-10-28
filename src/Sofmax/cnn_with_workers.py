@@ -306,7 +306,7 @@ def main():
 # plt.imshow(X[3].view(47,32))
 # plt.show()
     
-    num_epochs = 1
+    num_epochs = 5
     opt_func = torch.optim.Adam
     lr = 0.001
 
@@ -366,8 +366,8 @@ def main():
     f1 = 2 * (precision * recall) / (precision + recall)
     # auprc = average_precision_score(y_test, y_pred, average='samples')
     score_list = [recall,precision,f1]
-    plots.write_hist_to_file(history_final,num_epochs)
-    plots.write_scores_to_file(score_list,num_epochs)
+    plots.write_hist_to_file(history_final,num_epochs,model.end.type)
+    plots.write_scores_to_file(score_list,num_epochs,model.end.type)
     print("F-Score : ", f1*100)
     print("Precision : " ,precision*100)
     print("Recall : ", recall*100)
