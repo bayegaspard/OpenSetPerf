@@ -153,7 +153,8 @@ def plot_confusion_matrix(cm, classes,
 
 def write_hist_to_file(lst,num_epochs,type=""):
     
-    lst[0]["type"] = type
+    for l in lst:
+        l["type"] = type
     if os.path.exists("Saves/history.csv"):
         hist = pd.read_csv("Saves/history.csv",index_col=0)
         hist = pd.concat((hist,pd.DataFrame.from_dict(lst)))
