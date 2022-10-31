@@ -75,6 +75,7 @@ def main():
                 labels = self.end.COOL_Label_Mod(labels)
                 out = torch.split(out.unsqueeze(dim=1),15, dim=2)
                 out = torch.cat(out,dim=1)
+                labels = to_device(labels, device)
             loss = F.cross_entropy(out, labels)  # Calculate loss
             return loss
 
