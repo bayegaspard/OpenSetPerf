@@ -313,6 +313,7 @@ def main():
     for x in ["COOL","Soft","Open","Energy"]:
         model = Net()
         model.to(device)
+        loadPoint(model,"Saves")
         model.end.type=x
         Y_test = []
         y_pred =[]
