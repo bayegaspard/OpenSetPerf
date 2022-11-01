@@ -23,14 +23,14 @@ def main():
         knownVals.remove(un)
 
     # get the data and create a test set and train set
-    train = Dataload.Dataset("NewMainFolder/Payload_data_CICIDS2017",use=knownVals)
+    train = Dataload.Dataset(r"C:\Users\bgaspard\Desktop\OpenSetPerf\datasets\Payload_data_CICIDS2017",use=knownVals)
     train, test = torch.utils.data.random_split(train, [len(train) - len(train)//4,len(train)//4])  # randomly takes 4000 lines to use as a testing dataset
-    unknowns = Dataload.Dataset("NewMainFolder/Payload_data_CICIDS2017",use=unknownVals,unknownData=True)
+    unknowns = Dataload.Dataset(r"C:\Users\bgaspard\Desktop\OpenSetPerf\datasets\Payload_data_CICIDS2017",use=unknownVals,unknownData=True)
     test = torch.utils.data.ConcatDataset([test,unknowns])
     #test = unknowns
 
     attemptLoad = True
-    batch_size = 10000
+    batch_size = 1000
 
     trainset = DataLoader(train, batch_size, num_workers=6,shuffle=True,
                           pin_memory=True)  # for faster processing enable pin memory to true and num_workers=4
@@ -75,6 +75,7 @@ def main():
                 labels = self.end.COOL_Label_Mod(labels)
                 out = torch.split(out.unsqueeze(dim=1),15, dim=2)
                 out = torch.cat(out,dim=1)
+                labels = to_device(labels, device)
             loss = F.cross_entropy(out, labels)  # Calculate loss
             return loss
 
@@ -157,7 +158,7 @@ def main():
 
 
     def evaluate(model, val_loader):
-        outputs = [model.validation_step(batch) for batch in val_loader]
+        outputs = [model.validation_step(batch) for batch in DeviceDataLoader(validationset, device)]
         return model.validation_epoch_end(outputs)
 
 
@@ -170,8 +171,9 @@ def main():
                 # Training Phase
                 model.train()
                 train_losses = []
-                for batch in train_loader:
+                for batch in trainset:
                     # batch = to_device(batch,device)
+                    batch = DeviceDataLoader(batch, device)
                     loss = model.training_step(batch)
                     train_losses.append(loss)
                     loss.backward()
