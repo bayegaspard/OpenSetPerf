@@ -4,6 +4,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import matplotlib.pyplot as plt
 import Dataload
+import pandas as pd
 from torch.utils.data import DataLoader
 import plots
 from EndLayer import EndLayers
@@ -11,9 +12,30 @@ import os
 from sklearn.metrics import (precision_score, recall_score)
 import warnings
 
-
+def generateHyperparameters():
+    if os.path.exists("hyperParam.csv"):
+        return
+    parameters = {"batch_size":10000,"num_workers":6,"attemptLoad":False,"unknowns":[2,3,13,14],
+    "testlength":1/4,"num_epochs":5,"learningRate":0.01,"threshold":0.25}
+    param = pd.DataFrame.from_dict(parameters)
+    param.to_csv("hyperParam.csv")
 
 def main():
+
+    if not os.path.exists("hyperParam.csv"):
+        generateHyperparameters()
+    param = pd.read_csv("hyperParam.csv")
+    batch_size = int(param["batch_size"][0])
+    num_workers = int(param["num_workers"][0])
+    attemptLoad = int(param["attemptLoad"][0])
+    unknownVals = param["unknowns"]
+    testlen = int(param["testlength"][0])
+    num_epochs = int(param["num_epochs"][0])
+    lr = int(param["learningRate"][0])
+    threshold = int(param["threshold"][0])
+
+
+
     #warnings.filterwarnings('ignore')  # "error", "ignore", "always", "default", "module" or "once"
     os.environ['TORCH'] = torch.__version__
     print(torch.__version__)
@@ -24,18 +46,16 @@ def main():
 
     # get the data and create a test set and train set
     train = Dataload.Dataset("NewMainFolder/Payload_data_CICIDS2017",use=knownVals)
-    train, test = torch.utils.data.random_split(train, [len(train) - len(train)//4,len(train)//4])  # randomly takes 4000 lines to use as a testing dataset
+    train, test = torch.utils.data.random_split(train, [len(train) - int(len(train)*testlen),int(len(train)*testlen)])  # randomly takes 4000 lines to use as a testing dataset
     unknowns = Dataload.Dataset("NewMainFolder/Payload_data_CICIDS2017",use=unknownVals,unknownData=True)
     test = torch.utils.data.ConcatDataset([test,unknowns])
     #test = unknowns
 
-    attemptLoad = True
-    batch_size = 10000
 
-    trainset = DataLoader(train, batch_size, num_workers=6,shuffle=True,
+    trainset = DataLoader(train, batch_size, num_workers=num_workers,shuffle=True,
                           pin_memory=True)  # for faster processing enable pin memory to true and num_workers=4
-    validationset = DataLoader(test, batch_size, shuffle=True, num_workers=6,pin_memory=True)
-    testset = DataLoader(test, batch_size, shuffle=True, num_workers=6, pin_memory=True)
+    validationset = DataLoader(test, batch_size, shuffle=True, num_workers=num_workers,pin_memory=True)
+    testset = DataLoader(test, batch_size, shuffle=True, num_workers=num_workers, pin_memory=True)
 
 
     print(len(train))
@@ -53,7 +73,9 @@ def main():
     y_pred =[]
 
 
-
+    
+    
+        
 
     def accuracy(outputs, labels):
         _, preds = torch.max(outputs, dim=1)
@@ -220,7 +242,7 @@ def main():
             n=3 #This is the DOO for COOL, I will need to make some way of easily editing it.
             self.COOL = nn.Linear(256, 15*n)
 
-            self.end = EndLayers(15,type="Soft")
+            self.end = EndLayers(15,type="Soft",cutoff=threshold)
             
 
         # Specify how the data passes in the neural network
@@ -305,15 +327,11 @@ def main():
 
 # plt.imshow(X[3].view(47,32))
 # plt.show()
-    
-    num_epochs = 5
     opt_func = torch.optim.Adam
-    lr = 0.001
 
     for x in ["COOL","Soft","Open","Energy"]:
         model = Net()
         model.to(device)
-        loadPoint(model,"Saves")
         model.end.type=x
         Y_test = []
         y_pred =[]
