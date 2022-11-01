@@ -130,7 +130,7 @@ class Dataset(Dataset):
 
         if not self.unknownData:
             label = x.iloc[len(x)-1]         #This selects the label
-            label = torch.tensor(label,dtype=torch.long)    #The int is because the loss function is expecting ints
+            label = torch.tensor(int(label),dtype=torch.long)    #The int is because the loss function is expecting ints
         else:
             label = torch.tensor(15,dtype=torch.long)
 
