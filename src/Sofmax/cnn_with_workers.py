@@ -28,7 +28,7 @@ def main():
     batch_size = int(param["batch_size"][0])
     num_workers = int(param["num_workers"][0])
     attemptLoad = int(param["attemptLoad"][0])
-    unknownVals = param["unknowns"]
+    unknownVals = param["unknowns"].to_list()
     testlen = int(param["testlength"][0])
     num_epochs = int(param["num_epochs"][0])
     lr = int(param["learningRate"][0])
@@ -39,7 +39,6 @@ def main():
     #warnings.filterwarnings('ignore')  # "error", "ignore", "always", "default", "module" or "once"
     os.environ['TORCH'] = torch.__version__
     print(torch.__version__)
-    unknownVals = [2,3,13,14]
     knownVals = list(range(15))
     for un in unknownVals:
         knownVals.remove(un)
