@@ -13,26 +13,30 @@ from sklearn.metrics import (precision_score, recall_score)
 import warnings
 
 def generateHyperparameters():
-    if os.path.exists("hyperParam.csv"):
+    if os.path.exists("hyperParam.csv") and os.path.exists("unknowns.csv"):
         return
-    parameters = {"batch_size":10000,"num_workers":6,"attemptLoad":False,"unknowns":[2,3,13,14],
-    "testlength":1/4,"num_epochs":5,"learningRate":0.01,"threshold":0.25}
+    parameters = {"batch_size":10000,"num_workers":6,"attemptLoad":False,
+    "testlength":1/4,"num_epochs":5,"learningRate":0.01,"threshold":0.25, "optimizer":"Adam"}
     param = pd.DataFrame.from_dict(parameters)
     param.to_csv("hyperParam.csv")
+    parameters = {"unknowns":[2,3,13,14]}
+    param = pd.DataFrame.from_dict(parameters)
+    param.to_csv("unknowns.csv")
 
 def main():
 
-    if not os.path.exists("hyperParam.csv"):
+    if not os.path.exists("hyperParam.csv") or not os.path.exists("unknowns.csv"):
         generateHyperparameters()
     param = pd.read_csv("hyperParam.csv")
     batch_size = int(param["batch_size"][0])
     num_workers = int(param["num_workers"][0])
     attemptLoad = int(param["attemptLoad"][0])
-    unknownVals = param["unknowns"].to_list()
     testlen = int(param["testlength"][0])
     num_epochs = int(param["num_epochs"][0])
     lr = int(param["learningRate"][0])
     threshold = int(param["threshold"][0])
+    param = pd.read_csv("unknowns.csv")
+    unknownVals = param["unknowns"].to_list()
 
 
 
@@ -44,9 +48,9 @@ def main():
         knownVals.remove(un)
 
     # get the data and create a test set and train set
-    train = Dataload.Dataset(r"C:\Users\bgaspard\Desktop\OpenSetPerf\datasets\Payload_data_CICIDS2017",use=knownVals)
-    train, test = torch.utils.data.random_split(train, [len(train) - len(train)//4,len(train)//4])  # randomly takes 4000 lines to use as a testing dataset
-    unknowns = Dataload.Dataset(r"C:\Users\bgaspard\Desktop\OpenSetPerf\datasets\Payload_data_CICIDS2017",use=unknownVals,unknownData=True)
+    train = Dataload.Dataset("NewMainFolder/Payload_data_CICIDS2017",use=knownVals)
+    train, test = torch.utils.data.random_split(train, [len(train) - int(len(train)*testlen),int(len(train)*testlen)])  # randomly takes 4000 lines to use as a testing dataset
+    unknowns = Dataload.Dataset("NewMainFolder/Payload_data_CICIDS2017",use=unknownVals,unknownData=True)
     test = torch.utils.data.ConcatDataset([test,unknowns])
     #test = unknowns
 
@@ -100,11 +104,12 @@ def main():
                 out = torch.cat(out,dim=1)
                 labels = to_device(labels, device)
             loss = F.cross_entropy(out, labels)  # Calculate loss
+            
             return loss
 
         def validation_step(self, batch):
             self.eval()
-            savePoint(self,"test")
+            savePoint(self,"test", phase=phase)
             data, labels = batch
             out = self(data)  # Generate predictions
             out = self.end.endlayer(out, labels) #              <----Here is where it is using Softmax TODO: make this be able to run all of the versions and save the outputs.
@@ -119,6 +124,8 @@ def main():
 
 
             loss = F.cross_entropy(out, labels)  # Calculate loss
+            plots.write_batch_to_file(loss,self.batchnum,model.end.type,"test")
+            self.batchnum += 1
             acc = accuracy(out, labels)  # Calculate accuracy
             self.train()
             return {'val_loss': loss.detach(), 'val_acc': acc, "val_avgUnknown":unknowns}
@@ -181,6 +188,7 @@ def main():
 
 
     def evaluate(model, val_loader):
+        model.batchnum = 0
         outputs = [model.validation_step(batch) for batch in DeviceDataLoader(validationset, device)]
         return model.validation_epoch_end(outputs)
 
@@ -194,16 +202,19 @@ def main():
                 # Training Phase
                 model.train()
                 train_losses = []
-                for batch in trainset:
+                num = 0
+                for batch in train_loader:
                     # batch = to_device(batch,device)
                     batch = DeviceDataLoader(batch, device)
                     loss = model.training_step(batch)
+                    plots.write_batch_to_file(loss,num,model.end.type,"train")
                     train_losses.append(loss)
                     loss.backward()
                     optimizer.step()
                     optimizer.zero_grad()
+                    num += 1
                 # Validation phase
-                savePoint(model, f"Saves", epoch)
+                savePoint(model, f"Saves", epoch, phase)
                 result = evaluate(model, val_loader)
                 result['train_loss'] = torch.stack(train_losses).mean().item()
                 result["epoch"] = epoch
@@ -266,10 +277,14 @@ def main():
             return x
             return F.log_softmax(x, dim=1)
 
-    def savePoint(net:AttackClassification, path:str, epoch=0):
+    def savePoint(net:AttackClassification, path:str, epoch=0, phase=None):
         if not os.path.exists(path):
             os.mkdir(path)
         torch.save(net.state_dict(),path+f"/Epoch{epoch:03d}.pth")
+        if phase is not None:
+            file = open("Saves/phase","w")
+            file.write(str(phase))
+            file.close()
     def loadPoint(net:AttackClassification, path:str):
         if not os.path.exists(path):
             os.mkdir(path)
@@ -282,6 +297,11 @@ def main():
             i = i-1
         if i != -2:
             print("No model to load found.")
+        elif os.path.exists("Saves/phase"):
+            file = open("Saves/phase","r")
+            phase = file.read()
+            file.close()
+            return int(phase)
 
 # initialize the neural network
 # net = Net().float()
@@ -332,7 +352,21 @@ def main():
 # plt.show()
     opt_func = torch.optim.Adam
 
+    phase = -1
+    startphase = 0
+
+    if attemptLoad and os.path.exists("Saves/phase"):
+        file = open("Saves/phase","r")
+        try:
+            startphase = int(file.read())
+        except:
+            startphase = 0
+        file.close()
+        loadPoint(model, "Saves")
     for x in ["COOL","Soft","Open","Energy"]:
+        phase += 1
+        if phase<startphase:
+            pass
         model = Net()
         model.to(device)
         model.end.type=x
@@ -340,17 +374,11 @@ def main():
         y_pred =[]
         history_finaltyped = []
         history_finaltyped += fit(num_epochs, lr, model, train_loader, val_loader, opt_func)
-        y_test, y_pred = plots.convert_to_1d(Y_test,y_pred)
-        recall = recall_score(y_test,y_pred,average='weighted',zero_division=0)
-        precision = precision_score(y_test,y_pred,average='weighted',zero_division=0)
-        f1 = 2 * (precision * recall) / (precision + recall)
-        # auprc = average_precision_score(y_test, y_pred, average='samples')
-        score_list = [recall,precision,f1]
-        plots.write_hist_to_file(history_finaltyped,num_epochs,x)
-        plots.write_scores_to_file(score_list,num_epochs,x)  
+        plots.store_values(history_finaltyped, y_pred, Y_test, num_epochs, x)
     if attemptLoad:
         loadPoint(model,"Saves")
-    
+    phase += 1
+
     # model = Net()
     # model = model.to(device)
     
@@ -395,7 +423,10 @@ def main():
     print("Recall : ", recall*100)
     # print("AUPRC : ", auprc * 100)
 
-    model.end.prepWeibull(train_loader,device,model)
+    if attemptLoad and os.path.exists("Saves/phase"):
+        file = open("Saves/phase","w")
+        startphase = "0"
+        file.close()
 
     
 

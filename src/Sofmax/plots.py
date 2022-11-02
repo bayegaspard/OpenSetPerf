@@ -185,6 +185,31 @@ def write_scores_to_file(lst,num_epochs,type=""):
             fp.write(f"num_epochs {num_epochs} "+str(item).format(num_epochs)+"\n")
         print('Writing scores Done')
 
+def write_batch_to_file(loss, num, modeltype="",batchtype=""):
+    thisRun = pd.DataFrame([[loss.item(),num,modeltype,batchtype]],columns=["Loss","Batch Number","Model Type","Batch Type"])
+    # thisRun["Loss"] = loss.detach()
+    # thisRun["Batch Number"] = num
+    # thisRun["Model Type"] = modeltype
+    # thisRun["Batch Type"] = batchtype
+    if os.path.exists("Saves/batch.csv"):
+        hist = pd.read_csv("Saves/batch.csv",index_col=0)
+        hist.loc[len(hist)] = thisRun.iloc[0]
+    else:
+        hist = thisRun
+    
+    hist.to_csv("Saves/batch.csv")
+
+
+def store_values(history:list, Y_predict:list, Y_test:list, num_epochs:int, end_type:str):
+    y_test, y_pred = convert_to_1d(Y_test,Y_predict)
+    recall = recall_score(y_test,y_pred,average='weighted',zero_division=0)
+    precision = precision_score(y_test,y_pred,average='weighted',zero_division=0)
+    f1 = 2 * (precision * recall) / (precision + recall)
+    # auprc = average_precision_score(y_test, y_pred, average='samples')
+    score_list = [recall,precision,f1]
+    write_hist_to_file(history,num_epochs,end_type)
+    write_scores_to_file(score_list,num_epochs,end_type)  
+
 #write_hist_to_file(history_final,num_epochs)
 # 0
 # 0,362108
