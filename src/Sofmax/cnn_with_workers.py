@@ -15,9 +15,9 @@ import warnings
 def generateHyperparameters():
     if os.path.exists("hyperParam.csv") and os.path.exists("unknowns.csv"):
         return
-    parameters = {"batch_size":10000,"num_workers":6,"attemptLoad":False,
-    "testlength":1/4,"num_epochs":5,"learningRate":0.01,"threshold":0.25, "optimizer":"Adam"}
-    param = pd.DataFrame.from_dict(parameters)
+    parameters = {"batch_size":[10000],"num_workers":[6],"attemptLoad":[0],
+    "testlength":[1/4],"num_epochs":[5],"learningRate":[0.01],"threshold":[0.25], "optimizer":"Adam", "Unknowns":"refer to unknowns.CSV"}
+    param = pd.DataFrame.from_dict(parameters,orient="columns")
     param.to_csv("hyperParam.csv")
     parameters = {"unknowns":[2,3,13,14]}
     param = pd.DataFrame.from_dict(parameters)
@@ -31,7 +31,7 @@ def main():
     batch_size = int(param["batch_size"][0])
     num_workers = int(param["num_workers"][0])
     attemptLoad = int(param["attemptLoad"][0])
-    testlen = int(param["testlength"][0])
+    testlen = float(param["testlength"][0])
     num_epochs = int(param["num_epochs"][0])
     lr = int(param["learningRate"][0])
     threshold = int(param["threshold"][0])
