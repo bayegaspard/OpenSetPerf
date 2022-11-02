@@ -16,7 +16,7 @@ def generateHyperparameters():
     if os.path.exists("hyperParam.csv"):
         return
     parameters = {"batch_size":10000,"num_workers":6,"attemptLoad":False,"unknowns":[2,3,13,14],
-    "testlength":1/4,"num_epochs":5,"learningRate":0.01,"threshold":0.25}
+    "testlength":1/4,"num_epochs":1,"learningRate":0.01,"threshold":0.25}
     param = pd.DataFrame.from_dict(parameters)
     param.to_csv("hyperParam.csv")
 
@@ -176,13 +176,13 @@ def main():
             return len(self.dl)
 
 
-    train_loader = DeviceDataLoader(trainset, device)
-    val_loader = DeviceDataLoader(validationset, device)
-    test_loader = DeviceDataLoader(testset, device)
+    train_loader = trainset
+    val_loader = validationset
+    test_loader = testset
 
 
-    def evaluate(model, val_loader):
-        outputs = [model.validation_step(batch) for batch in DeviceDataLoader(validationset, device)]
+    def evaluate(model, validationset):
+        outputs = [model.validation_step(DeviceDataLoader(batch, device)) for batch in validationset]
         return model.validation_epoch_end(outputs)
 
 
