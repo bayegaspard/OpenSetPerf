@@ -355,6 +355,7 @@ def main():
     phase = -1
     startphase = 0
 
+
     if attemptLoad and os.path.exists("Saves/phase"):
         file = open("Saves/phase","r")
         try:
@@ -362,12 +363,13 @@ def main():
         except:
             startphase = 0
         file.close()
-        loadPoint(model, "Saves")
     for x in ["COOL","Soft","Open","Energy"]:
         phase += 1
         if phase<startphase:
             pass
         model = Net()
+        if attemptLoad:
+            loadPoint(model, "Saves")
         model.to(device)
         model.end.type=x
         Y_test = []
