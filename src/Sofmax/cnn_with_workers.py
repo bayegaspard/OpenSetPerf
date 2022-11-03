@@ -15,8 +15,9 @@ import warnings
 def generateHyperparameters():
     if os.path.exists("hyperParam.csv") and os.path.exists("unknowns.csv"):
         return
-    parameters = {"batch_size":[10000],"num_workers":[6],"attemptLoad":[0],
-    "testlength":[1/4],"num_epochs":[5],"learningRate":[0.01],"threshold":[0.25], "optimizer":"Adam", "Unknowns":"refer to unknowns.CSV"}
+    parameters = {"batch_size":[10000, "Number of items per batch"],"num_workers":[6, "Number of threads working on building batches"],"attemptLoad":[0, "0: do not use saves\n1:use saves"],
+    "testlength":[1/4, "[0,1) percentage of training to test with"],"num_epochs":[5,"Number of times it trains on the whole trainset"],"learningRate":[0.01, "a modifier for training"],
+    "threshold":[0.25,"When to declare something to be unknown"], "optimizer":"Adam", "Unknowns":"refer to unknowns.CSV"}
     param = pd.DataFrame.from_dict(parameters,orient="columns")
     param.to_csv("hyperParam.csv")
     parameters = {"unknowns":[2,3,13,14]}
@@ -47,18 +48,23 @@ def main():
     for un in unknownVals:
         knownVals.remove(un)
 
-    # get the data and create a test set and train set
-    train = Dataload.Dataset("NewMainFolder/Payload_data_CICIDS2017",use=knownVals)
-    train, test = torch.utils.data.random_split(train, [len(train) - int(len(train)*testlen),int(len(train)*testlen)])  # randomly takes 4000 lines to use as a testing dataset
-    unknowns = Dataload.Dataset("NewMainFolder/Payload_data_CICIDS2017",use=unknownVals,unknownData=True)
-    test = torch.utils.data.ConcatDataset([test,unknowns])
-    #test = unknowns
 
-    attemptLoad = True
-    batch_size = 1000
+    if attemptLoad and os.path.exists("Saves/Data.pt"):
+        train = torch.load("Saves/Data.pt")
+        test = torch.load("Saves/DataTest.pt")
+    else:
+        # get the data and create a test set and train set
+        train = Dataload.Dataset("NewMainFolder/Payload_data_CICIDS2017",use=knownVals)
+        train, test = torch.utils.data.random_split(train, [len(train) - int(len(train)*testlen),int(len(train)*testlen)])  # randomly takes 4000 lines to use as a testing dataset
+        unknowns = Dataload.Dataset("NewMainFolder/Payload_data_CICIDS2017",use=unknownVals,unknownData=True)
+        test = torch.utils.data.ConcatDataset([test,unknowns])
+        #test = unknowns
+        torch.save(train,"Saves/Data.pt")
+        torch.save(test,"Saves/DataTest.pt")
+
 
     trainset = DataLoader(train, batch_size, num_workers=num_workers,shuffle=True,
-                          pin_memory=True)  # for faster processing enable pin memory to true and num_workers=4
+                        pin_memory=True)  # for faster processing enable pin memory to true and num_workers=4
     validationset = DataLoader(test, batch_size, shuffle=True, num_workers=num_workers,pin_memory=True)
     testset = DataLoader(test, batch_size, shuffle=True, num_workers=num_workers, pin_memory=True)
 
@@ -368,7 +374,7 @@ def main():
         if phase<startphase:
             pass
         model = Net()
-        if attemptLoad:
+        if attemptLoad and startphase!=0:
             loadPoint(model, "Saves")
         model.to(device)
         model.end.type=x
