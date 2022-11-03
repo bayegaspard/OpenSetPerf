@@ -64,9 +64,9 @@ def main():
 
 
     trainset = DataLoader(train, batch_size, num_workers=num_workers,shuffle=True,
-                        pin_memory=True)  # for faster processing enable pin memory to true and num_workers=4
-    validationset = DataLoader(test, batch_size, shuffle=True, num_workers=num_workers,pin_memory=True)
-    testset = DataLoader(test, batch_size, shuffle=True, num_workers=num_workers, pin_memory=True)
+                        pin_memory=False)  # for faster processing enable pin memory to true and num_workers=4
+    validationset = DataLoader(test, batch_size, shuffle=True, num_workers=num_workers,pin_memory=False)
+    testset = DataLoader(test, batch_size, shuffle=True, num_workers=num_workers, pin_memory=False)
 
 
     print(len(train))
