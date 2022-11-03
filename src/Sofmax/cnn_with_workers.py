@@ -15,7 +15,7 @@ import warnings
 def generateHyperparameters():
     if os.path.exists("hyperParam.csv") and os.path.exists("unknowns.csv"):
         return
-    parameters = {"batch_size":[10000, "Number of items per batch"],"num_workers":[6, "Number of threads working on building batches"],"attemptLoad":[0, "0: do not use saves\n1:use saves"],
+    parameters = {"batch_size":[10000, "Number of items per batch"],"num_workers":[6, "Number of threads working on building batches"],"attemptLoad":[1, "0: do not use saves\n1:use saves"],
     "testlength":[1/4, "[0,1) percentage of training to test with"],"num_epochs":[5,"Number of times it trains on the whole trainset"],"learningRate":[0.01, "a modifier for training"],
     "threshold":[0.25,"When to declare something to be unknown"], "optimizer":"Adam", "Unknowns":"refer to unknowns.CSV"}
     param = pd.DataFrame.from_dict(parameters,orient="columns")
@@ -34,8 +34,8 @@ def main():
     attemptLoad = int(param["attemptLoad"][0])
     testlen = float(param["testlength"][0])
     num_epochs = int(param["num_epochs"][0])
-    lr = int(param["learningRate"][0])
-    threshold = int(param["threshold"][0])
+    lr = float(param["learningRate"][0])
+    threshold = float(param["threshold"][0])
     param = pd.read_csv("unknowns.csv")
     unknownVals = param["unknowns"].to_list()
 
@@ -295,10 +295,12 @@ def main():
         if not os.path.exists(path):
             os.mkdir(path)
         i = 999
+        epochFound = 0
         while i >= 0:
             if os.path.exists(path+f"/Epoch{i:03d}.pth"):
                 net.load_state_dict(torch.load(path+f"/Epoch{i:03d}.pth"))
                 print(f"Loaded  model /Epoch{i:03d}.pth")
+                epochFound = i
                 i = -1
             i = i-1
         if i != -2:
@@ -307,7 +309,7 @@ def main():
             file = open("Saves/phase","r")
             phase = file.read()
             file.close()
-            return int(phase)
+            return int(phase),epochFound
 
 # initialize the neural network
 # net = Net().float()
@@ -360,6 +362,7 @@ def main():
 
     phase = -1
     startphase = 0
+    e = 0
 
 
     if attemptLoad and os.path.exists("Saves/phase"):
@@ -369,19 +372,22 @@ def main():
         except:
             startphase = 0
         file.close()
-    for x in ["COOL","Soft","Open","Energy"]:
+
+        model = Net()
+        model.to(device)
+        _,e = loadPoint(model, "Saves")
+    for x in ["Soft","Open","Energy"]:
         phase += 1
         if phase<startphase:
-            pass
-        model = Net()
-        if attemptLoad and startphase!=0:
-            loadPoint(model, "Saves")
-        model.to(device)
+            continue
+        elif phase>startphase:
+            model = Net()
+            model.to(device)
         model.end.type=x
         Y_test = []
         y_pred =[]
         history_finaltyped = []
-        history_finaltyped += fit(num_epochs, lr, model, train_loader, val_loader, opt_func)
+        history_finaltyped += fit(num_epochs-e, lr, model, train_loader, val_loader, opt_func)
         plots.store_values(history_finaltyped, y_pred, Y_test, num_epochs, x)
     if attemptLoad:
         loadPoint(model,"Saves")
