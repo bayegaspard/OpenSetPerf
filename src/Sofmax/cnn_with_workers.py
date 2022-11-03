@@ -260,7 +260,7 @@ def main():
             self.fc1 = nn.Linear(11904, 256)
             self.fc2 = nn.Linear(256, 15)
             n=3 #This is the DOO for COOL, I will need to make some way of easily editing it.
-            self.COOL = nn.Linear(256, 15*n)
+            #self.COOL = nn.Linear(256, 15*n)
 
             self.end = EndLayers(15,type="Soft",cutoff=threshold)
             
@@ -380,7 +380,7 @@ def main():
         phase += 1
         if phase<startphase:
             continue
-        elif phase>startphase:
+        elif e==0:
             model = Net()
             model.to(device)
         model.end.type=x
@@ -389,6 +389,7 @@ def main():
         history_finaltyped = []
         history_finaltyped += fit(num_epochs-e, lr, model, train_loader, val_loader, opt_func)
         plots.store_values(history_finaltyped, y_pred, Y_test, num_epochs, x)
+        e=0
     if attemptLoad:
         loadPoint(model,"Saves")
     phase += 1
