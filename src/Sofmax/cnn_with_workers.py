@@ -310,6 +310,7 @@ def main():
             phase = file.read()
             file.close()
             return int(phase),epochFound
+        return -1, -1
 
 # initialize the neural network
 # net = Net().float()
@@ -376,6 +377,7 @@ def main():
         model = Net()
         model.to(device)
         _,e = loadPoint(model, "Saves")
+        e = e
     for x in ["Soft","Open","Energy"]:
         phase += 1
         if phase<startphase:
