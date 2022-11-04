@@ -15,10 +15,9 @@ import warnings
 def generateHyperparameters():
     if os.path.exists("hyperParam.csv") and os.path.exists("unknowns.csv"):
         return
-    parameters = {"batch_size":[10000, "Number of items per batch"],"num_workers":[6, "Number of threads working on building batches"],"attemptLoad":[1, "0: do not use saves\n1:use saves"],
-    "testlength":[1/4, "[0,1) percentage of training to test with"],"num_epochs":[5,"Number of times it trains on the whole trainset"],"learningRate":[0.01, "a modifier for training"],
-    "threshold":[0.25,"When to declare something to be unknown"], "optimizer":"Adam", "Unknowns":"refer to unknowns.CSV","CLASSES":[15,"Number of classes, do not change"], 
-    "Temperature":[1,"Energy OOD scaling parameter"]}
+    parameters = {"batch_size":[1000, "Number of items per batch"],"num_workers":[2, "Number of threads working on building batches"],"attemptLoad":[1, "0: do not use saves\n1:use saves"],
+    "testlength":[1/4, "[0,1) percentage of training to test with"],"num_epochs":[2,"Number of times it trains on the whole trainset"],"learningRate":[0.01, "a modifier for training"],
+    "threshold":[0.25,"When to declare something to be unknown"], "optimizer":"Adam", "Unknowns":"refer to unknowns.CSV"}
     param = pd.DataFrame.from_dict(parameters,orient="columns")
 
     param.to_csv("hyperParam.csv")
@@ -56,9 +55,9 @@ def main():
         test = torch.load("Saves/DataTest.pt")
     else:
         # get the data and create a test set and train set
-        train = Dataload.Dataset("NewMainFolder/Payload_data_CICIDS2017",use=knownVals)
+        train = Dataload.Dataset(r"C:\Users\bgaspard\Desktop\OpenSetPerf\datasets\Payload_data_CICIDS2017",use=knownVals)
         train, test = torch.utils.data.random_split(train, [len(train) - int(len(train)*testlen),int(len(train)*testlen)])  # randomly takes 4000 lines to use as a testing dataset
-        unknowns = Dataload.Dataset("NewMainFolder/Payload_data_CICIDS2017",use=unknownVals,unknownData=True)
+        unknowns = Dataload.Dataset(r"C:\Users\bgaspard\Desktop\OpenSetPerf\datasets\Payload_data_CICIDS2017",use=unknownVals,unknownData=True)
         test = torch.utils.data.ConcatDataset([test,unknowns])
         #test = unknowns
         torch.save(train,"Saves/Data.pt")
@@ -197,7 +196,6 @@ def main():
 
 
     def evaluate(model, validationset):
-        model.batchnum =0
         outputs = [model.validation_step(DeviceDataLoader(batch, device)) for batch in validationset]
         return model.validation_epoch_end(outputs)
 
@@ -312,8 +310,6 @@ def main():
             file = open("Saves/phase","r")
             phase = file.read()
             file.close()
-            if phase == "":
-                phase = "0"
             return int(phase),epochFound
         return -1, -1
 
@@ -383,7 +379,7 @@ def main():
         model.to(device)
         _,e = loadPoint(model, "Saves")
         e = e
-    for x in ["Soft","Open","Energy"]:
+    for x in ["Soft","Energy","Open"]:
         phase += 1
         if phase<startphase:
             continue
