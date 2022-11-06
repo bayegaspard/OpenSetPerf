@@ -43,7 +43,6 @@ def main():
     unknownVals = param["unknowns"].to_list()
 
 
-
     #warnings.filterwarnings('ignore')  # "error", "ignore", "always", "default", "module" or "once"
     os.environ['TORCH'] = torch.__version__
     print(torch.__version__)
@@ -113,6 +112,7 @@ def main():
                 out = torch.cat(out,dim=1)
             #out = DeviceDataLoader(out, device)
             loss = F.cross_entropy(out, labels)  # Calculate loss
+
             torch.cuda.empty_cache()
             print("training: " ,loss)
             return loss
@@ -135,7 +135,7 @@ def main():
             unknowns = out[:,15].mean()
             out = to_device(out,device)
             loss = F.cross_entropy(out, labels)  # Calculate loss
-            plots.write_batch_to_file(loss,self.batchnum,model.end.type,"test")
+            plots.write_batch_to_file(loss,self.batchnum,self.end.type,"test")
             self.batchnum += 1
             acc = accuracy(out, labels)  # Calculate accuracy
             self.train()
@@ -226,12 +226,14 @@ def main():
                     # batch = to_device(batch,device)
                     batch = DeviceDataLoader(batch, device)
                     loss = model.training_step(batch)
+                    
                     plots.write_batch_to_file(loss,num,model.end.type,"train")
-                    train_losses.append(loss)
+                    train_losses.append(loss.detach())
                     loss.backward()
                     optimizer.step()
                     optimizer.zero_grad()
                     num += 1
+                    
                 # Validation phase
                 savePoint(model, f"Saves", epoch, phase)
                 result = evaluate(model, val_loader)
@@ -276,6 +278,7 @@ def main():
             #self.COOL = nn.Linear(256, 15*n)
 
             self.end = EndLayers(15,type="Soft",cutoff=threshold)
+            self.batchnum = 0
             
 
         # Specify how the data passes in the neural network
@@ -400,12 +403,18 @@ def main():
             model = Net()
             model.to(device)
         model.end.type=x
+        if x == "Open":
+            model.end.prepWeibull(train_loader,device,model)
+
         Y_test = []
         y_pred =[]
         history_finaltyped = []
         history_finaltyped += fit(num_epochs-e, lr, model, train_loader, val_loader, opt_func)
         plots.store_values(history_finaltyped, y_pred, Y_test, num_epochs, x)
         e=0
+        del model
+    model = Net()
+    model.to(device)
     if attemptLoad:
         loadPoint(model,"Saves")
     phase += 1

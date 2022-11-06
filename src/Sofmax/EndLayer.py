@@ -49,6 +49,7 @@ class EndLayers():
     #This is the section for adding unknown column
 
     def softMaxUnknown(self,percentages:torch.Tensor):
+        self.Save_score.append(percentages.max(dim=1)[0].mean())
         #this adds a row that is of the cutoff amout so unless there is another value greater it will be unknown
         batchsize = len(percentages)
         unknownColumn = self.cutoff * torch.ones(batchsize,device=percentages.device)
@@ -92,11 +93,19 @@ class EndLayers():
     #This is the section for modifying the outputs for the final layer
 
     def softMaxMod(self,percentages:torch.Tensor):
-        self.Save_score.append(percentages.max(dim=1)[0].mean())
         return torch.softmax(percentages, dim=1)
 
     
-    def setArgs(self, classes=15, weibullThreshold=0.9, weibullTail=20, weibullAlpha=3, score="energy", m_in=-1, m_out=0, Temp=1):
+
+    def setArgs(self, classes=None, weibullThreshold=0.9, weibullTail=20, weibullAlpha=3, score="energy", m_in=-1, m_out=0, temp=None):
+        param = pd.read_csv("hyperParam.csv")
+        unknowns = pd.read_csv("unknowns.csv")
+        unknowns = unknowns["unknowns"].to_list()
+        if temp is None:
+            temp = float(param["Temperature"][0])
+        if classes is None:
+            classes = int(param["CLASSES"][0])-len(unknowns)
+
         class argsc():
             def __init__(self):
                 #OpenMax
