@@ -19,7 +19,8 @@ def generateHyperparameters():
         return
     parameters = {"batch_size":[100, "Number of items per batch"],"num_workers":[6, "Number of threads working on building batches"],"attemptLoad":[0, "0: do not use saves\n1:use saves"],
     "testlength":[1/4, "[0,1) percentage of training to test with"],"num_epochs":[1,"Number of times it trains on the whole trainset"],"learningRate":[0.01, "a modifier for training"],
-    "threshold":[0.25,"When to declare something to be unknown"], "optimizer":"Adam", "Unknowns":"refer to unknowns.CSV"}
+    "threshold":[0.25,"When to declare something to be unknown"], "optimizer":"Adam", "Unknowns":"refer to unknowns.CSV","CLASSES":[15,"Number of classes, do not change"], 
+    "Temperature":[1,"Energy OOD scaling parameter"]}
     param = pd.DataFrame.from_dict(parameters,orient="columns")
 
     param.to_csv("hyperParam.csv")
@@ -56,9 +57,9 @@ def main():
         test = torch.load("Saves/DataTest.pt")
     else:
         # get the data and create a test set and train set
-        train = Dataload.Dataset(r"C:\Users\bgaspard\Desktop\OpenSetPerf\datasets\Payload_data_CICIDS2017",use=knownVals)
+        train = Dataload.Dataset("NewMainFolder/Payload_data_CICIDS2017",use=knownVals)
         train, test = torch.utils.data.random_split(train, [len(train) - int(len(train)*testlen),int(len(train)*testlen)])  # randomly takes 4000 lines to use as a testing dataset
-        unknowns = Dataload.Dataset(r"C:\Users\bgaspard\Desktop\OpenSetPerf\datasets\Payload_data_CICIDS2017",use=unknownVals,unknownData=True)
+        unknowns = Dataload.Dataset("NewMainFolder/Payload_data_CICIDS2017",use=unknownVals,unknownData=True)
         test = torch.utils.data.ConcatDataset([test,unknowns])
         #test = unknowns
         torch.save(train,"Saves/Data.pt")
@@ -119,7 +120,6 @@ def main():
 
 
         def validation_step(self, batch):
-            self.batchnum = 0
             self.eval()
             savePoint(self,"test", phase=phase)
             data, labels = batch
@@ -207,6 +207,7 @@ def main():
 
 
     def evaluate(model, validationset):
+        model.batchnum = 0
         outputs = [model.validation_step(to_device(batch,device)) for batch in validationset] ### reverted bac
         return model.validation_epoch_end(outputs)
 

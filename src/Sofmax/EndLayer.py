@@ -118,7 +118,7 @@ class EndLayers():
                 self.score = score
                 self.m_in=m_in
                 self.m_out = m_out
-                self.T = Temp
+                self.T = temp
         args = argsc()
         
         self.args = args
