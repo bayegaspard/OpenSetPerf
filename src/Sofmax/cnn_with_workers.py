@@ -12,13 +12,14 @@ import os
 from sklearn.metrics import (precision_score, recall_score)
 import warnings
 
+
+
 def generateHyperparameters():
     if os.path.exists("hyperParam.csv") and os.path.exists("unknowns.csv"):
         return
-    parameters = {"batch_size":[10000, "Number of items per batch"],"num_workers":[6, "Number of threads working on building batches"],"attemptLoad":[1, "0: do not use saves\n1:use saves"],
-    "testlength":[1/4, "[0,1) percentage of training to test with"],"num_epochs":[5,"Number of times it trains on the whole trainset"],"learningRate":[0.01, "a modifier for training"],
-    "threshold":[0.25,"When to declare something to be unknown"], "optimizer":"Adam", "Unknowns":"refer to unknowns.CSV","CLASSES":[15,"Number of classes, do not change"], 
-    "Temperature":[1,"Energy OOD scaling parameter"]}
+    parameters = {"batch_size":[100, "Number of items per batch"],"num_workers":[6, "Number of threads working on building batches"],"attemptLoad":[0, "0: do not use saves\n1:use saves"],
+    "testlength":[1/4, "[0,1) percentage of training to test with"],"num_epochs":[1,"Number of times it trains on the whole trainset"],"learningRate":[0.01, "a modifier for training"],
+    "threshold":[0.25,"When to declare something to be unknown"], "optimizer":"Adam", "Unknowns":"refer to unknowns.CSV"}
     param = pd.DataFrame.from_dict(parameters,orient="columns")
 
     param.to_csv("hyperParam.csv")
@@ -55,9 +56,9 @@ def main():
         test = torch.load("Saves/DataTest.pt")
     else:
         # get the data and create a test set and train set
-        train = Dataload.Dataset("NewMainFolder/Payload_data_CICIDS2017",use=knownVals)
+        train = Dataload.Dataset(r"C:\Users\bgaspard\Desktop\OpenSetPerf\datasets\Payload_data_CICIDS2017",use=knownVals)
         train, test = torch.utils.data.random_split(train, [len(train) - int(len(train)*testlen),int(len(train)*testlen)])  # randomly takes 4000 lines to use as a testing dataset
-        unknowns = Dataload.Dataset("NewMainFolder/Payload_data_CICIDS2017",use=unknownVals,unknownData=True)
+        unknowns = Dataload.Dataset(r"C:\Users\bgaspard\Desktop\OpenSetPerf\datasets\Payload_data_CICIDS2017",use=unknownVals,unknownData=True)
         test = torch.utils.data.ConcatDataset([test,unknowns])
         #test = unknowns
         torch.save(train,"Saves/Data.pt")
@@ -102,20 +103,23 @@ def main():
     class AttackClassification(nn.Module):
         def training_step(self, batch):
             data, labels = batch
-            # data = to_device(data, device)
-            # labels = to_device(labels, device)
+            data = to_device(data, device)
+            labels = to_device(labels, device)
             out = self(data)  # Generate predictions
             if self.end.type == "COOL":
                 labels = self.end.COOL_Label_Mod(labels)
                 out = torch.split(out.unsqueeze(dim=1),15, dim=2)
                 out = torch.cat(out,dim=1)
-                labels = to_device(labels, device)
+            #out = DeviceDataLoader(out, device)
             loss = F.cross_entropy(out, labels)  # Calculate loss
-            
 
+            torch.cuda.empty_cache()
+            print("training: " ,loss)
             return loss
 
+
         def validation_step(self, batch):
+            self.batchnum = 0
             self.eval()
             savePoint(self,"test", phase=phase)
             data, labels = batch
@@ -129,13 +133,13 @@ def main():
             # print("y-test from validation",Y_test)
             # print("y-pred from validation", Y_pred)
             unknowns = out[:,15].mean()
-
-
+            out = to_device(out,device)
             loss = F.cross_entropy(out, labels)  # Calculate loss
             plots.write_batch_to_file(loss,self.batchnum,self.end.type,"test")
             self.batchnum += 1
             acc = accuracy(out, labels)  # Calculate accuracy
             self.train()
+            print("validation accuracy: ",acc)
             return {'val_loss': loss.detach(), 'val_acc': acc, "val_avgUnknown":unknowns}
 
         def validation_epoch_end(self, outputs):
@@ -153,12 +157,18 @@ def main():
             print("Epoch [{}], train_loss: {:.4f}, val_loss: {:.4f}, val_acc: {:.4f}".format(epoch, result['train_loss'],
                                                                                              result['val_loss'],
                                                                                              result['val_acc']))
-
+    import random
 
     def get_default_device():
         """Pick GPU if available, else CPU"""
+       # cuda0 = torch.device("cuda:0")
+       # cuda1 = torch.device("cuda:1")
+        cuda = torch.device("cuda")
+       # cudas = [cuda0,cuda1]
+       # selected_gpu = cudas[random.choice([1,0])]
+       # print("selected gpu is ", selected_gpu)
         if torch.cuda.is_available():
-            return torch.device('cuda')
+            return cuda
         else:
             return torch.device('cpu')
 
@@ -191,14 +201,13 @@ def main():
 
 
     train_loader = trainset
-    val_loader = validationset
+    val_loader = DeviceDataLoader(validationset, device)
     test_loader = testset
 
 
 
     def evaluate(model, validationset):
-        model.batchnum =0
-        outputs = [model.validation_step(DeviceDataLoader(batch, device)) for batch in validationset]
+        outputs = [model.validation_step(to_device(batch,device)) for batch in validationset] ### reverted bac
         return model.validation_epoch_end(outputs)
 
 
@@ -206,6 +215,7 @@ def main():
     def fit(epochs, lr, model, train_loader, val_loader, opt_func=torch.optim.Adam):
         history = []
         optimizer = opt_func(model.parameters(), lr)
+        torch.cuda.empty_cache()
         if epochs > 0:
             for epoch in range(epochs):
                 # Training Phase
@@ -287,7 +297,7 @@ def main():
                 x = self.COOL(x)
             # print("in forward", F.log_softmax(x, dim=1))
             return x
-            return F.log_softmax(x, dim=1)
+            #return F.log_softmax(x, dim=1)
 
     def savePoint(net:AttackClassification, path:str, epoch=0, phase=None):
         if not os.path.exists(path):
@@ -315,8 +325,6 @@ def main():
             file = open("Saves/phase","r")
             phase = file.read()
             file.close()
-            if phase == "":
-                phase = "0"
             return int(phase),epochFound
         return -1, -1
 
@@ -383,10 +391,11 @@ def main():
         file.close()
 
         model = Net()
+       # model = nn.DataParallel(model)
         model.to(device)
         _,e = loadPoint(model, "Saves")
         e = e
-    for x in ["Soft","Open","Energy"]:
+    for x in ["Soft","Energy","Open"]:
         phase += 1
         if phase<startphase:
             continue

@@ -1,7 +1,6 @@
 import torch
 import numpy as np
 import torch.nn.functional as F
-import pandas as pd
 
 #three lines from https://xxx-cook-book.gitbooks.io/python-cook-book/content/Import/import-from-parent-folder.html
 import os
@@ -97,6 +96,7 @@ class EndLayers():
         return torch.softmax(percentages, dim=1)
 
     
+
     def setArgs(self, classes=None, weibullThreshold=0.9, weibullTail=20, weibullAlpha=3, score="energy", m_in=-1, m_out=0, temp=None):
         param = pd.read_csv("hyperParam.csv")
         unknowns = pd.read_csv("unknowns.csv")
@@ -105,6 +105,7 @@ class EndLayers():
             temp = float(param["Temperature"][0])
         if classes is None:
             classes = int(param["CLASSES"][0])-len(unknowns)
+
         class argsc():
             def __init__(self):
                 #OpenMax
@@ -116,7 +117,7 @@ class EndLayers():
                 self.score = score
                 self.m_in=m_in
                 self.m_out = m_out
-                self.T = temp
+                self.T = Temp
         args = argsc()
         
         self.args = args
