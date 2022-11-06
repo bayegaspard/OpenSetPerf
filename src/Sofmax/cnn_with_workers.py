@@ -17,8 +17,8 @@ import warnings
 def generateHyperparameters():
     if os.path.exists("hyperParam.csv") and os.path.exists("unknowns.csv"):
         return
-    parameters = {"batch_size":[10000, "Number of items per batch"],"num_workers":[6, "Number of threads working on building batches"],"attemptLoad":[1, "0: do not use saves\n1:use saves"],
-    "testlength":[1/4, "[0,1) percentage of training to test with"],"num_epochs":[5,"Number of times it trains on the whole trainset"],"learningRate":[0.01, "a modifier for training"],
+    parameters = {"batch_size":[100, "Number of items per batch"],"num_workers":[6, "Number of threads working on building batches"],"attemptLoad":[0, "0: do not use saves\n1:use saves"],
+    "testlength":[1/4, "[0,1) percentage of training to test with"],"num_epochs":[1,"Number of times it trains on the whole trainset"],"learningRate":[0.01, "a modifier for training"],
     "threshold":[0.25,"When to declare something to be unknown"], "optimizer":"Adam", "Unknowns":"refer to unknowns.CSV"}
     param = pd.DataFrame.from_dict(parameters,orient="columns")
 
@@ -104,14 +104,14 @@ def main():
     class AttackClassification(nn.Module):
         def training_step(self, batch):
             data, labels = batch
-            # data = to_device(data, device)
-            # labels = to_device(labels, device)
+            data = to_device(data, device)
+            labels = to_device(labels, device)
             out = self(data)  # Generate predictions
             if self.end.type == "COOL":
                 labels = self.end.COOL_Label_Mod(labels)
                 out = torch.split(out.unsqueeze(dim=1),15, dim=2)
                 out = torch.cat(out,dim=1)
-               # labels = to_device(labels, device)
+            #out = DeviceDataLoader(out, device)
             loss = F.cross_entropy(out, labels)  # Calculate loss
             torch.cuda.empty_cache()
             print("training: " ,loss)
@@ -133,8 +133,7 @@ def main():
             # print("y-test from validation",Y_test)
             # print("y-pred from validation", Y_pred)
             unknowns = out[:,15].mean()
-
-
+            out = to_device(out,device)
             loss = F.cross_entropy(out, labels)  # Calculate loss
             plots.write_batch_to_file(loss,self.batchnum,model.end.type,"test")
             self.batchnum += 1
@@ -202,13 +201,13 @@ def main():
 
 
     train_loader = trainset
-    val_loader = validationset
+    val_loader = DeviceDataLoader(validationset, device)
     test_loader = testset
 
 
 
     def evaluate(model, validationset):
-        outputs = [model.validation_step(batch) for batch in validationset] ### reverted bac
+        outputs = [model.validation_step(to_device(batch,device)) for batch in validationset] ### reverted bac
         return model.validation_epoch_end(outputs)
 
 
