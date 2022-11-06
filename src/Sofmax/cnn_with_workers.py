@@ -56,9 +56,9 @@ def main():
         test = torch.load("Saves/DataTest.pt")
     else:
         # get the data and create a test set and train set
-        train = Dataload.Dataset(r"C:\Users\bgaspard\Desktop\OpenSetPerf\datasets\Payload_data_CICIDS2017",use=knownVals)
+        train = Dataload.Dataset("NewMainFolder/Payload_data_CICIDS2017",use=knownVals)
         train, test = torch.utils.data.random_split(train, [len(train) - int(len(train)*testlen),int(len(train)*testlen)])  # randomly takes 4000 lines to use as a testing dataset
-        unknowns = Dataload.Dataset(r"C:\Users\bgaspard\Desktop\OpenSetPerf\datasets\Payload_data_CICIDS2017",use=unknownVals,unknownData=True)
+        unknowns = Dataload.Dataset("NewMainFolder/Payload_data_CICIDS2017",use=unknownVals,unknownData=True)
         test = torch.utils.data.ConcatDataset([test,unknowns])
         #test = unknowns
         torch.save(train,"Saves/Data.pt")
