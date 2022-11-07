@@ -12,7 +12,6 @@ from sklearn.metrics import (precision_score, recall_score,
                              f1_score,confusion_matrix,average_precision_score)
 import itertools
 import numpy as np
-from sklearn.metrics import 
 import itertools
 import pandas as pd
 
