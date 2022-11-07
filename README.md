@@ -22,21 +22,11 @@ source opensetper/bin/activate
 - Install required packages using the command below:
 `pip3 install -r requirements.txt
 `
-- Choose either `BasicCNN`, `BasicUnknowns`, `OpenMax`, `combined` or `EnergyOOD`
-- Within the folder in `OpenSetPerf\src`, run the main program using the command: `python3 `"step_6_folder_name"`/main.py`
 
 ##### Items in `src` folder: 
 
 - `requirements.txt`
   - File containing the version numbers of the required external libraries
-
-- `BasicCNN`
-  - This is the CNN all the rest are based off of, it does not have any unknowns or unknown evaluation.
-
-- `BasicUnknowns`
-  - This is a version of the CNN that is being passed unknowns and gives a report about them.
-  - It uses softmax
-
 - `OpenMax`
   - This is an implementation of OpenMax
   - It has a few extra display files because I wanted to see what happens when other varables change.
@@ -45,15 +35,6 @@ source opensetper/bin/activate
   - This is an implementation of Energy based OOD
   - It has a file EvaluationDisplay that is a modified version of Evaluation to display things easier.
 
-- `ODIN`
-  - Implements ODIN
-  - Also has a legacy EvaulationDisplay
-
-- `Combined`
-  - Implements SoftMax, OpenMax, EnergyOOD, and ODIN.
-  - Main will save CSVs of results in the parent folder.
-- `Plots`
-  - Contains the `spider_plots.py` which contain code to draw a spider plot for qualitative algorithmic evaluation.
 - `datasets`
   - We place the NIDS dataset in this folder.
 ##### Note : This repository is still undergoing experimentation. It may not have perfect graphs, and results at this moment but we are working to improve the code.
