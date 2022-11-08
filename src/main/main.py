@@ -12,10 +12,16 @@ from sklearn.metrics import (precision_score, recall_score)
 import warnings
 import GPU, FileHandling
 
-hyperpath= r"C:\Users\bgaspard\Desktop\OpenSetPerf\src\main\hyperparam\\"
-unknownpath = r"C:\Users\bgaspard\Desktop\OpenSetPerf\src\main\unknown\\"
-modelsavespath = r"C:\Users\bgaspard\Desktop\OpenSetPerf\src\main\Saves\\"
 
+# uncomment this if you are on windows machine.
+# hyperpath= r"C:\Users\bgaspard\Desktop\OpenSetPerf\src\main\hyperparam\\"
+# unknownpath = r"C:\Users\bgaspard\Desktop\OpenSetPerf\src\main\unknown\\"
+# modelsavespath = r"C:\Users\bgaspard\Desktop\OpenSetPerf\src\main\Saves\\"
+
+# Uncomment this if you are on Unix system
+hyperpath= "/Users/bayegaspard/Downloads/OpenSetPerf/src/main/hyperparam/"
+unknownpath = "/Users/bayegaspard/Downloads/OpenSetPerf/src/main/unknown/"
+modelsavespath = "/Users/bayegaspard/Downloads/OpenSetPerf/src/main/Saves/"
 
 
 def main():
