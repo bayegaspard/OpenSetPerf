@@ -27,26 +27,22 @@ unknownpath = "/media/designa/New Volume/OpenSetPerf/src/main/unknown/"
 modelsavespath = "/media/designa/New Volume/OpenSetPerf/src/main/Saves/"
 
 
+device = GPU.get_default_device() # selects a device, cpu or gpu
+
 def main():
         FileHandling.generateHyperparameters(hyperpath,unknownpath) # generate hyper parameters if not present.
         batch_size,num_workers,attemptLoad,testlen,num_epochs,lr,threshold,unknownVals = FileHandling.readCSVs(hyperpath,unknownpath)
         knownVals = FileHandling.loopOverUnknowns(unknownVals)
         print(knownVals)
-        
 
-        class AttackClassification():
-            def training_step(self, batch):
-                data, labels = batch
-                out = cnn.model(data)  # Generate predictions
-                if self.end.type == "COOL":
-                    labels = self.end.COOL_Label_Mod(labels)
-                    out = torch.split(out.unsqueeze(dim=1),15, dim=2)
-                    out = torch.cat(out,dim=1)
-                #out = DeviceDataLoader(out, device)
-                loss = F.cross_entropy(out, labels)  # Calculate loss
-                torch.cuda.empty_cache()
-                print("loss from training ... " ,loss)
-                return loss
+
+
+        model_conv1d = cnn.Conv1DClassifier()
+        model_fully_connected = cnn.FullyConnected()
+        model_list = [model_conv1d,model_fully_connected]
+        model = model_list[0] # change index to select a specific architecture. 0=conv1d ad 1=fully connected
+        model = GPU.to_device(model,device)
+
 
 
 
