@@ -3,29 +3,31 @@ import Config
 import pandas as pd
 import torch
 
+from torch.utils.data import DataLoader
+import Dataload
 
 # hyperpath= r"C:\Users\bgaspard\Desktop\OpenSetPerf\src\main\hyperparam\\"
 # unknownpath = r"C:\Users\bgaspard\Desktop\OpenSetPerf\src\main\unknown\\"
 # modelsavespath = r"C:\Users\bgaspard\Desktop\OpenSetPerf\src\main\Saves\\"
 
-def generateHyperparameters(hyperpath,unknownpath):
-    if os.path.exists(hyperpath+"hyperParam.csv") and os.path.exists(unknownpath+"unknowns.csv"):
-        print("hyperparam.csv and unknown.csv files exist")
+def generateHyperparameters(root_path):
+    if os.path.exists(root_path+"src/main/hyperparam/hyperParam.csv") and os.path.exists(root_path+"src/main/unknown/unknowns.csv"):
+        print("Hyperparam.csv and unknown.csv files exist")
     else:
-        print("One or all the files does not exist, generating one based on config file settings ....")
+        print("Either hyperparam.csv or unknown.csv does not exist , generating one based on config file settings ....")
         parameters = Config.parameters
         print(parameters)
         param = pd.DataFrame.from_dict(parameters, orient="columns")
-        param.to_csv(hyperpath+"hyperParam.csv")
-        parameters = {"unknowns": [2, 3, 13, 14]}
-        param = pd.DataFrame.from_dict(parameters)
-        param.to_csv(unknownpath+"unknowns.csv")
+        param.to_csv(root_path+"src/main/hyperparam/hyperParam.csv")
+        unknown_classes = Config.helper_variables["unknowns_clss"]
+        param = pd.DataFrame.from_dict(unknown_classes)
+        param.to_csv(root_path+"src/main/unknown/unknowns.csv")
         print("Files created successfully !")
 
 
 
-def readCSVs(hyperpath,unknownpath):
-        param = pd.read_csv(hyperpath+"hyperParam.csv")
+def readCSVs(root_path):
+        param = pd.read_csv(root_path+"src/main/hyperparam/hyperParam.csv")
         batch_size = int(param["batch_size"][0])
         num_workers = int(param["num_workers"][0])
         attemptLoad = int(param["attemptLoad"][0])
@@ -33,9 +35,9 @@ def readCSVs(hyperpath,unknownpath):
         num_epochs = int(param["num_epochs"][0])
         lr = float(param["learningRate"][0])
         threshold = float(param["threshold"][0])
-        param = pd.read_csv(unknownpath+"unknowns.csv")
+        param = pd.read_csv(root_path+"src/main/unknown/unknowns.csv")
         unknownVals = param["unknowns"].to_list()
-
+        print("unknown  values from dataframe",unknownVals)
         return batch_size,num_workers,attemptLoad,testlen,num_epochs,lr,threshold,unknownVals
 
 
@@ -49,7 +51,26 @@ def loopOverUnknowns(unknownlist):
 # generateHyperparameters(hyperpath,unknownpath)
 
 # def readFromFiles(path):
+def checkAttempLoad(root_path):
 
+    _,_,_,_,_,_,_,unknownlist = readCSVs(root_path)
+    # get the data and create a test set and train set
+    print("Reading datasets to create test and train sets")
+    train = Dataload.Dataset(root_path + "/datasets/Payload_data_CICIDS2017", use=loopOverUnknowns(unknownlist))
+    train, test = torch.utils.data.random_split(train,[len(train) - int(len(train) * Config.parameters["testlength"][0]),int(len(train) * Config.parameters["testlength"][0])])  # randomly takes 4000 lines to use as a testing dataset
+    unknowns = Dataload.Dataset(root_path + "/datasets/Payload_data_CICIDS2017", use=unknownlist, unknownData=True)
+    test = torch.utils.data.ConcatDataset([test, unknowns])
+    if Config.parameters["attemptLoad"] and os.path.exists(root_path+"src/main/Saves/Data.pt"):
+        train = torch.load(root_path+"src/main/Saves/Data.pt")
+        test = torch.load(root_path+"src/main/Saves/DataTest.pt")
+        print("Loading from data and test checkpoint ...")
+
+    else:
+        #test = unknowns
+        torch.save(train,root_path+"src/main/Saves/Data.pt")
+        torch.save(test,root_path+"src/main/Saves/DataTest.pt")
+        print("No model train and test checkpoint was found, saving datacheckpoints ...")
+    return train, test
 
 # def savePoint(net:AttackClassification, path:str, epoch=0, phase=None):
 #     if not os.path.exists(path):

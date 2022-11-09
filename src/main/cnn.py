@@ -12,7 +12,6 @@ import GPU
 
 class Conv1DClassifier(nn.Module):
     def __init__(self):
-        def __init__(self):
             super().__init__()
             self.layer1 = nn.Sequential(
                 nn.Conv1d(1, 32, 3),
@@ -36,22 +35,22 @@ class Conv1DClassifier(nn.Module):
             self.batchnum = 0
 
         # Specify how the data passes in the neural network
-        def forward(self, x: torch.Tensor):
-            # x = to_device(x, device)
-            x = x.float()
-            x = x.unsqueeze(1)
-            x = self.layer1(x)
-            x = self.layer2(x)
-            x = self.flatten(x)
-            x = F.relu(self.fc1(x))
-            x = self.dropout(x)
-            if self.end.type!="COOL":
-                x = self.fc2(x)
-            else:
-                x = self.COOL(x)
-            # print("in forward", F.log_softmax(x, dim=1))
-            return x
-            #return F.log_softmax(x, dim=1)
+    def forward(self, x: torch.Tensor):
+        # x = to_device(x, device)
+        x = x.float()
+        x = x.unsqueeze(1)
+        x = self.layer1(x)
+        x = self.layer2(x)
+        x = self.flatten(x)
+        x = F.relu(self.fc1(x))
+        x = self.dropout(x)
+        if self.end.type!="COOL":
+            x = self.fc2(x)
+        else:
+            x = self.COOL(x)
+        # print("in forward", F.log_softmax(x, dim=1))
+        return x
+        #return F.log_softmax(x, dim=1)
 class FullyConnected:
     def __init__(self):
         pass
@@ -95,7 +94,7 @@ class AttackTrainingClassification(Conv1DClassifier):
             return torch.tensor(torch.sum(preds == labels).item() / len(preds)) , preds.tolist()[:], labels.tolist()[:]
             # def fit(epochs, lr, model, train_loader, val_loader, opt_func=torch.optim.SGD):
 
-        def fit(self,epochs, lr, model, train_loader, val_loader, opt_func=Config.parameters["optimizer"]):
+        def fit(self,epochs, lr, model, train_loader, val_loader, opt_func):
             history = []
             optimizer = opt_func(model.parameters(), lr)
             #torch.cuda.empty_cache()

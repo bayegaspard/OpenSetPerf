@@ -15,93 +15,85 @@ from EndLayer import EndLayers
 import plots
 import Dataload
 import cnn
+import Config
 
-# uncomment this if you are on windows machine.
-# hyperpath= r"C:\Users\bgaspard\Desktop\OpenSetPerf\src\main\hyperparam\\"
-# unknownpath = r"C:\Users\bgaspard\Desktop\OpenSetPerf\src\main\unknown\\"
-# modelsavespath = r"C:\Users\bgaspard\Desktop\OpenSetPerf\src\main\Saves\\"
 
 # Uncomment this if you are on Unix system
-hyperpath= "/media/designa/New Volume/OpenSetPerf/src/main/hyperparam/"
-unknownpath = "/media/designa/New Volume/OpenSetPerf/src/main/unknown/"
-modelsavespath = "/media/designa/New Volume/OpenSetPerf/src/main/Saves/"
-
-n = 3  # This is the DOO for COOL, I will need to make some way of easily editing it.
-# self.COOL = nn.Linear(256, 15*n)
+#root_path= "/media/designa/New Volume/OpenSetPerf/"
 
 
+#uncomment this and change your root directory if you are using windows
+root_path = r"C:\\Users\\bgaspard\\Desktop\\OpenSetPerf\\"
+
+#useful variables
+opt_func = Config.parameters["optimizer"]
 device = GPU.get_default_device() # selects a device, cpu or gpu
 
 def main():
-        FileHandling.generateHyperparameters(hyperpath,unknownpath) # generate hyper parameters if not present.
-        batch_size,num_workers,attemptLoad,testlen,num_epochs,lr,threshold,unknownVals = FileHandling.readCSVs(hyperpath,unknownpath)
+
+        FileHandling.generateHyperparameters(root_path) # generate hyper parameters if not present.
+        batch_size,num_workers,attemptLoad,testlen,num_epochs,lr,threshold,unknownVals = FileHandling.readCSVs(root_path)
         knownVals = FileHandling.loopOverUnknowns(unknownVals)
         print(knownVals)
-
-
+        print(unknownVals)
 
         model_conv1d = cnn.Conv1DClassifier()
         model_fully_connected = cnn.FullyConnected()
         model_list = [model_conv1d,model_fully_connected]
         model = model_list[0] # change index to select a specific architecture. 0=conv1d ad 1=fully connected
-        model = GPU.to_device(model,device)
+        model = nn.DataParallel(model)
+        model.to(device)
+
+        train, test = FileHandling.checkAttempLoad(root_path)
+
+        trainset = DataLoader(train, batch_size, num_workers=num_workers,shuffle=True,
+                pin_memory=False)  # for faster processing enable pin memory to true and num_workers=4
+        validationset = DataLoader(test, batch_size, shuffle=True, num_workers=num_workers,pin_memory=False)
+        testset = DataLoader(test, batch_size, shuffle=True, num_workers=num_workers, pin_memory=False)
+
+        train, test = FileHandling.checkAttempLoad(root_path)
+        print("length of train",len(train),"\nlength of test",len(test))
+
+         # Y_test = []
+         # y_pred = []
+         #
+         #
+         #
+         # train_loader = trainset
+         # val_loader = GPU.DeviceDataLoader(validationset, device)
+         # test_loader = testset
 
 
-
-
-
-
-
-
-
+    #      Y_test = []
+    #      y_pred =[]
+    #      history_final = []
+    #      history_final += cnn.AttackTrainingClassification.fit(num_epochs, lr, model, train_loader, val_loader, opt_func)
     #
-    # Y_test = []
-    # y_pred =[]
-
-
-    # device = GPU.get_default_device()
+    #     plots.plot_all_losses(history_final)
+    #     plots.plot_losses(history_final)
+    #     plots.plot_accuracies(history_final)
     #
-    #
-    # train_loader = trainset
-    # val_loader = GPU.DeviceDataLoader(validationset, device)
-    # test_loader = testset
-    #
-    #
-    # Y_test = []
-    # y_pred =[]
-    # history_final = []
-    # history_final += fit(num_epochs, lr, model, train_loader, val_loader, opt_func)
-
-
-    # print("all history", history_final)
-    # print("y test outside",Y_test)
-    # print("y pred outside",y_pred)
-    #
-    # plots.plot_all_losses(history_final)
-    # plots.plot_losses(history_final)
-    # plots.plot_accuracies(history_final)
-    #
-    # y_test, y_pred = plots.convert_to_1d(Y_test,y_pred)
+    #     y_test, y_pred = plots.convert_to_1d(Y_test,y_pred)
     # #plots.plot_confusion_matrix(y_test,y_pred)
     #
-    # cnf_matrix = confusion_matrix(y_test, y_pred)
-    # np.set_printoptions(precision=2)
-    # class_names = Dataload.get_class_names(knownVals)
-    # class_names.append("unknown")
-    # plots.plot_confusion_matrix(cnf_matrix, classes=class_names, normalize=False,
+    #     cnf_matrix = confusion_matrix(y_test, y_pred)
+    #     np.set_printoptions(precision=2)
+    #     class_names = Dataload.get_class_names(knownVals)
+    #     class_names.append("unknown")
+    #     plots.plot_confusion_matrix(cnf_matrix, classes=class_names, normalize=False,
     #                       title='Confusion matrix')
-    # plt.show()
+    #     plt.show()
     #
-    # recall = recall_score(y_test,y_pred,average='weighted',zero_division=0)
-    # precision = precision_score(y_test,y_pred,average='weighted',zero_division=0)
-    # f1 = 2 * (precision * recall) / (precision + recall)
+    #     recall = recall_score(y_test,y_pred,average='weighted',zero_division=0)
+    #     precision = precision_score(y_test,y_pred,average='weighted',zero_division=0)
+    #     f1 = 2 * (precision * recall) / (precision + recall)
     # # auprc = average_precision_score(y_test, y_pred, average='samples')
-    # score_list = [recall,precision,f1]
-    # plots.write_hist_to_file(history_final,num_epochs,model.end.type)
-    # plots.write_scores_to_file(score_list,num_epochs,model.end.type)
-    # print("F-Score : ", f1*100)
-    # print("Precision : " ,precision*100)
-    # print("Recall : ", recall*100)
+    #     score_list = [recall,precision,f1]
+    #     plots.write_hist_to_file(history_final,num_epochs,model.end.type)
+    #     plots.write_scores_to_file(score_list,num_epochs,model.end.type)
+    #     print("F-Score : ", f1*100)
+    #     print("Precision : " ,precision*100)
+    #     print("Recall : ", recall*100)
     # # print("AUPRC : ", auprc * 100)
 
 
