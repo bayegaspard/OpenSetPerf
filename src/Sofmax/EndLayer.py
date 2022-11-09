@@ -30,6 +30,9 @@ class EndLayers():
         if type == "COOL":
             type = "Soft"
 
+        if type == "Open" or type == "Energy":
+            test = self.selectKnowns(output_true,y.clone())
+
         #modify outputs
         if type != "Open":
             output_modified = self.typesOfMod[type](self,output_true)
@@ -240,3 +243,22 @@ class EndLayers():
 
     def autocutoff(self, percent=0.95):
         self.cutoff = self.findcutoff(self.highestPercentStorage, percent)
+
+    def selectKnowns(self, modelOut, labels:torch.Tensor):
+        lastval = -1
+        label = list(range(15))
+        newout = []
+        for val in [2,3,13,14]:
+            label.remove(val)
+            if val > lastval+1:
+                newout.append(modelOut[:,lastval+1:val])
+            lastval = val
+        
+        newout = torch.cat(newout, dim=1)
+
+        i = 0
+        for l in label:
+            labels[labels==l] = i
+            i+=1
+        
+        return newout, labels
