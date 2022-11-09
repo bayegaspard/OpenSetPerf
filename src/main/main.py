@@ -26,6 +26,9 @@ hyperpath= "/media/designa/New Volume/OpenSetPerf/src/main/hyperparam/"
 unknownpath = "/media/designa/New Volume/OpenSetPerf/src/main/unknown/"
 modelsavespath = "/media/designa/New Volume/OpenSetPerf/src/main/Saves/"
 
+n = 3  # This is the DOO for COOL, I will need to make some way of easily editing it.
+# self.COOL = nn.Linear(256, 15*n)
+
 
 device = GPU.get_default_device() # selects a device, cpu or gpu
 

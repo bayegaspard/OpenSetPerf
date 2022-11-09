@@ -8,6 +8,7 @@ import plots
 ### user defined functions
 import Config
 from EndLayer import EndLayers
+import GPU
 
 class Conv1DClassifier(nn.Module):
     def __init__(self):
@@ -54,18 +55,19 @@ class Conv1DClassifier(nn.Module):
 class FullyConnected:
     def __init__(self):
         pass
-class AttackTrainingClassification:
-        def __init__(self, model, batch, savepoint, to_device, device, Y_Pred, Y_test):
-            self.model = model
-            self.batch = batch
-            self.batch = savepoint
-            self.to_device = to_device
-            self.device = device
-            self.Y_Pred = Y_Pred
-            self.Y_test = Y_test
-        def training_step(self):
-            data, labels = self.batch
-            out = self.model(data)  # Generate predictions
+class AttackTrainingClassification(Conv1DClassifier):
+        def __init__(self):
+            super().__init__()
+            # self.model = model
+            # self.batch = batch
+            # self.to_device = to_device
+            # self.device = device
+            # self.Y_Pred = Y_Pred
+            # self.Y_test = Y_test
+
+        def training_step(self,batch):
+            data, labels = batch
+            out = self(data)  # Generate predictions
             if self.end.type == "COOL":
                 labels = self.end.COOL_Label_Mod(labels)
                 out = torch.split(out.unsqueeze(dim=1), 15, dim=2)
@@ -76,25 +78,27 @@ class AttackTrainingClassification:
             print("loss from training step ... ", loss)
             return loss
 
-        def evaluate(self, validationset):
-            self.model.batchnum = 0
-            outputs = [self.validation_step(self.to_device(batch, self.device)) for batch in validationset]  ### reverted bac
+        def evaluate(self, model, validationset):
+            model.batchnum = 0
+            outputs = [self.validation_step(batch) for batch in validationset]  ### reverted bac
             return self.validation_epoch_end(outputs)
 
         def accuracy(self, outputs, labels):
             _, preds = torch.argmax(outputs, dim=1)
             print("out from accuracy", preds)
             print("labels from accuracy", labels)
-            y_pred.append(preds.tolist()[:])
-            Y_test.append(labels.tolist()[:])
+            if preds:
+                preds=torch.tensor(preds)
+            # Y_Pred.append(preds.tolist()[:])
+            # Y_test.append(labels.tolist()[:])
             # preds = torch.tensor(preds)
-            return torch.tensor(torch.sum(preds == labels).item() / len(preds))
+            return torch.tensor(torch.sum(preds == labels).item() / len(preds)) , preds.tolist()[:], labels.tolist()[:]
             # def fit(epochs, lr, model, train_loader, val_loader, opt_func=torch.optim.SGD):
 
-        def fit(epochs, lr, model, train_loader, val_loader, opt_func=torch.optim.Adam):
+        def fit(self,epochs, lr, model, train_loader, val_loader, opt_func=Config.parameters["optimizer"]):
             history = []
             optimizer = opt_func(model.parameters(), lr)
-            torch.cuda.empty_cache()
+            #torch.cuda.empty_cache()
             if epochs > 0:
                 for epoch in range(epochs):
                     # Training Phase
@@ -103,7 +107,7 @@ class AttackTrainingClassification:
                     num = 0
                     for batch in train_loader:
                         # batch = to_device(batch,device)
-                        batch = DeviceDataLoader(batch, device)
+                        #batch = DeviceDataLoader(batch, device)
                         loss = model.training_step(batch)
 
                         plots.write_batch_to_file(loss, num, model.end.type, "train")
@@ -114,8 +118,8 @@ class AttackTrainingClassification:
                         num += 1
 
                     # Validation phase
-                    savePoint(model, f"Saves", epoch, phase)
-                    result = evaluate(model, val_loader)
+                    self.savePoint(f"Saves", epoch, Config.helper_variables["phase"])
+                    result = self.evaluate(model, val_loader)
                     result['train_loss'] = torch.stack(train_losses).mean().item()
                     result["epoch"] = epoch
                     model.epoch_end(epoch, result)
@@ -124,20 +128,20 @@ class AttackTrainingClassification:
                     history.append(result)
             else:
                 # Validation phase
-                loadPoint(model, "Saves")
-                result = evaluate(model, val_loader)
+                self.loadPoint("Saves")
+                result = self.evaluate(model, val_loader)
                 result['train_loss'] = -1
                 model.epoch_end(0, result)
                 print("result", result)
                 history.append(result)
             return history
 
-        def validation_step(self):
-            self.eval()
-            self.savePoint(self, phase=Config.helper_variables["phase"])
-            data, labels = self.batch
-            out = self(data)  # Generate predictions
-            out = self.end.endlayer(out,
+        def validation_step(self,batch):
+            self.model.eval()
+            self.savePoint("test", phase=Config.helper_variables["phase"])
+            data, labels = batch
+            out = self.model(data)  # Generate predictions
+            out = self.model.end.endlayer(out,
                                     labels)  # <----Here is where it is using Softmax TODO: make this be able to run all of the versions and save the outputs.
             # out = self.end.endlayer(out, labels, type="Open")
             # out = self.end.endlayer(out, labels, type="Energy")
@@ -147,12 +151,12 @@ class AttackTrainingClassification:
             # print("y-test from validation",Y_test)
             # print("y-pred from validation", Y_pred)
             unknowns = out[:, 15].mean()
-            out = self.to_device(out, self.device)
+            out = GPU.to_device(out, self.device)
             loss = F.cross_entropy(out, labels)  # Calculate loss
             plots.write_batch_to_file(loss, self.batchnum, self.end.type, "test")
             self.batchnum += 1
-            acc = accuracy(out, labels)  # Calculate accuracy
-            self.train()
+            acc = self.accuracy(out, labels)  # Calculate accuracy
+            self.no_grad()
             print("validation accuracy: ", acc)
             return {'val_loss': loss.detach(), 'val_acc': acc, "val_avgUnknown": unknowns}
 
@@ -172,91 +176,37 @@ class AttackTrainingClassification:
                                                                                              result['train_loss'],
                                                                                              result['val_loss'],
                                                                                              result['val_acc']))
+
+        def savePoint(net:Conv1DClassifier, path: str, epoch=0, phase=None):
+            if not os.path.exists(path):
+                os.mkdir(path)
+            torch.save(net.state_dict(), path + f"/Epoch{epoch:03d}.pth")
+            if phase is not None:
+                file = open("Saves/phase", "w")
+                file.write(str(phase))
+                file.close()
+
+        def loadPoint(net:Conv1DClassifier, path: str):
+            if not os.path.exists(path):
+                os.mkdir(path)
+            i = 999
+            epochFound = 0
+            while i >= 0:
+                if os.path.exists(path + f"/Epoch{i:03d}.pth"):
+                    net.load_state_dict(torch.load(path + f"/Epoch{i:03d}.pth"))
+                    print(f"Loaded  model /Epoch{i:03d}.pth")
+                    epochFound = i
+                    i = -1
+                i = i - 1
+            if i != -2:
+                print("No model to load found.")
+            elif os.path.exists("Saves/phase"):
+                file = open("Saves/phase", "r")
+                phase = file.read()
+                file.close()
+                return int(phase), epochFound
+            return -1, -1
                                                                                     
-class MetricGeneration():
-    def __int__(self,Y_Pred, Y_test):
 
-    def evaluate(model, validationset):
-        model.batchnum = 0
-        outputs = [model.validation_step(to_device(batch,device)) for batch in validationset] ### reverted bac
-        return model.validation_epoch_end(outputs)
 
-    def accuracy(outputs, labels):
-        _, preds = torch.max(outputs, dim=1)
-        print("out from accuracy", preds)
-        print("labels from accuracy", labels)
-        y_pred.append(preds.tolist()[:])
-        Y_test.append(labels.tolist()[:])
-        # preds = torch.tensor(preds)
-        return torch.tensor(torch.sum(preds == labels).item() / len(preds))
-        # def fit(epochs, lr, model, train_loader, val_loader, opt_func=torch.optim.SGD):
-    def fit(epochs, lr, model, train_loader, val_loader, opt_func=torch.optim.Adam):
-        history = []
-        optimizer = opt_func(model.parameters(), lr)
-        torch.cuda.empty_cache()
-        if epochs > 0:
-            for epoch in range(epochs):
-                # Training Phase
-                model.train()
-                train_losses = []
-                num = 0
-                for batch in train_loader:
-                    # batch = to_device(batch,device)
-                    batch = DeviceDataLoader(batch, device)
-                    loss = model.training_step(batch)
-                    
-                    plots.write_batch_to_file(loss,num,model.end.type,"train")
-                    train_losses.append(loss.detach())
-                    loss.backward()
-                    optimizer.step()
-                    optimizer.zero_grad()
-                    num += 1
-                    
-                # Validation phase
-                savePoint(model, f"Saves", epoch, phase)
-                result = evaluate(model, val_loader)
-                result['train_loss'] = torch.stack(train_losses).mean().item()
-                result["epoch"] = epoch
-                model.epoch_end(epoch, result)
-                print("result", result)
-                
-                history.append(result)
-        else:
-            # Validation phase
-            loadPoint(model, "Saves")
-            result = evaluate(model, val_loader)
-            result['train_loss'] = -1
-            model.epoch_end(0, result)
-            print("result", result)
-            history.append(result)
-        return history
 
-class ModelHistory():
-    def savePoint(net:AttackClassification, path:str, epoch=0, phase=None):
-        if not os.path.exists(path):
-            os.mkdir(path)
-        torch.save(net.state_dict(),path+f"/Epoch{epoch:03d}.pth")
-        if phase is not None:
-            file = open("Saves/phase","w")
-            file.write(str(phase))
-            file.close()
-    def loadPoint(net:AttackClassification, path:str):
-        if not os.path.exists(path):
-            os.mkdir(path)
-        i = 999
-        epochFound = 0
-        while i >= 0:
-            if os.path.exists(path+f"/Epoch{i:03d}.pth"):
-                net.load_state_dict(torch.load(path+f"/Epoch{i:03d}.pth"))
-                print(f"Loaded  model /Epoch{i:03d}.pth")
-                epochFound = i
-                i = -1
-            i = i-1
-        if i != -2:
-            print("No model to load found.")
-        elif os.path.exists("Saves/phase"):
-            file = open("Saves/phase","r")
-            phase = file.read()
-            file.close()
-            return int(phase),epochFound
-        return -1, -1
