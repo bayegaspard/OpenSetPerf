@@ -1,5 +1,11 @@
 from torch import nn
+import torch
 from torch.nn import functional as F
+
+
+### user defined functions
+import Config
+from EndLayer import EndLayers
 
 class Conv1DClassifier(nn.Module):
     def __init__(self):
@@ -23,12 +29,12 @@ class Conv1DClassifier(nn.Module):
             n=3 #This is the DOO for COOL, I will need to make some way of easily editing it.
             #self.COOL = nn.Linear(256, 15*n)
 
-            self.end = EndLayers(15,type="Soft",cutoff=threshold)
+            self.end = EndLayers(15,type="Soft",cutoff=Config.parameters["threshold"])
             self.batchnum = 0
 
         # Specify how the data passes in the neural network
         def forward(self, x: torch.Tensor):
-            x = to_device(x, device)
+            # x = to_device(x, device)
             x = x.float()
             x = x.unsqueeze(1)
             x = self.layer1(x)
@@ -45,22 +51,8 @@ class Conv1DClassifier(nn.Module):
             #return F.log_softmax(x, dim=1)
 
 
-class AttackClassification():
-    def training_step(self, batch):
-        data, labels = batch
-        data = to_device(data, device)
-        labels = to_device(labels, device)
-        out = self(data)  # Generate predictions
-        if self.end.type == "COOL":
-            labels = self.end.COOL_Label_Mod(labels)
-            out = torch.split(out.unsqueeze(dim=1),15, dim=2)
-            out = torch.cat(out,dim=1)
-        #out = DeviceDataLoader(out, device)
-        loss = F.cross_entropy(out, labels)  # Calculate loss
 
-        torch.cuda.empty_cache()
-        print("training: " ,loss)
-        return loss
+
 
 
     def validation_step(self, batch):

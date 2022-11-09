@@ -2,16 +2,19 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import matplotlib.pyplot as plt
-import Dataload
 import pandas as pd
 from torch.utils.data import DataLoader
-import plots
-from EndLayer import EndLayers
 import os
 from sklearn.metrics import (precision_score, recall_score)
 import warnings
-import GPU, FileHandling
 
+
+# user defined modules
+import GPU, FileHandling
+from EndLayer import EndLayers
+import plots
+import Dataload
+import cnn
 
 # uncomment this if you are on windows machine.
 # hyperpath= r"C:\Users\bgaspard\Desktop\OpenSetPerf\src\main\hyperparam\\"
@@ -19,9 +22,9 @@ import GPU, FileHandling
 # modelsavespath = r"C:\Users\bgaspard\Desktop\OpenSetPerf\src\main\Saves\\"
 
 # Uncomment this if you are on Unix system
-hyperpath= "/Users/bayegaspard/Downloads/OpenSetPerf/src/main/hyperparam/"
-unknownpath = "/Users/bayegaspard/Downloads/OpenSetPerf/src/main/unknown/"
-modelsavespath = "/Users/bayegaspard/Downloads/OpenSetPerf/src/main/Saves/"
+hyperpath= "/media/designa/New Volume/OpenSetPerf/src/main/hyperparam/"
+unknownpath = "/media/designa/New Volume/OpenSetPerf/src/main/unknown/"
+modelsavespath = "/media/designa/New Volume/OpenSetPerf/src/main/Saves/"
 
 
 def main():
@@ -29,35 +32,29 @@ def main():
         batch_size,num_workers,attemptLoad,testlen,num_epochs,lr,threshold,unknownVals = FileHandling.readCSVs(hyperpath,unknownpath)
         knownVals = FileHandling.loopOverUnknowns(unknownVals)
         print(knownVals)
-    #Define variables based on parameters settings
+        
 
-    # param = pd.read_csv(hyperpath"hyperParam.csv")
-    # batch_size = int(param["batch_size"][0])
-    # num_workers = int(param["num_workers"][0])
-    # attemptLoad = int(param["attemptLoad"][0])
-    # testlen = float(param["testlength"][0])
-    # num_epochs = int(param["num_epochs"][0])
-    # lr = float(param["learningRate"][0])
-    # threshold = float(param["threshold"][0])
-    # param = pd.read_csv("unknowns.csv")
-    # unknownVals = param["unknowns"].to_list()
-
-    # trainset = DataLoader(train, batch_size, num_workers=num_workers,shuffle=True,
-    #                     pin_memory=False)  # for faster processing enable pin memory to true and num_workers=4
-    # validationset = DataLoader(test, batch_size, shuffle=True, num_workers=num_workers,pin_memory=False)
-    # testset = DataLoader(test, batch_size, shuffle=True, num_workers=num_workers, pin_memory=False)
+        class AttackClassification():
+            def training_step(self, batch):
+                data, labels = batch
+                out = cnn.model(data)  # Generate predictions
+                if self.end.type == "COOL":
+                    labels = self.end.COOL_Label_Mod(labels)
+                    out = torch.split(out.unsqueeze(dim=1),15, dim=2)
+                    out = torch.cat(out,dim=1)
+                #out = DeviceDataLoader(out, device)
+                loss = F.cross_entropy(out, labels)  # Calculate loss
+                torch.cuda.empty_cache()
+                print("loss from training ... " ,loss)
+                return loss
 
 
-    # print(len(train))
-    # print(len(test))
 
-    # print(next(iter(testset)))
-    # test_features, testset_labels = next(iter(testset))
-    # print(f"Feature batch shape: {test_features.size()}")
-    # print(f"Labels batch shape: {testset_labels.size()}")
-    # img = test_features[0].squeeze()
-    # label = testset_labels[:]
-    # print("label sss", label)
+
+
+
+
+
     #
     # Y_test = []
     # y_pred =[]
