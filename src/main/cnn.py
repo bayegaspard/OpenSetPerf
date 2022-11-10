@@ -42,7 +42,8 @@ class Conv1DClassifier(nn.Module):
             self.end = EndLayers(15,type="Soft",cutoff=Config.parameters["threshold"][0])
             self.batchnum = 0
             self.device = GPU.get_default_device()
-            self.store = torch.tensor([]),torch.tensor([])
+            self.store = GPU.to_device(torch.tensor([]), self.device),GPU.to_device(torch.tensor([]), self.device)
+
 
         # Specify how the data passes in the neural network
     def forward(self, x: torch.Tensor):
@@ -100,7 +101,7 @@ class AttackTrainingClassification(Conv1DClassifier):
             # Y_Pred.append(preds.tolist()[:])
             # Y_test.append(labels.tolist()[:])
             # preds = torch.tensor(preds)
-            self.store = torch.cat((GPU.to_device(self.store[0], device=self.device),preds)),torch.cat((GPU.to_device(self.store[1], device=self.device),labels))
+            self.store = torch.cat((self.store[0],preds)),torch.cat((self.store[1],labels))
             return torch.tensor(torch.sum(preds == labels).item() / len(preds))
             # def fit(epochs, lr, model, train_loader, val_loader, opt_func=torch.optim.SGD):
 

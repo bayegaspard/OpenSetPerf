@@ -71,10 +71,11 @@ def main():
 
         
         np.set_printoptions(precision=2)
-        class_names = Dataload.get_class_names(knownVals) + Dataload.get_class_names(unknownVals)
-        print("class names",class_names)
-        cnf_matrix = plots.confusionMatrix(y_test, y_pred,labels=class_names)
-        plots.plot_confusion_matrix(cnf_matrix, classes=class_names, normalize=False,
+        class_names = Dataload.get_class_names(knownVals) #+ Dataload.get_class_names(unknownVals)
+        class_names.append("Unknown")
+        print("class names", class_names)
+        cnf_matrix = plots.confusionMatrix(y_test, y_pred)
+        plots.plot_confusion_matrix(cnf_matrix, classes=class_names, normalize=True,
                           title='Confusion matrix')
         plt.show()
 

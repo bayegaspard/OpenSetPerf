@@ -75,8 +75,8 @@ def plot_all_losses(history):
 # plot_losses(history_final)
 # plot_accuracies(history_final)
 
-def confusionMatrix(y_test,y_pred,labels):
-    return confusion_matrix(y_test, y_pred,labels=labels)
+def confusionMatrix(y_test,y_pred):
+    return confusion_matrix(y_test, y_pred)
 
 
 
