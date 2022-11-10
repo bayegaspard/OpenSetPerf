@@ -30,8 +30,8 @@ def main():
         FileHandling.generateHyperparameters(root_path) # generate hyper parameters if not present.
         batch_size,num_workers,attemptLoad,testlen,num_epochs,lr,threshold,unknownVals = FileHandling.readCSVs(root_path)
         knownVals = FileHandling.loopOverUnknowns(unknownVals)
-        # print(knownVals)
-        # print(unknownVals)
+        print(knownVals)
+        print(unknownVals)
         model_conv1d = cnn.AttackTrainingClassification()
         model_fully_connected = cnn.FullyConnected()
         model_list = [model_conv1d,model_fully_connected]
@@ -41,6 +41,7 @@ def main():
         model.device = device
 
         train, test = FileHandling.checkAttempLoad(root_path)
+
 
         trainset = DataLoader(train, batch_size, num_workers=Config.parameters["num_workers"][0],shuffle=True,
                 pin_memory=False)  # for faster processing enable pin memory to true and num_workers=4
@@ -62,14 +63,16 @@ def main():
         plots.plot_accuracies(history_final)
 
         y_pred,y_test = model.store
-        print("y pred",y_pred)
-        print("y test", y_test)
+        y_test = y_test.tolist()
+        y_pred = y_pred.tolist()
+        print("y len and pred",len(y_pred),y_pred)
+        print("y len and test", len(y_test),y_test)
     #plots.plot_confusion_matrix(y_test,y_pred)
 
         
         np.set_printoptions(precision=2)
-        class_names = Dataload.get_class_names(knownVals)
-        class_names.append("unknown")
+        class_names = Dataload.get_class_names(knownVals) + Dataload.get_class_names(unknownVals)
+        print("class names",class_names)
         cnf_matrix = plots.confusionMatrix(y_test, y_pred,labels=class_names)
         plots.plot_confusion_matrix(cnf_matrix, classes=class_names, normalize=False,
                           title='Confusion matrix')

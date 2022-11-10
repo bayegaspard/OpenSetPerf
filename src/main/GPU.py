@@ -4,7 +4,7 @@ def get_default_device():
     """Pick GPU if available, else CPU"""
    # cuda0 = torch.device("cuda:0")
    # cuda1 = torch.device("cuda:1")
-    cuda = torch.device("cuda")
+    cuda = torch.device("cuda:0")
    # cudas = [cuda0,cuda1]
    # selected_gpu = cudas[random.choice([1,0])]
    # print("selected gpu is ", selected_gpu)
