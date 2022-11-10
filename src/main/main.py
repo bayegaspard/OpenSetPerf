@@ -42,7 +42,7 @@ def main():
 
         train, test = FileHandling.checkAttempLoad(root_path)
 
-0        trainset = DataLoader(train, batch_size, num_workers=Config.parameters["num_workers"][0],shuffle=True,
+        trainset = DataLoader(train, batch_size, num_workers=Config.parameters["num_workers"][0],shuffle=True,
                 pin_memory=False)  # for faster processing enable pin memory to true and num_workers=4
         validationset = DataLoader(test, batch_size, shuffle=True, num_workers=Config.parameters["num_workers"][0],pin_memory=False)
         testset = DataLoader(test, batch_size, shuffle=True, num_workers=Config.parameters["num_workers"][0], pin_memory=False)
