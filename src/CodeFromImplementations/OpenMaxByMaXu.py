@@ -7,6 +7,7 @@
 import numpy as np
 import scipy.spatial.distance as spd
 import torch
+import Config
 
 
 import libmr
@@ -140,6 +141,7 @@ def compute_train_score_and_mavs_and_dists(train_class_num,trainloader,device,ne
             #_, outputs = net(inputs)                   <--this was from the orignial OpenMax implementation
             outputs = net(inputs)                       #<-this was a replacement
             for score, t in zip(outputs, targets):
+                score, t = selectKnowns(score,t)        #This line has been added so that all of the knowns are sequental
                 # print(f"torch.argmax(score) is {torch.argmax(score)}, t is {t}")
                 if torch.argmax(score) == t:
                     scores[t].append(score.unsqueeze(dim=0).unsqueeze(dim=0))
@@ -154,6 +156,10 @@ def openmaxevaluation(scores,labels,args,dict):
     trainloader = dict["loader"]
     device = dict["device"]
     net = dict["net"]
+    scores,labels = selectKnowns(scores[0],labels[0])
+    scores = [scores]
+    labels = [labels]
+
     #The following is from lines 186 to 207 from https://github.com/ma-xu/Open-Set-Recognition/blob/master/OSR/OpenMax/cifar100.py
     # Get the prdict results.
     scores = torch.cat(scores,dim=0).cpu().numpy()
@@ -179,3 +185,33 @@ def openmaxevaluation(scores,labels,args,dict):
         score_openmax.append(so)
     #end copied code
     return score_openmax
+
+
+
+#ADDED FOR USE
+def selectKnowns(modelOut:torch.Tensor, labels:torch.Tensor):
+    labels = labels.clone()
+    lastval = -1
+    label = list(range(15))
+    newout = []
+    for val in Config.helper_variables["unknowns_clss"]["unknowns"]:
+        label.remove(val)
+        if val > lastval+1:
+            if modelOut.dim() == 2:
+                newout.append(modelOut[:,lastval+1:val])
+            else:
+                newout.append(modelOut[lastval+1:val])
+        lastval = val
+    if modelOut.dim() == 2:
+        newout.append(modelOut[:,lastval+1:])
+    else:
+        newout.append(modelOut[lastval+1:])
+
+    newout = torch.cat(newout, dim=-1)
+
+    i = 0
+    for l in label:
+        labels[labels==l] = i
+        i+=1
+    return newout, labels
+
