@@ -15,11 +15,11 @@ import Config
 
 
 # Uncomment this if you are on Unix system
-#root_path= "/media/designa/New Volume/OpenSetPerf/"
+root_path= ""
 
 
 #uncomment this and change your root directory if you are using windows
-root_path = r"C:\\Users\\bgaspard\\Desktop\\OpenSetPerf\\"
+#root_path = r"C:\\Users\\bgaspard\\Desktop\\OpenSetPerf\\"
 
 #useful variables
 opt_func = Config.parameters["optimizer"]
@@ -32,12 +32,13 @@ def main():
         knownVals = FileHandling.loopOverUnknowns(unknownVals)
         # print(knownVals)
         # print(unknownVals)
-        model_conv1d = cnn.Conv1DClassifier()
+        model_conv1d = cnn.AttackTrainingClassification()
         model_fully_connected = cnn.FullyConnected()
         model_list = [model_conv1d,model_fully_connected]
         model = model_list[0] # change index to select a specific architecture. 0=conv1d ad 1=fully connected
-        model = nn.DataParallel(model)
+        #model = nn.DataParallel(model)
         model.to(device)
+        model.device = device
 
         train, test = FileHandling.checkAttempLoad(root_path)
 
@@ -52,7 +53,6 @@ def main():
         y_pred = []
 
 
-        DNN = cnn.AttackTrainingClassification()
         train_loader =  GPU.DeviceDataLoader(trainset, device)
         val_loader = GPU.DeviceDataLoader(validationset, device)
         test_loader = testset
@@ -61,7 +61,7 @@ def main():
         Y_test = []
         y_pred =[]
         history_final = []
-        history_final += DNN.fit(num_epochs, lr,model, train_loader, val_loader, opt_func=opt_func)
+        history_final += model.fit(num_epochs, lr, train_loader, val_loader, opt_func=opt_func)
         # epochs, lr, model, train_loader, val_loader, opt_func
 
         plots.plot_all_losses(history_final)
