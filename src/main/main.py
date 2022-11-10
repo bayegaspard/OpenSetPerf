@@ -12,6 +12,7 @@ import plots
 import Dataload
 import cnn
 import Config
+import os,sys
 
 
 # Uncomment this if you are on Unix system
@@ -20,6 +21,9 @@ import Config
 
 #uncomment this and change your root directory if you are using windows
 root_path = r"C:\\Users\\bgaspard\\Desktop\\OpenSetPerf\\"
+
+# root_folder = os.path.abspath(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# sys.path.append(root_folder)
 
 #useful variables
 opt_func = Config.parameters["optimizer"]
@@ -30,13 +34,13 @@ def main():
         FileHandling.generateHyperparameters(root_path) # generate hyper parameters if not present.
         batch_size,num_workers,attemptLoad,testlen,num_epochs,lr,threshold,unknownVals = FileHandling.readCSVs(root_path)
         knownVals = FileHandling.loopOverUnknowns(unknownVals)
-        print(knownVals)
-        print(unknownVals)
+        # print(knownVals)
+        # print(unknownVals)
         model_conv1d = cnn.AttackTrainingClassification()
         model_fully_connected = cnn.FullyConnected()
         model_list = [model_conv1d,model_fully_connected]
         model = model_list[0] # change index to select a specific architecture. 0=conv1d ad 1=fully connected
-        model = cnn.ModdedParallel(model)
+        #model = cnn.ModdedParallel(model)
         model.to(device)
         model.device = device
 

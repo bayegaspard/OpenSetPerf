@@ -16,7 +16,7 @@ def generateHyperparameters(root_path):
     else:
         print("Either hyperparam.csv or unknown.csv does not exist , generating one based on config file settings ....")
         parameters = Config.parameters
-        print(parameters)
+        # print(parameters)
         param = pd.DataFrame.from_dict(parameters, orient="columns")
         param.to_csv(root_path+"src/main/hyperparam/hyperParam.csv")
         unknown_classes = Config.helper_variables["unknowns_clss"]

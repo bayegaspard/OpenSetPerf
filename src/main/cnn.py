@@ -86,7 +86,7 @@ class AttackTrainingClassification(Conv1DClassifier):
             # out = DeviceDataLoader(out, device)
             loss = F.cross_entropy(out, labels)  # Calculate loss
             torch.cuda.empty_cache()
-            print("loss from training step ... ", loss)
+            # print("loss from training step ... ", loss)
             return loss
 
         def evaluate(self, validationset):
@@ -96,8 +96,8 @@ class AttackTrainingClassification(Conv1DClassifier):
 
         def accuracy(self, outputs, labels):
             preds = torch.argmax(outputs, dim=1)
-            print("preds from accuracy", preds)
-            print("labels from accuracy", labels)
+            # print("preds from accuracy", preds)
+            # print("labels from accuracy", labels)
             # Y_Pred.append(preds.tolist()[:])
             # Y_test.append(labels.tolist()[:])
             # preds = torch.tensor(preds)

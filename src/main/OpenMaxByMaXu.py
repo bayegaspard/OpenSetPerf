@@ -191,7 +191,7 @@ def selectKnowns(modelOut:torch.Tensor, labels:torch.Tensor):
     lastval = -1
     label = list(range(15))
     newout = []
-    for val in [2, 3, 13,1,10,6,7,8,12,14]:
+    for val in [2, 3, 13]:
         label.remove(val)
         if val > lastval+1:
             if modelOut.dim() == 2:

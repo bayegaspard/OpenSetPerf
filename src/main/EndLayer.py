@@ -3,12 +3,12 @@ import numpy as np
 import torch.nn.functional as F
 import pandas as pd
 import Config
+import  OpenMaxByMaXu as Open
 
 #three lines from https://xxx-cook-book.gitbooks.io/python-cook-book/content/Import/import-from-parent-folder.html
 import os
 import sys
-root_folder = os.path.abspath(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-sys.path.append(root_folder)
+root_path = r"C:\\Users\\bgaspard\\Desktop\\OpenSetPerf\\"
 
 
 class EndLayers():
@@ -100,8 +100,8 @@ class EndLayers():
     
 
     def setArgs(self, classes=None, weibullThreshold=0.9, weibullTail=20, weibullAlpha=3, score="energy", m_in=-1, m_out=0, temp=None):
-        param = pd.read_csv("src/main/hyperparam/hyperParam.csv")
-        unknowns = pd.read_csv("src/main/unknown/unknowns.csv")
+        param = pd.read_csv(root_path+"src/main/hyperparam/hyperParam.csv")
+        unknowns = pd.read_csv(root_path+"src/main/unknown/unknowns.csv")
         unknowns = unknowns["unknowns"].to_list()
         if temp is None:
             temp = float(param["Temperature"][0])
@@ -154,9 +154,9 @@ class EndLayers():
 
         if self.args == None:
             self.setArgs()
-
+        #from ..CodeFromImplementations import OpenMaxByMaXu as Open
         try:
-            import CodeFromImplementations.OpenMaxByMaXu as Open
+            pass
         except ImportError:
             print("Warning: OpenMax has been skipped!")
             errorreturn = torch.zeros((percentages.size()))
