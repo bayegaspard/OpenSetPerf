@@ -61,6 +61,7 @@ def main():
         Y_test = []
         y_pred =[]
         history_final = []
+        model.end.prepWeibull(train_loader,device,model)
         history_final += model.fit(num_epochs, lr, train_loader, val_loader, opt_func=opt_func)
         # epochs, lr, model, train_loader, val_loader, opt_func
 

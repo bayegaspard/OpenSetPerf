@@ -100,8 +100,8 @@ class EndLayers():
     
 
     def setArgs(self, classes=None, weibullThreshold=0.9, weibullTail=20, weibullAlpha=3, score="energy", m_in=-1, m_out=0, temp=None):
-        param = pd.read_csv("hyperParam.csv")
-        unknowns = pd.read_csv("unknowns.csv")
+        param = pd.read_csv("src/main/hyperparam/hyperParam.csv")
+        unknowns = pd.read_csv("src/main/unknown/unknowns.csv")
         unknowns = unknowns["unknowns"].to_list()
         if temp is None:
             temp = float(param["Temperature"][0])
@@ -120,6 +120,26 @@ class EndLayers():
                 self.m_in=m_in
                 self.m_out = m_out
                 self.T = temp
+
+
+            def selectKnowns(self, modelOut, labels:torch.Tensor):
+                labels = labels.clone()
+                lastval = -1
+                label = list(range(15))
+                newout = []
+                for val in Config.helper_variables["unknowns_clss"]["unknowns"]:
+                    label.remove(val)
+                    if val > lastval+1:
+                        newout.append(modelOut[:,lastval+1:val])
+                    lastval = val
+
+                newout = torch.cat(newout, dim=1)
+
+                i = 0
+                for l in label:
+                    labels[labels==l] = i
+                    i+=1
+                return newout, labels
         args = argsc()
         
         self.args = args
@@ -145,8 +165,9 @@ class EndLayers():
             self.Save_score.append(torch.zeros(0))
             return errorreturn
 
+        scores_open = Open.openmaxevaluation([percentages.detach()],[labels.detach()],self.args,self.weibulInfo)
         try:
-            scores_open = Open.openmaxevaluation([percentages.detach()],[labels.detach()],self.args,self.weibulInfo)
+            print("This is where the openmax will go in the code. But for testing we want to see the error.")
         except LookupError:
             print("OpenMax failed! Skipping Openmax")
             #Note: usual reason for failure is having no correct examples for at least 1 class.
@@ -242,21 +263,4 @@ class EndLayers():
     def autocutoff(self, percent=0.95):
         self.cutoff = self.findcutoff(self.highestPercentStorage, percent)
 
-    def selectKnowns(self, modelOut, labels:torch.Tensor):
-        labels = labels.clone()
-        lastval = -1
-        label = list(range(15))
-        newout = []
-        for val in Config.helper_variables["unknowns_clss"]["unknowns"]:
-            label.remove(val)
-            if val > lastval+1:
-                newout.append(modelOut[:,lastval+1:val])
-            lastval = val
-
-        newout = torch.cat(newout, dim=1)
-
-        i = 0
-        for l in label:
-            labels[labels==l] = i
-            i+=1
-        return newout, labels
+    
