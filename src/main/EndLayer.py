@@ -2,6 +2,7 @@ import torch
 import numpy as np
 import torch.nn.functional as F
 import pandas as pd
+import Config
 
 #three lines from https://xxx-cook-book.gitbooks.io/python-cook-book/content/Import/import-from-parent-folder.html
 import os
@@ -240,3 +241,22 @@ class EndLayers():
 
     def autocutoff(self, percent=0.95):
         self.cutoff = self.findcutoff(self.highestPercentStorage, percent)
+
+    def selectKnowns(self, modelOut, labels:torch.Tensor):
+        labels = labels.clone()
+        lastval = -1
+        label = list(range(15))
+        newout = []
+        for val in Config.helper_variables["unknowns_clss"]["unknowns"]:
+            label.remove(val)
+            if val > lastval+1:
+                newout.append(modelOut[:,lastval+1:val])
+            lastval = val
+
+        newout = torch.cat(newout, dim=1)
+
+        i = 0
+        for l in label:
+            labels[labels==l] = i
+            i+=1
+        return newout, labels

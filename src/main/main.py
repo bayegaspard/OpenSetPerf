@@ -68,13 +68,14 @@ def main():
         plots.plot_losses(history_final)
         plots.plot_accuracies(history_final)
 
-        y_test, y_pred = plots.convert_to_1d(Y_test,y_pred)
+        y_pred,y_test = model.store
     #plots.plot_confusion_matrix(y_test,y_pred)
 
-        cnf_matrix = plots.confusionMatrix(y_test, y_pred)
+        
         np.set_printoptions(precision=2)
         class_names = Dataload.get_class_names(knownVals)
         class_names.append("unknown")
+        cnf_matrix = plots.confusionMatrix(y_test, y_pred,labels=class_names)
         plots.plot_confusion_matrix(cnf_matrix, classes=class_names, normalize=False,
                           title='Confusion matrix')
         plt.show()
