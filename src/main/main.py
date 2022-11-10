@@ -36,15 +36,15 @@ def main():
         model_fully_connected = cnn.FullyConnected()
         model_list = [model_conv1d,model_fully_connected]
         model = model_list[0] # change index to select a specific architecture. 0=conv1d ad 1=fully connected
-        model = nn.DataParallel(model)
+        #model = nn.DataParallel(model)
         model.to(device)
 
         train, test = FileHandling.checkAttempLoad(root_path)
 
-        trainset = DataLoader(train, batch_size, num_workers=num_workers,shuffle=True,
+        trainset = DataLoader(train, batch_size, num_workers=Config.parameters["num_workers"],shuffle=True,
                 pin_memory=False)  # for faster processing enable pin memory to true and num_workers=4
-        validationset = DataLoader(test, batch_size, shuffle=True, num_workers=num_workers,pin_memory=False)
-        testset = DataLoader(test, batch_size, shuffle=True, num_workers=num_workers, pin_memory=False)
+        validationset = DataLoader(test, batch_size, shuffle=True, num_workers=Config.parameters["num_workers"],pin_memory=False)
+        testset = DataLoader(test, batch_size, shuffle=True, num_workers=Config.parameters["num_workers"], pin_memory=False)
 
         print("length of train",len(train),"\nlength of test",len(test))
 
