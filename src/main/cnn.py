@@ -31,8 +31,9 @@ class Conv1DClassifier(nn.Module):
             n=3 #This is the DOO for COOL, I will need to make some way of easily editing it.
             #self.COOL = nn.Linear(256, 15*n)
 
-            self.end = EndLayers(15,type="Soft",cutoff=Config.parameters["threshold"])
+            self.end = EndLayers(15,type="Soft",cutoff=Config.parameters["threshold"][0])
             self.batchnum = 0
+            self.device = GPU.get_default_device()
 
         # Specify how the data passes in the neural network
     def forward(self, x: torch.Tensor):
@@ -51,6 +52,7 @@ class Conv1DClassifier(nn.Module):
         # print("in forward", F.log_softmax(x, dim=1))
         return x
         #return F.log_softmax(x, dim=1)
+
 class FullyConnected:
     def __init__(self):
         pass
@@ -77,39 +79,37 @@ class AttackTrainingClassification(Conv1DClassifier):
             print("loss from training step ... ", loss)
             return loss
 
-        def evaluate(self, model, validationset):
-            model.batchnum = 0
+        def evaluate(self, validationset):
+            self.batchnum = 0
             outputs = [self.validation_step(batch) for batch in validationset]  ### reverted bac
             return self.validation_epoch_end(outputs)
 
         def accuracy(self, outputs, labels):
-            _, preds = torch.argmax(outputs, dim=1)
+            preds = torch.argmax(outputs, dim=1)
             print("out from accuracy", preds)
             print("labels from accuracy", labels)
-            if preds:
-                preds=torch.tensor(preds)
             # Y_Pred.append(preds.tolist()[:])
             # Y_test.append(labels.tolist()[:])
             # preds = torch.tensor(preds)
-            return torch.tensor(torch.sum(preds == labels).item() / len(preds)) , preds.tolist()[:], labels.tolist()[:]
+            return torch.tensor(torch.sum(preds == labels).item() / len(preds))
             # def fit(epochs, lr, model, train_loader, val_loader, opt_func=torch.optim.SGD):
 
-        def fit(self,epochs, lr, model, train_loader, val_loader, opt_func):
+        def fit(self,epochs, lr, train_loader, val_loader, opt_func):
             history = []
-            optimizer = opt_func(model.parameters(), lr)
+            optimizer = opt_func(self.parameters(), lr)
             #torch.cuda.empty_cache()
             if epochs > 0:
                 for epoch in range(epochs):
                     # Training Phase
-                    model.train()
+                    self.train()
                     train_losses = []
                     num = 0
                     for batch in train_loader:
                         # batch = to_device(batch,device)
                         #batch = DeviceDataLoader(batch, device)
-                        loss = model.training_step(batch)
+                        loss = self.training_step(batch)
 
-                        plots.write_batch_to_file(loss, num, model.end.type, "train")
+                        plots.write_batch_to_file(loss, num, self.end.type, "train")
                         train_losses.append(loss.detach())
                         loss.backward()
                         optimizer.step()
@@ -118,29 +118,29 @@ class AttackTrainingClassification(Conv1DClassifier):
 
                     # Validation phase
                     self.savePoint(f"Saves", epoch, Config.helper_variables["phase"])
-                    result = self.evaluate(model, val_loader)
+                    result = self.evaluate(val_loader)
                     result['train_loss'] = torch.stack(train_losses).mean().item()
                     result["epoch"] = epoch
-                    model.epoch_end(epoch, result)
+                    self.epoch_end(epoch, result)
                     print("result", result)
 
                     history.append(result)
             else:
                 # Validation phase
                 self.loadPoint("Saves")
-                result = self.evaluate(model, val_loader)
+                result = self.evaluate(val_loader)
                 result['train_loss'] = -1
-                model.epoch_end(0, result)
+                self.epoch_end(0, result)
                 print("result", result)
                 history.append(result)
             return history
 
         def validation_step(self,batch):
-            self.model.eval()
+            self.eval()
             self.savePoint("test", phase=Config.helper_variables["phase"])
             data, labels = batch
-            out = self.model(data)  # Generate predictions
-            out = self.model.end.endlayer(out,
+            out = self(data)  # Generate predictions
+            out = self.end.endlayer(out,
                                     labels)  # <----Here is where it is using Softmax TODO: make this be able to run all of the versions and save the outputs.
             # out = self.end.endlayer(out, labels, type="Open")
             # out = self.end.endlayer(out, labels, type="Energy")
@@ -155,7 +155,6 @@ class AttackTrainingClassification(Conv1DClassifier):
             plots.write_batch_to_file(loss, self.batchnum, self.end.type, "test")
             self.batchnum += 1
             acc = self.accuracy(out, labels)  # Calculate accuracy
-            self.no_grad()
             print("validation accuracy: ", acc)
             return {'val_loss': loss.detach(), 'val_acc': acc, "val_avgUnknown": unknowns}
 

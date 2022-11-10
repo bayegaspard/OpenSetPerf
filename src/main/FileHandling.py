@@ -55,11 +55,11 @@ def checkAttempLoad(root_path):
     _,_,_,_,_,_,_,unknownlist = readCSVs(root_path)
     # get the data and create a test set and train set
     print("Reading datasets to create test and train sets")
-    train = Dataload.Dataset(root_path + "/datasets/Payload_data_CICIDS2017", use=loopOverUnknowns(unknownlist))
+    train = Dataload.Dataset(root_path + "datasets/Payload_data_CICIDS2017", use=loopOverUnknowns(unknownlist))
     train, test = torch.utils.data.random_split(train,[len(train) - int(len(train) * Config.parameters["testlength"][0]),int(len(train) * Config.parameters["testlength"][0])])  # randomly takes 4000 lines to use as a testing dataset
-    unknowns = Dataload.Dataset(root_path + "/datasets/Payload_data_CICIDS2017", use=unknownlist, unknownData=True)
+    unknowns = Dataload.Dataset(root_path + "datasets/Payload_data_CICIDS2017", use=unknownlist, unknownData=True)
     test = torch.utils.data.ConcatDataset([test, unknowns])
-    if Config.parameters["attemptLoad"] and os.path.exists(root_path+"src/main/Saves/Data.pt"):
+    if Config.parameters["attemptLoad"][0] and os.path.exists(root_path+"src/main/Saves/Data.pt"):
         train = torch.load(root_path+"src/main/Saves/Data.pt")
         test = torch.load(root_path+"src/main/Saves/DataTest.pt")
         print("Loading from data and test checkpoint ...")
