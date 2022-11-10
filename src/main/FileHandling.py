@@ -37,7 +37,6 @@ def readCSVs(root_path):
         threshold = float(param["threshold"][0])
         param = pd.read_csv(root_path+"src/main/unknown/unknowns.csv")
         unknownVals = param["unknowns"].to_list()
-        print("unknown  values from dataframe",unknownVals)
         return batch_size,num_workers,attemptLoad,testlen,num_epochs,lr,threshold,unknownVals
 
 
