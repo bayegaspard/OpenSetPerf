@@ -36,7 +36,7 @@ def main():
         model_fully_connected = cnn.FullyConnected()
         model_list = [model_conv1d,model_fully_connected]
         model = model_list[0] # change index to select a specific architecture. 0=conv1d ad 1=fully connected
-        #model = nn.DataParallel(model)
+        model = cnn.ModdedParallel(model)
         model.to(device)
         model.device = device
 
@@ -68,13 +68,14 @@ def main():
         plots.plot_losses(history_final)
         plots.plot_accuracies(history_final)
 
-        y_test, y_pred = plots.convert_to_1d(Y_test,y_pred)
+        y_pred,y_test = model.store
     #plots.plot_confusion_matrix(y_test,y_pred)
 
-        cnf_matrix = plots.confusionMatrix(y_test, y_pred)
+        
         np.set_printoptions(precision=2)
         class_names = Dataload.get_class_names(knownVals)
         class_names.append("unknown")
+        cnf_matrix = plots.confusionMatrix(y_test, y_pred,labels=class_names)
         plots.plot_confusion_matrix(cnf_matrix, classes=class_names, normalize=False,
                           title='Confusion matrix')
         plt.show()
