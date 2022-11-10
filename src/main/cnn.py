@@ -10,6 +10,14 @@ import Config
 from EndLayer import EndLayers
 import GPU
 
+class ModdedParallel(nn.DataParallel):
+    #From https://github.com/pytorch/pytorch/issues/16885#issuecomment-551779897
+    def __getattr__(self, name):
+        try:
+            return super().__getattr__(name)
+        except AttributeError:
+            return getattr(self.module, name)
+
 class Conv1DClassifier(nn.Module):
     def __init__(self):
             super().__init__()
@@ -151,6 +159,7 @@ class AttackTrainingClassification(Conv1DClassifier):
             # print("y-pred from validation", Y_pred)
             unknowns = out[:, 15].mean()
             out = GPU.to_device(out, self.device)
+            test = torch.argmax(out,dim=1)
             loss = F.cross_entropy(out, labels)  # Calculate loss
             plots.write_batch_to_file(loss, self.batchnum, self.end.type, "test")
             self.batchnum += 1

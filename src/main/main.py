@@ -36,7 +36,7 @@ def main():
         model_fully_connected = cnn.FullyConnected()
         model_list = [model_conv1d,model_fully_connected]
         model = model_list[0] # change index to select a specific architecture. 0=conv1d ad 1=fully connected
-        #model = nn.DataParallel(model)
+        model = cnn.ModdedParallel(model)
         model.to(device)
         model.device = device
 
