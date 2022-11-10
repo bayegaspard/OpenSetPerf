@@ -15,11 +15,11 @@ import Config
 
 
 # Uncomment this if you are on Unix system
-root_path= ""
+#root_path= ""
 
 
 #uncomment this and change your root directory if you are using windows
-#root_path = r"C:\\Users\\bgaspard\\Desktop\\OpenSetPerf\\"
+root_path = r"C:\\Users\\bgaspard\\Desktop\\OpenSetPerf\\"
 
 #useful variables
 opt_func = Config.parameters["optimizer"]
@@ -49,17 +49,10 @@ def main():
 
         print("length of train",len(train),"\nlength of test",len(test))
 
-        Y_test = []
-        y_pred = []
-
-
         train_loader =  GPU.DeviceDataLoader(trainset, device)
         val_loader = GPU.DeviceDataLoader(validationset, device)
         test_loader = testset
 
-
-        Y_test = []
-        y_pred =[]
         history_final = []
         history_final += model.fit(num_epochs, lr, train_loader, val_loader, opt_func=opt_func)
         # epochs, lr, model, train_loader, val_loader, opt_func
@@ -69,6 +62,8 @@ def main():
         plots.plot_accuracies(history_final)
 
         y_pred,y_test = model.store
+        print("y pred",y_pred)
+        print("y test", y_test)
     #plots.plot_confusion_matrix(y_test,y_pred)
 
         

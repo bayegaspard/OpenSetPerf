@@ -95,12 +95,12 @@ class AttackTrainingClassification(Conv1DClassifier):
 
         def accuracy(self, outputs, labels):
             preds = torch.argmax(outputs, dim=1)
-            print("out from accuracy", preds)
+            print("preds from accuracy", preds)
             print("labels from accuracy", labels)
             # Y_Pred.append(preds.tolist()[:])
             # Y_test.append(labels.tolist()[:])
             # preds = torch.tensor(preds)
-            self.store = torch.cat((self.store[0],preds)),torch.cat((self.store[1],labels))
+            self.store = torch.cat((GPU.to_device(self.store[0], device=self.device),preds)),torch.cat((GPU.to_device(self.store[1], device=self.device),labels))
             return torch.tensor(torch.sum(preds == labels).item() / len(preds))
             # def fit(epochs, lr, model, train_loader, val_loader, opt_func=torch.optim.SGD):
 
