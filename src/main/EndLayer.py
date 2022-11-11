@@ -64,7 +64,7 @@ class EndLayers():
     def energyUnknown(self, percentages:torch.Tensor):
         if self.args is None:
             self.setArgs()
-        import CodeFromImplementations.EnergyCodeByWetliu as Eng
+        import EnergyCodeByWetliu as Eng
 
 
 
@@ -240,7 +240,7 @@ class EndLayers():
         if type is None:
             type = self.type
         if type == "Energy":
-            import CodeFromImplementations.EnergyCodeByWetliu as Eng
+            import EnergyCodeByWetliu as Eng
             scores = []
             Eng.energyScoreCalc(scores,newNumbers)
             highestPercent = -torch.tensor(np.array(scores)).squeeze(dim=0)
