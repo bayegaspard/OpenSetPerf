@@ -42,7 +42,7 @@ def plot_losses(history):
     plt.ylabel('loss')
     plt.legend(['losses'])
     plt.title('Loss vs. No. of epochs')
-    plt.savefig("./plot_losses.png", dpi=600)
+    plt.savefig("/Saves/plot_losses.png", dpi=600)
     plt.show()
 
 
@@ -55,7 +55,7 @@ def plot_accuracies(history):
     plt.legend(['accuracy'])
     plt.title('Accuracy vs. No. of epochs')
     plt.ylim([0,1])
-    plt.savefig("./plot_accuracies.png", dpi=600)
+    plt.savefig("/Saves/plot_accuracies.png", dpi=600)
     plt.show()
 
 
@@ -68,7 +68,7 @@ def plot_all_losses(history):
     plt.ylabel('loss')
     plt.legend(['Training_loss', 'val_loss'])
     plt.title('train & val Loss vs. No. of epochs')
-    plt.savefig("./plot_all_losses.png", dpi=600)
+    plt.savefig("/Saves/plot_all_losses.png", dpi=600)
     plt.show()
 
 # plot_all_losses(history_final)
@@ -137,7 +137,7 @@ def plot_confusion_matrix(cm, classes,
     plt.tight_layout()
     plt.ylabel('True label')
     plt.xlabel('Predicted label')
-    plt.savefig("./confusion_matrix.png", dpi=600)
+    plt.savefig("/Saves/confusion_matrix.png", dpi=600)
 
 # Compute confusion matrix
 # cnf_matrix = confusion_matrix(y_test, y_pred)

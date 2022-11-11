@@ -39,7 +39,7 @@ class Conv1DClassifier(nn.Module):
             n=3 #This is the DOO for COOL, I will need to make some way of easily editing it.
             #self.COOL = nn.Linear(256, 15*n)
 
-            self.end = EndLayers(15,type="Open",cutoff=Config.parameters["threshold"][0])
+            self.end = EndLayers(15,type="Soft",cutoff=Config.parameters["threshold"][0])
             self.batchnum = 0
             self.device = GPU.get_default_device()
             self.store = GPU.to_device(torch.tensor([]), self.device),GPU.to_device(torch.tensor([]), self.device)
@@ -190,7 +190,7 @@ class AttackTrainingClassification(Conv1DClassifier):
         def savePoint(net:Conv1DClassifier, path: str, epoch=0, phase=None):
             if not os.path.exists(path):
                 os.mkdir(path)
-            torch.save(net.state_dict(), path + f"/Epoch{epoch:03d}.pth")
+           # torch.save(net.state_dict(), path + f"/Epoch{epoch:03d}.pth")
             if phase is not None:
                 file = open("Saves/phase", "w")
                 file.write(str(phase))
