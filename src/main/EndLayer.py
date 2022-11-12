@@ -3,13 +3,14 @@ import numpy as np
 import torch.nn.functional as F
 import pandas as pd
 import Config
-#import  OpenMaxByMaXu as Open
+import  OpenMaxByMaXu as Open
 
 #three lines from https://xxx-cook-book.gitbooks.io/python-cook-book/content/Import/import-from-parent-folder.html
 import os
 import sys
-#root_path = r"C:\\Users\\bgaspard\\Desktop\\OpenSetPerf\\"
 root_path = ""
+root_path = r"C:\\Users\\bgaspard\\Desktop\\OpenSetPerf\\"
+
 
 class EndLayers():
 
