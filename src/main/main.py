@@ -21,7 +21,7 @@ root_path= ""
 
 
 #uncomment this and change your root directory if you are using windows
-#root_path = r"C:\\Users\\bgaspard\\Desktop\\OpenSetPerf\\"
+root_path = r"C:\\Users\\bgaspard\\Desktop\\OpenSetPerf\\"
 
 # root_folder = os.path.abspath(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 # sys.path.append(root_folder)
