@@ -81,11 +81,13 @@ class AttackTrainingClassification(Conv1DClassifier):
 
     def training_step(self, batch):
         data, labels = batch
+        labels = labels[:,0]    #Select the data we want not the metadata
         out = self(data)  # Generate predictions
         if self.end.type == "COOL":
             labels = self.end.COOL_Label_Mod(labels)
             out = torch.split(out.unsqueeze(dim=1), 15, dim=2)
             out = torch.cat(out, dim=1)
+
         # out = DeviceDataLoader(out, device)
         loss = F.cross_entropy(out, labels)  # Calculate loss
         torch.cuda.empty_cache()
@@ -104,8 +106,8 @@ class AttackTrainingClassification(Conv1DClassifier):
         # Y_Pred.append(preds.tolist()[:])
         # Y_test.append(labels.tolist()[:])
         # preds = torch.tensor(preds)
-        self.store = torch.cat((self.store[0], preds)), torch.cat((self.store[1], labels))
-        return torch.tensor(torch.sum(preds == labels).item() / len(preds))
+        self.store = torch.cat((self.store[0], preds)), torch.cat((self.store[1], labels[:,1]))
+        return torch.tensor(torch.sum(preds == labels[:,0]).item() / len(preds))
         # def fit(epochs, lr, model, train_loader, val_loader, opt_func=torch.optim.SGD):
 
     def fit(self, epochs, lr, train_loader, val_loader, opt_func):
@@ -152,7 +154,8 @@ class AttackTrainingClassification(Conv1DClassifier):
     def validation_step(self, batch):
         self.eval()
         self.savePoint("test", phase=Config.helper_variables["phase"])
-        data, labels = batch
+        data, labels_extended = batch
+        labels = labels_extended[:,0]
         out = self(data)  # Generate predictions
         out = self.end.endlayer(out,
                                 labels)  # <----Here is where it is using Softmax TODO: make this be able to run all of the versions and save the outputs.
@@ -169,7 +172,7 @@ class AttackTrainingClassification(Conv1DClassifier):
         loss = F.cross_entropy(out, labels)  # Calculate loss
         plots.write_batch_to_file(loss, self.batchnum, self.end.type, "test")
         self.batchnum += 1
-        acc = self.accuracy(out, labels)  # Calculate accuracy
+        acc = self.accuracy(out, labels_extended)  # Calculate accuracy
         print("validation accuracy: ", acc)
         return {'val_loss': loss.detach(), 'val_acc': acc, "val_avgUnknown": unknowns}
 

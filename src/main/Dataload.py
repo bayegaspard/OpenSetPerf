@@ -128,11 +128,14 @@ class Dataset(Dataset):
         data = x.iloc[:len(x)-1]
         data = torch.tensor(data.to_numpy())
 
-        if not self.unknownData:
-            label = x.iloc[len(x)-1]         #This selects the label
-            label = torch.tensor(int(label),dtype=torch.long)    #The int is because the loss function is expecting ints
+        label = x.iloc[len(x)-1]         #This selects the label
+        label = torch.tensor(int(label),dtype=torch.long)    #The int is because the loss function is expecting ints
+        label.unsqueeze_(0)              #This is to allow it to be two dimentional
+        if self.unknownData:
+            label2 = torch.tensor(15,dtype=torch.long).unsqueeze_(0)    #unknowns are marked as unknown
         else:
-            label = torch.tensor(15,dtype=torch.long)
+            label2 = label.clone()
+        label = torch.cat([label2,label], dim=0)
 
 
         return (data,label)
