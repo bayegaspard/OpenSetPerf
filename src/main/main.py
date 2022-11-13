@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 from torch.utils.data import DataLoader
 from sklearn.metrics import (precision_score, recall_score)
 import numpy as np
+import torch
 
 
 # user defined modules
@@ -16,7 +17,7 @@ import os,sys
 
 
 # Uncomment this if you are on Unix system
-#root_path= ""
+root_path= ""
 
 
 #uncomment this and change your root directory if you are using windows
@@ -68,16 +69,17 @@ def main():
         plots.plot_accuracies(history_final)
 
         y_pred,y_test = model.store
-        y_test = y_test.tolist()
-        y_pred = y_pred.tolist()
+        y_test = y_test.to(torch.int).tolist()
+        y_pred = y_pred.to(torch.int).tolist()
         print("y len and pred",len(y_pred),y_pred)
         print("y len and test", len(y_test),y_test)
     #plots.plot_confusion_matrix(y_test,y_pred)
 
         
         np.set_printoptions(precision=2)
-        class_names = Dataload.get_class_names(knownVals) #+ Dataload.get_class_names(unknownVals)
-        class_names.append("Unknown")
+        #class_names = Dataload.get_class_names(knownVals) #+ Dataload.get_class_names(unknownVals)
+        #class_names.append("Unknown")
+        class_names = Dataload.get_class_names(range(15))
         print("class names", class_names)
         cnf_matrix = plots.confusionMatrix(y_test, y_pred)
         plots.plot_confusion_matrix(cnf_matrix, classes=class_names, normalize=True,

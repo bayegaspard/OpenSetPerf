@@ -8,6 +8,7 @@ import  OpenMaxByMaXu as Open
 #three lines from https://xxx-cook-book.gitbooks.io/python-cook-book/content/Import/import-from-parent-folder.html
 import os
 import sys
+root_path = ""
 root_path = r"C:\\Users\\bgaspard\\Desktop\\OpenSetPerf\\"
 
 
