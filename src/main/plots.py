@@ -123,12 +123,13 @@ def plot_confusion_matrix(cm:np.ndarray, classes,
         print('Confusion matrix, without normalization')
 
     print("cm", cm.shape)
+    cm = cm.astype("int")
 
     thresh = cm.max() / 2.
     for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
         # print("cm ij ",str(round(cm[i, j], 2)))
         plt.text(j, i, str(round(cm[i, j], 2)),
-                 horizontalalignment="center",
+                 horizontalalignment="center",verticalalignment="center_baseline",
                  color="white" if cm[i, j] > thresh else "black")
 
     plt.tight_layout()

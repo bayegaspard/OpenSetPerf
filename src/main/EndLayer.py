@@ -74,7 +74,8 @@ class EndLayers():
         scores = torch.tensor(np.array(scores),device=percentages.device)
         #after converting it to a tensor, the wrong dimention is expanded
         scores = -scores.squeeze().unsqueeze(dim=1)
-        print(scores.sum()/len(scores))
+        #This was to print the scores it was going to save
+        #print(scores.sum()/len(scores))
         #Just store this for later
         self.Save_score.append(scores.mean())
         #once the dimentions are how we want them we test if it is above the cutoff
@@ -177,7 +178,7 @@ class EndLayers():
             errorreturn = torch.cat((errorreturn,unknownColumn),1)
             self.Save_score.append(torch.zeros(0))
             return errorreturn
-        print(scores_open)
+        #print(scores_open)
         scores = torch.tensor(np.array(scores_open))
         self.Save_score.append(scores.squeeze().mean())
         scores.squeeze_().unsqueeze_(0)

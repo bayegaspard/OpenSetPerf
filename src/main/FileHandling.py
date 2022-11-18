@@ -68,9 +68,18 @@ def checkAttempLoad(root_path):
         #test = unknowns
         torch.save(train,os.path.join(root_path,"src","main","Saves","Data.pt"))
         torch.save(test,os.path.join(root_path,"src","main","Saves","DataTest.pt"))
-        print("No model train and test checkpoint was found, saving datacheckpoints ...")
+        if Config.parameters["attemptLoad"][0]:
+            print("No model train and test checkpoint was found, saving datacheckpoints ...")
     return train, test
 
+
+def refreshFiles(root_path):
+    os.remove(os.path.join(root_path,"src","main","hyperparam","hyperParam.csv"))
+    os.remove(os.path.join(root_path,"src","main","unknown","unknowns.csv"))
+    os.remove(os.path.join(root_path,"src","main","Saves","Data.csv"))
+    os.remove(os.path.join(root_path,"src","main","Saves","DataTest.csv"))
+    os.remove(os.path.join(root_path,"src","main","test"))
+    os.mkdir(os.path.join(root_path,"src","main","test"))
 # def savePoint(net:AttackClassification, path:str, epoch=0, phase=None):
 #     if not os.path.exists(path):
 #         os.mkdir(path)

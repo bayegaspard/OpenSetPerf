@@ -155,10 +155,12 @@ class AttackTrainingClassification(Conv1DClassifier):
 
     def validation_step(self, batch):
         self.eval()
-        self.savePoint("test", phase=Config.helper_variables["phase"])
+        #self.savePoint("test", phase=Config.helper_variables["phase"])
         data, labels_extended = batch
+        self.batchnum += 1
         labels = labels_extended[:,0]
         out = self(data)  # Generate predictions
+        loss = F.cross_entropy(torch.cat((out,torch.zeros(len(out),1)),dim=1), labels)  # Calculate loss
         out = self.end.endlayer(out,
                                 labels)  # <----Here is where it is using Softmax TODO: make this be able to run all of the versions and save the outputs.
         # out = self.end.endlayer(out, labels, type="Open")
@@ -171,10 +173,8 @@ class AttackTrainingClassification(Conv1DClassifier):
         unknowns = out[:, 15].mean()
         out = GPU.to_device(out, self.device)
         test = torch.argmax(out, dim=1)
-        loss = F.cross_entropy(out, labels)  # Calculate loss
-        plots.write_batch_to_file(loss, self.batchnum, self.end.type, "test")
-        self.batchnum += 1
         acc = self.accuracy(out, labels_extended)  # Calculate accuracy
+        plots.write_batch_to_file(loss, self.batchnum, self.end.type, "test")
         print("validation accuracy: ", acc)
         return {'val_loss': loss.detach(), 'val_acc': acc, "val_avgUnknown": unknowns}
 

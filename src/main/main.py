@@ -13,7 +13,7 @@ import plots
 import Dataload
 import cnn
 import Config
-import os,sys
+import os
 
 
 
@@ -78,6 +78,9 @@ def main():
         #class_names = Dataload.get_class_names(knownVals) #+ Dataload.get_class_names(unknownVals)
         #class_names.append("Unknown")
         class_names = Dataload.get_class_names(range(15))
+        for x in unknownVals:
+            class_names[x] = class_names[x]+"*"
+        class_names.append("*Unknowns")
         print("class names", class_names)
         cnf_matrix = plots.confusionMatrix(y_test, y_pred)
         plots.plot_confusion_matrix(cnf_matrix, classes=class_names, normalize=True,
@@ -99,11 +102,13 @@ def main():
 
 
 if __name__ == '__main__':
-    if os.path.basename(root_path) == "main.py" or os.path.basename(root_path) == "main" or os.path.basename(root_path) == "src":
+    while (os.path.basename(root_path) == "main.py" or os.path.basename(root_path) == "main" or os.path.basename(root_path) == "src"):
         #checking that you are running from the right folder.
         print("Please run this from the source of the repository.")
-    else:
-        main()
+        os.chdir("..")
+        root_path=os.getcwd()
+
+    main()
 
 
 
