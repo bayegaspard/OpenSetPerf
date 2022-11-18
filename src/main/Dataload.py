@@ -147,7 +147,7 @@ def checkIfSplit(path):
         return LISTCLASS[x]
     def protocalConvert(x):
         return PROTOCOLS[x]
-    if not os.path.exists(path+"/"): 
+    if not os.path.exists(os.path.join(path,"")): 
         os.mkdir(path)
 
 

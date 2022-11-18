@@ -16,12 +16,9 @@ import Config
 import os,sys
 
 
-# Uncomment this if you are on Unix system
-root_path= ""
 
+root_path = os.getcwd()
 
-#uncomment this and change your root directory if you are using windows
-root_path = r"C:\\Users\\bgaspard\\Desktop\\OpenSetPerf\\"
 
 # root_folder = os.path.abspath(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 # sys.path.append(root_folder)
@@ -41,7 +38,7 @@ def main():
         model_fully_connected = cnn.FullyConnected()
         model_list = [model_conv1d,model_fully_connected]
         model = model_list[0] # change index to select a specific architecture. 0=conv1d ad 1=fully connected
-        #model = cnn.ModdedParallel(model)
+        model = cnn.ModdedParallel(model)
         model.to(device)
         model.device = device
 
@@ -68,15 +65,16 @@ def main():
         plots.plot_losses(history_final)
         plots.plot_accuracies(history_final)
 
-        y_pred,y_test = model.store
+        y_pred,y_test,y_compaire = model.store
         y_test = y_test.to(torch.int).tolist()
         y_pred = y_pred.to(torch.int).tolist()
+        y_compaire = y_compaire.to(torch.int).tolist()
         print("y len and pred",len(y_pred),y_pred)
         print("y len and test", len(y_test),y_test)
     #plots.plot_confusion_matrix(y_test,y_pred)
 
         
-        np.set_printoptions(precision=2)
+        np.set_printoptions(precision=1)
         #class_names = Dataload.get_class_names(knownVals) #+ Dataload.get_class_names(unknownVals)
         #class_names.append("Unknown")
         class_names = Dataload.get_class_names(range(15))
@@ -86,8 +84,8 @@ def main():
                           title='Confusion matrix')
         plt.show()
 
-        recall = recall_score(y_test,y_pred,average='weighted',zero_division=0)
-        precision = precision_score(y_test,y_pred,average='weighted',zero_division=0)
+        recall = recall_score(y_compaire,y_pred,average='weighted',zero_division=0)
+        precision = precision_score(y_compaire,y_pred,average='weighted',zero_division=0)
         f1 = 2 * (precision * recall) / (precision + recall)
     # auprc = average_precision_score(y_test, y_pred, average='samples')
         score_list = [recall,precision,f1]
@@ -101,7 +99,11 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    if os.path.basename(root_path) == "main.py" or os.path.basename(root_path) == "main" or os.path.basename(root_path) == "src":
+        #checking that you are running from the right folder.
+        print("Please run this from the source of the repository.")
+    else:
+        main()
 
 
 
