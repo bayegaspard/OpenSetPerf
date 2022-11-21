@@ -3,13 +3,12 @@ import numpy as np
 import torch.nn.functional as F
 import pandas as pd
 import Config
-import  OpenMaxByMaXu as Open
+
 
 #three lines from https://xxx-cook-book.gitbooks.io/python-cook-book/content/Import/import-from-parent-folder.html
 import os
 import sys
-root_path = ""
-root_path = r"C:\\Users\\bgaspard\\Desktop\\OpenSetPerf\\"
+root_path = os.getcwd()
 
 
 class EndLayers():
@@ -75,7 +74,8 @@ class EndLayers():
         scores = torch.tensor(np.array(scores),device=percentages.device)
         #after converting it to a tensor, the wrong dimention is expanded
         scores = -scores.squeeze().unsqueeze(dim=1)
-        print(scores.sum()/len(scores))
+        #This was to print the scores it was going to save
+        #print(scores.sum()/len(scores))
         #Just store this for later
         self.Save_score.append(scores.mean())
         #once the dimentions are how we want them we test if it is above the cutoff
@@ -101,8 +101,8 @@ class EndLayers():
     
 
     def setArgs(self, classes=None, weibullThreshold=0.9, weibullTail=20, weibullAlpha=3, score="energy", m_in=-1, m_out=0, temp=None):
-        param = pd.read_csv(root_path+"src/main/hyperparam/hyperParam.csv")
-        unknowns = pd.read_csv(root_path+"src/main/unknown/unknowns.csv")
+        param = pd.read_csv(os.path.join(root_path,"src","main","hyperparam","hyperParam.csv"))
+        unknowns = pd.read_csv(os.path.join(root_path,"src","main","unknown","unknowns.csv"))
         unknowns = unknowns["unknowns"].to_list()
         if temp is None:
             temp = float(param["Temperature"][0])
@@ -153,31 +153,32 @@ class EndLayers():
 
     def openMaxMod(self,percentages:torch.Tensor, labels:torch.Tensor):
 
+        try:
+            import OpenMaxByMaXu as Open
+        except ImportError:
+            print("Openmax will be skipped as not all of its libraries could be loaded.")
+
         if self.args == None:
             self.setArgs()
-        #from ..CodeFromImplementations import OpenMaxByMaXu as Open
+        
         try:
-            pass
-        except ImportError:
-            print("Warning: OpenMax has been skipped!")
-            errorreturn = torch.zeros((percentages.size()))
-            unknownColumn =torch.ones(len(percentages)).unsqueeze(1)
-            errorreturn = torch.cat((errorreturn,unknownColumn),1)
-            self.Save_score.append(torch.zeros(0))
-            return errorreturn
-
-        scores_open = Open.openmaxevaluation([percentages.detach()],[labels.detach()],self.args,self.weibulInfo)
-        try:
-            print("This is where the openmax will go in the code. But for testing we want to see the error.")
+            scores_open = Open.openmaxevaluation([percentages.detach()],[labels.detach()],self.args,self.weibulInfo)
         except LookupError:
-            print("OpenMax failed! Skipping Openmax")
+            print("OpenMax failed to idenitify at least 1 class!")
             #Note: usual reason for failure is having no correct examples for at least 1 class.
             errorreturn = torch.zeros((percentages.size()))
             unknownColumn =torch.ones(len(percentages)).unsqueeze(1)
             errorreturn = torch.cat((errorreturn,unknownColumn),1)
             self.Save_score.append(torch.zeros(0))
             return errorreturn
-        print(scores_open)
+        except NotImplementedError:
+            print("Warning: OpenMax has failed to load!")
+            errorreturn = torch.zeros((percentages.size()))
+            unknownColumn =torch.ones(len(percentages)).unsqueeze(1)
+            errorreturn = torch.cat((errorreturn,unknownColumn),1)
+            self.Save_score.append(torch.zeros(0))
+            return errorreturn
+        #print(scores_open)
         scores = torch.tensor(np.array(scores_open))
         self.Save_score.append(scores.squeeze().mean())
         scores.squeeze_().unsqueeze_(0)

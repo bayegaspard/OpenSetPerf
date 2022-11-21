@@ -19,6 +19,8 @@ class ModdedParallel(nn.DataParallel):
             return getattr(self.module, name)
 
 
+
+
 class Conv1DClassifier(nn.Module):
     def __init__(self):
         super().__init__()
@@ -43,15 +45,18 @@ class Conv1DClassifier(nn.Module):
         self.end = EndLayers(15, type="Energy", cutoff=Config.parameters["threshold"][0])
         self.batchnum = 0
         self.device = GPU.get_default_device()
-        self.store = GPU.to_device(torch.tensor([]), self.device), GPU.to_device(torch.tensor([]), self.device)
+        self.store = GPU.to_device(torch.tensor([]), self.device), GPU.to_device(torch.tensor([]), self.device), GPU.to_device(torch.tensor([]), self.device)
 
     # Specify how the data passes in the neural network
     def forward(self, x: torch.Tensor):
         # x = to_device(x, device)
         x = x.float()
         x = x.unsqueeze(1)
+        #print(f"start: {x.shape}")
         x = self.layer1(x)
+        #print(f"middle: {x.shape}")
         x = self.layer2(x)
+        #print(f"end: {x.shape}")
         x = self.flatten(x)
         x = F.relu(self.fc1(x))
         x = self.dropout(x)
@@ -64,9 +69,17 @@ class Conv1DClassifier(nn.Module):
         # return F.log_softmax(x, dim=1)
 
 
-class FullyConnected:
+class FullyConnected(Conv1DClassifier):
     def __init__(self):
-        pass
+        super().__init__()
+        self.layer1 = nn.Sequential(
+            nn.Linear(1504,12000),
+            nn.ReLU(),
+            nn.Dropout(0.5))
+        self.layer2 = nn.Sequential(
+            nn.Linear(12000,11904),
+            nn.ReLU(),
+            nn.Dropout(0.5))
 
 
 class AttackTrainingClassification(Conv1DClassifier):
@@ -106,7 +119,9 @@ class AttackTrainingClassification(Conv1DClassifier):
         # Y_Pred.append(preds.tolist()[:])
         # Y_test.append(labels.tolist()[:])
         # preds = torch.tensor(preds)
-        self.store = torch.cat((self.store[0], preds)), torch.cat((self.store[1], labels[:,1]))
+
+        #First is the guess, second is the actual class and third is the class to consider correct.
+        self.store = torch.cat((self.store[0], preds)), torch.cat((self.store[1], labels[:,1])),torch.cat((self.store[2], labels[:,0]))
         return torch.tensor(torch.sum(preds == labels[:,0]).item() / len(preds))
         # def fit(epochs, lr, model, train_loader, val_loader, opt_func=torch.optim.SGD):
 
@@ -153,10 +168,12 @@ class AttackTrainingClassification(Conv1DClassifier):
 
     def validation_step(self, batch):
         self.eval()
-        self.savePoint("test", phase=Config.helper_variables["phase"])
+        #self.savePoint("test", phase=Config.helper_variables["phase"])
         data, labels_extended = batch
+        self.batchnum += 1
         labels = labels_extended[:,0]
         out = self(data)  # Generate predictions
+        loss = F.cross_entropy(torch.cat((out,torch.zeros(len(out),1)),dim=1), labels)  # Calculate loss
         out = self.end.endlayer(out,
                                 labels)  # <----Here is where it is using Softmax TODO: make this be able to run all of the versions and save the outputs.
         # out = self.end.endlayer(out, labels, type="Open")
@@ -169,10 +186,8 @@ class AttackTrainingClassification(Conv1DClassifier):
         unknowns = out[:, 15].mean()
         out = GPU.to_device(out, self.device)
         test = torch.argmax(out, dim=1)
-        loss = F.cross_entropy(out, labels)  # Calculate loss
-        plots.write_batch_to_file(loss, self.batchnum, self.end.type, "test")
-        self.batchnum += 1
         acc = self.accuracy(out, labels_extended)  # Calculate accuracy
+        plots.write_batch_to_file(loss, self.batchnum, self.end.type, "test")
         print("validation accuracy: ", acc)
         return {'val_loss': loss.detach(), 'val_acc': acc, "val_avgUnknown": unknowns}
 

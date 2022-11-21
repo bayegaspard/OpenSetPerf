@@ -7,6 +7,7 @@
 import numpy as np
 import scipy.spatial.distance as spd
 import torch
+import Config
 
 
 
@@ -130,15 +131,20 @@ def compute_channel_distances(mavs, features, eu_weight=0.5):
 
 def compute_train_score_and_mavs_and_dists(train_class_num,trainloader,device,net):
     scores = [[] for _ in range(train_class_num)]
+    #print("train class in open",train_class_num)
+    #print("scores from open",scores)
     with torch.no_grad():
         for batch_idx, (inputs, targets) in enumerate(trainloader):
             inputs, targets = inputs.to(device), targets.to(device)
 
             # this must cause error for cifar
             #_, outputs = net(inputs)                   <--this was from the orignial OpenMax implementation
-            outputs = net(inputs)                       #<-this was a replacement
+            outputs = net(inputs)   
+            #print("output from open",outputs)                    #<-this was a replacement
             for score, t in zip(outputs, targets):
-                score, t = selectKnowns(score,t)        #This line has been added so that all of the knowns are sequental
+                score, t = renameClasses(score,t)   
+                #print ("t at time of crash",t)
+                     #This line has been added so that all of the knowns are sequental
                 # print(f"torch.argmax(score) is {torch.argmax(score)}, t is {t}")
                 if torch.argmax(score) == t:
                     scores[t].append(score.unsqueeze(dim=0).unsqueeze(dim=0))
@@ -153,7 +159,7 @@ def openmaxevaluation(scores,labels,args,dict):
     trainloader = dict["loader"]
     device = dict["device"]
     net = dict["net"]
-    scores,labels = selectKnowns(scores[0],labels[0])
+    scores,labels = renameClasses(scores[0],labels[0])
     scores = [scores]
     labels = [labels]
 
@@ -186,12 +192,13 @@ def openmaxevaluation(scores,labels,args,dict):
 
 
 #ADDED FOR USE
-def selectKnowns(modelOut:torch.Tensor, labels:torch.Tensor):
+def renameClasses(modelOut:torch.Tensor, labels:torch.Tensor):
     labels = labels.clone()
     lastval = -1
     label = list(range(15))
     newout = []
-    for val in [2, 3, 13,1,10,6,7,8,12,14]:
+    print(Config.helper_variables["unknowns_clss"]["unknowns"])
+    for val in Config.helper_variables["unknowns_clss"]["unknowns"] :
         label.remove(val)
         if val > lastval+1:
             if modelOut.dim() == 2:

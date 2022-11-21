@@ -78,7 +78,7 @@ def plot_all_losses(history):
 # plot_accuracies(history_final)
 
 def confusionMatrix(y_test, y_pred):
-    return confusion_matrix(y_test, y_pred)
+    return confusion_matrix(y_test, y_pred, labels=list(range(16)))
 
 
 # def plot_confusion_matrix(y_test,y_pred):
@@ -100,7 +100,7 @@ import Dataload
 import math
 
 
-def plot_confusion_matrix(cm, classes,
+def plot_confusion_matrix(cm:np.ndarray, classes,
                           normalize=False,
                           title='Confusion matrix',
                           cmap=plt.cm.Blues):
@@ -116,19 +116,20 @@ def plot_confusion_matrix(cm, classes,
     plt.yticks(tick_marks, classes)
 
     if normalize:
-        cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
+        cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis].clip(0.000001,1)
         # cm = "{:.2f}".format(float)
         print("Normalized confusion matrix")
     else:
         print('Confusion matrix, without normalization')
 
     print("cm", cm.shape)
+    cm = cm.astype("int")
 
     thresh = cm.max() / 2.
     for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
         # print("cm ij ",str(round(cm[i, j], 2)))
         plt.text(j, i, str(round(cm[i, j], 2)),
-                 horizontalalignment="center",
+                 horizontalalignment="center",verticalalignment="center_baseline",
                  color="white" if cm[i, j] > thresh else "black")
 
     plt.tight_layout()
@@ -154,13 +155,13 @@ def plot_confusion_matrix(cm, classes,
 def write_hist_to_file(lst, num_epochs, type=""):
     for l in lst:
         l["type"] = type
-    if os.path.exists("Saves/history.csv"):
-        hist = pd.read_csv("Saves/history.csv", index_col=0)
+    if os.path.exists(os.path.join("Saves","history.csv")):
+        hist = pd.read_csv(os.path.join("Saves","history.csv"), index_col=0)
         hist = pd.concat((hist, pd.DataFrame.from_dict(lst)))
     else:
         hist = pd.DataFrame.from_dict(lst)
-    hist.to_csv("Saves/history.csv")
-    with open(f'Saves/history{type}.txt', 'a') as fp:
+    hist.to_csv(os.path.join("Saves","history.csv"))
+    with open(os.path.join('Saves',f'history{type}.txt'), 'a') as fp:
         # fp.write(f"history for {num_epochs} \n")
         fp.write("\n")
         for item in lst:
@@ -172,14 +173,14 @@ def write_hist_to_file(lst, num_epochs, type=""):
 def write_scores_to_file(lst, num_epochs, type=""):
     thisRun = pd.DataFrame.from_dict(lst)
     thisRun["type"] = type
-    if os.path.exists("Saves/scores.csv"):
-        hist = pd.read_csv("Saves/scores.csv", index_col=0)
+    if os.path.exists(os.path.join("Saves","scores.csv")):
+        hist = pd.read_csv(os.path.join("Saves","scores.csv"), index_col=0)
         hist.loc[len(hist)] = thisRun.iloc[0]
     else:
         hist = thisRun
 
-    hist.to_csv("Saves/scores.csv")
-    with open(f'Saves/scores{type}.txt', 'a') as fp:
+    hist.to_csv(os.path.join("Saves","scores.csv"))
+    with open(os.path.join('Saves','scores{type}.txt'), 'a') as fp:
         fp.write("\n")
         for item in lst:
             # write each item on a new line
@@ -194,13 +195,13 @@ def write_batch_to_file(loss, num, modeltype="", batchtype=""):
     # thisRun["Batch Number"] = num
     # thisRun["Model Type"] = modeltype
     # thisRun["Batch Type"] = batchtype
-    if os.path.exists("Saves/batch.csv"):
-        hist = pd.read_csv("Saves/batch.csv", index_col=0)
+    if os.path.exists(os.path.join("Saves","batch.csv")):
+        hist = pd.read_csv(os.path.join("Saves","batch.csv"), index_col=0)
         hist.loc[len(hist)] = thisRun.iloc[0]
     else:
         hist = thisRun
 
-    hist.to_csv("Saves/batch.csv")
+    hist.to_csv(os.path.join("Saves","batch.csv"))
 
 
 def store_values(history: list, Y_predict: list, Y_test: list, num_epochs: int, end_type: str):
