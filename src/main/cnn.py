@@ -19,6 +19,8 @@ class ModdedParallel(nn.DataParallel):
             return getattr(self.module, name)
 
 
+
+
 class Conv1DClassifier(nn.Module):
     def __init__(self):
         super().__init__()
@@ -50,8 +52,11 @@ class Conv1DClassifier(nn.Module):
         # x = to_device(x, device)
         x = x.float()
         x = x.unsqueeze(1)
+        #print(f"start: {x.shape}")
         x = self.layer1(x)
+        #print(f"middle: {x.shape}")
         x = self.layer2(x)
+        #print(f"end: {x.shape}")
         x = self.flatten(x)
         x = F.relu(self.fc1(x))
         x = self.dropout(x)
@@ -64,9 +69,17 @@ class Conv1DClassifier(nn.Module):
         # return F.log_softmax(x, dim=1)
 
 
-class FullyConnected:
+class FullyConnected(Conv1DClassifier):
     def __init__(self):
-        pass
+        super().__init__()
+        self.layer1 = nn.Sequential(
+            nn.Linear(1504,12000),
+            nn.ReLU(),
+            nn.Dropout(0.5))
+        self.layer2 = nn.Sequential(
+            nn.Linear(12000,11904),
+            nn.ReLU(),
+            nn.Dropout(0.5))
 
 
 class AttackTrainingClassification(Conv1DClassifier):

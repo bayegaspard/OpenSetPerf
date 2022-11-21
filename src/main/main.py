@@ -41,6 +41,7 @@ def main():
         model = cnn.ModdedParallel(model)
         model.to(device)
         model.device = device
+        model.end.type = "Energy"
 
         train, test = FileHandling.checkAttempLoad(root_path)
 
