@@ -42,7 +42,7 @@ class Conv1DClassifier(nn.Module):
         n = 3  # This is the DOO for COOL, I will need to make some way of easily editing it.
         # self.COOL = nn.Linear(256, 15*n)
 
-        self.end = EndLayers(15, type="Energy", cutoff=Config.parameters["threshold"][0])
+        self.end = EndLayers(15, type="Soft", cutoff=Config.parameters["threshold"][0])
         self.batchnum = 0
         self.device = GPU.get_default_device()
         self.store = GPU.to_device(torch.tensor([]), self.device), GPU.to_device(torch.tensor([]), self.device), GPU.to_device(torch.tensor([]), self.device)
