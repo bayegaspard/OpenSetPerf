@@ -173,7 +173,10 @@ class AttackTrainingClassification(Conv1DClassifier):
         self.batchnum += 1
         labels = labels_extended[:,0]
         out = self(data)  # Generate predictions
-        loss = F.cross_entropy(torch.cat((out,torch.zeros(len(out),1)),dim=1), labels)  # Calculate loss
+        print("out",out.get_device())
+        print("labels",labels.get_device())
+        zeross = GPU.to_device(torch.zeros(len(out),1),self.device)
+        loss = F.cross_entropy(torch.cat((out,zeross),dim=1), labels)  # Calculate loss
         out = self.end.endlayer(out,
                                 labels)  # <----Here is where it is using Softmax TODO: make this be able to run all of the versions and save the outputs.
         # out = self.end.endlayer(out, labels, type="Open")
