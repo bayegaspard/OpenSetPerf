@@ -8,6 +8,10 @@ import Config
 #three lines from https://xxx-cook-book.gitbooks.io/python-cook-book/content/Import/import-from-parent-folder.html
 import os
 import sys
+root_folder = os.path.abspath(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.append(root_folder)
+
+
 root_path = os.getcwd()
 
 
@@ -101,8 +105,8 @@ class EndLayers():
     
 
     def setArgs(self, classes=None, weibullThreshold=0.9, weibullTail=20, weibullAlpha=3, score="energy", m_in=-1, m_out=0, temp=None):
-        param = pd.read_csv(os.path.join(root_path,"src","main","hyperparam","hyperParam.csv"))
-        unknowns = pd.read_csv(os.path.join(root_path,"src","main","unknown","unknowns.csv"))
+        param = pd.read_csv(os.path.join(root_path,"Saves","hyperparam","hyperParam.csv"))
+        unknowns = pd.read_csv(os.path.join(root_path,"Saves","unknown","unknowns.csv"))
         unknowns = unknowns["unknowns"].to_list()
         if temp is None:
             temp = float(param["Temperature"][0])
@@ -154,7 +158,7 @@ class EndLayers():
     def openMaxMod(self,percentages:torch.Tensor, labels:torch.Tensor):
 
         try:
-            import OpenMaxByMaXu as Open
+            import CodeFromImplementations.OpenMaxByMaXu as Open
         except ImportError:
             print("Openmax will be skipped as not all of its libraries could be loaded.")
 

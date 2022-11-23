@@ -7,7 +7,7 @@
 import numpy as np
 import scipy.spatial.distance as spd
 import torch
-import Config
+import main.Config as Config
 
 
 

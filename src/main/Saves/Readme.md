@@ -1,1 +1,0 @@
-This folder will save informations from the batch , scores, and history.

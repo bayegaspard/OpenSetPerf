@@ -23,14 +23,7 @@ import pandas as pd
 # Y_test = [[12, 11, 0, 7, 1, 4, 8, 6, 5, 5], [4, 0, 5, 10, 7, 6, 9, 0, 11, 0], [0, 12, 0, 11, 6, 5, 0, 7, 11, 8], [6, 4, 0, 9, 5, 7, 1, 10, 4, 5]]
 # Y_pred = [[9, 0, 0, 8, 7, 5, 9, 0, 0, 6], [6, 0, 5, 0, 0, 0, 9, 0, 0, 0], [7, 7, 0, 12, 5, 4, 7, 7, 7, 9], [7, 0, 7, 9, 8, 7, 4, 7, 5, 7]]
 
-def convert_to_1d(y_test, y_pred):
-    y_test_final = []
-    y_pred_final = []
-    for i in range(len(y_test)):
-        for j in range(len(y_pred[i])):
-            y_test_final.append(y_test[i][j])
-            y_pred_final.append(y_pred[i][j])
-    return y_test_final, y_pred_final
+
 
 
 # y_test, y_pred = convert_to_1d(Y_test,Y_pred)
@@ -103,17 +96,28 @@ import math
 def plot_confusion_matrix(cm:np.ndarray, classes,
                           normalize=False,
                           title='Confusion matrix',
-                          cmap=plt.cm.Blues):
+                          cmap=plt.cm.Blues, knowns=list(range(15))):
     """
     This function prints and plots the confusion matrix.
     Normalization can be applied by setting `normalize=True`.
     """
+
+
     plt.imshow(cm, interpolation='nearest', cmap=cmap)
     plt.title(title)
     plt.colorbar()
     tick_marks = np.arange(len(classes))
     plt.xticks(tick_marks, classes, rotation=90)
     plt.yticks(tick_marks, classes)
+
+    xtick = plt.xticks()
+
+    #from https://stackoverflow.com/questions/24617429/matplotlib-different-colors-for-each-axis-label
+    for number, text in zip(xtick[0], xtick[1]):
+        if number in knowns:
+            text.set_color("black")
+        else:
+            text.set_color("red")
 
     if normalize:
         cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis].clip(0.000001,1)
@@ -128,9 +132,14 @@ def plot_confusion_matrix(cm:np.ndarray, classes,
     thresh = cm.max() / 2.
     for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
         # print("cm ij ",str(round(cm[i, j], 2)))
-        plt.text(j, i, str(round(cm[i, j], 2)),
-                 horizontalalignment="center",verticalalignment="center_baseline",
-                 color="white" if cm[i, j] > thresh else "black")
+        if j in knowns:
+            plt.text(j, i, str(round(cm[i, j], 2)),
+                    horizontalalignment="center",verticalalignment="center_baseline",
+                    color="white" if cm[i, j] > thresh else "black")
+        else:
+            plt.text(j, i, str(round(cm[i, j], 2)),
+                    horizontalalignment="center",verticalalignment="center_baseline",
+                    color="red")
 
     plt.tight_layout()
     plt.ylabel('True label')
@@ -152,67 +161,6 @@ def plot_confusion_matrix(cm:np.ndarray, classes,
 #                       title='Normalized confusion matrix')
 # plt.show()
 
-def write_hist_to_file(lst, num_epochs, type=""):
-    for l in lst:
-        l["type"] = type
-    if os.path.exists(os.path.join("Saves","history.csv")):
-        hist = pd.read_csv(os.path.join("Saves","history.csv"), index_col=0)
-        hist = pd.concat((hist, pd.DataFrame.from_dict(lst)))
-    else:
-        hist = pd.DataFrame.from_dict(lst)
-    hist.to_csv(os.path.join("Saves","history.csv"))
-    with open(os.path.join('Saves',f'history{type}.txt'), 'a') as fp:
-        # fp.write(f"history for {num_epochs} \n")
-        fp.write("\n")
-        for item in lst:
-            # write each item on a new line
-            fp.write(f"num_epochs {num_epochs} " + str(item) + "\n")
-        print('Writing history Done')
-
-
-def write_scores_to_file(lst, num_epochs, type=""):
-    thisRun = pd.DataFrame.from_dict(lst)
-    thisRun["type"] = type
-    if os.path.exists(os.path.join("Saves","scores.csv")):
-        hist = pd.read_csv(os.path.join("Saves","scores.csv"), index_col=0)
-        hist.loc[len(hist)] = thisRun.iloc[0]
-    else:
-        hist = thisRun
-
-    hist.to_csv(os.path.join("Saves","scores.csv"))
-    with open(os.path.join('Saves','scores{type}.txt'), 'a') as fp:
-        fp.write("\n")
-        for item in lst:
-            # write each item on a new line
-            fp.write(f"num_epochs {num_epochs} " + str(item).format(num_epochs) + "\n")
-        print('Writing scores Done')
-
-
-def write_batch_to_file(loss, num, modeltype="", batchtype=""):
-    thisRun = pd.DataFrame([[loss.item(), num, modeltype, batchtype]],
-                           columns=["Loss", "Batch Number", "Model Type", "Batch Type"])
-    # thisRun["Loss"] = loss.detach()
-    # thisRun["Batch Number"] = num
-    # thisRun["Model Type"] = modeltype
-    # thisRun["Batch Type"] = batchtype
-    if os.path.exists(os.path.join("Saves","batch.csv")):
-        hist = pd.read_csv(os.path.join("Saves","batch.csv"), index_col=0)
-        hist.loc[len(hist)] = thisRun.iloc[0]
-    else:
-        hist = thisRun
-
-    hist.to_csv(os.path.join("Saves","batch.csv"))
-
-
-def store_values(history: list, Y_predict: list, Y_test: list, num_epochs: int, end_type: str):
-    y_test, y_pred = convert_to_1d(Y_test, Y_predict)
-    recall = recall_score(y_test, y_pred, average='weighted', zero_division=0)
-    precision = precision_score(y_test, y_pred, average='weighted', zero_division=0)
-    f1 = 2 * (precision * recall) / (precision + recall)
-    # auprc = average_precision_score(y_test, y_pred, average='samples')
-    score_list = [recall, precision, f1]
-    write_hist_to_file(history, num_epochs, end_type)
-    write_scores_to_file(score_list, num_epochs, end_type)
 
 # write_hist_to_file(history_final,num_epochs)
 # 0
