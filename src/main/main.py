@@ -93,6 +93,7 @@ def main():
         recall = recall_score(y_compaire,y_pred,average='weighted',zero_division=0)
         precision = precision_score(y_compaire,y_pred,average='weighted',zero_division=0)
         f1 = 2 * (precision * recall) / (precision + recall)
+        FileHandling.create_params_Fscore(root_path,f1)
     # auprc = average_precision_score(y_test, y_pred, average='samples')
         score_list = [recall,precision,f1]
         FileHandling.write_hist_to_file(history_final,num_epochs,model.end.type)

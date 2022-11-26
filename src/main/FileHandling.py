@@ -162,6 +162,23 @@ def store_values(history: list, Y_predict: list, Y_test: list, num_epochs: int, 
     write_hist_to_file(history, num_epochs, end_type)
     write_scores_to_file(score_list, num_epochs, end_type)
 
+    
+def create_params_Fscore(path, score):
+    params = pd.read_csv(os.path.join(path,"Saves","hyperparam","hyperParam.csv"))
+    temp = params.iloc[0]
+    params.iloc[0] = params.iloc[1]
+    params.iloc[1] = temp
+
+    params["Fscore"] = ["Score",score]
+    if os.path.exists(os.path.join(path,"Saves","fscore.csv")):
+        hist = pd.read_csv(os.path.join(path,"Saves","fscore.csv"))
+        hist.loc[len(hist)] = params.iloc[1]
+    else:
+        hist = params
+    
+    
+    hist.to_csv(os.path.join(path,"Saves","fscore.csv"))
+
 #     if not os.path.exists(path):
 #         os.mkdir(path)
 #     torch.save(net.state_dict(),path+f"/Epoch{epoch:03d}.pth")
