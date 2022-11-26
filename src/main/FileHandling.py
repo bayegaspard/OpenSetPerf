@@ -165,20 +165,21 @@ def store_values(history: list, Y_predict: list, Y_test: list, num_epochs: int, 
 
     
 def create_params_Fscore(path, score):
-    params = pd.read_csv(os.path.join(path,"Saves","hyperparam","hyperParam.csv"))
-    temp = params.iloc[0]
-    params.iloc[0] = params.iloc[1]
-    params.iloc[1] = temp
+    params = pd.read_csv(os.path.join(path,"Saves","hyperparam","hyperParam.csv"),index_col=0)
+    
 
-    params["Fscore"] = ["Score",score]
+    params["Fscore"] = [score,"Score"]
     if os.path.exists(os.path.join(path,"Saves","fscore.csv")):
         hist = pd.read_csv(os.path.join(path,"Saves","fscore.csv"))
-        hist.loc[len(hist)] = params.iloc[1]
+        hist.loc[len(hist)] = params.iloc[0]
     else:
+        temp = params.iloc[0]
+        params.iloc[0] = params.iloc[1]
+        params.iloc[1] = temp
         hist = params
     
     
-    hist.to_csv(os.path.join(path,"Saves","fscore.csv"))
+    hist.to_csv(os.path.join(path,"Saves","fscore.csv"),index=False)
 
 #     if not os.path.exists(path):
 #         os.mkdir(path)
