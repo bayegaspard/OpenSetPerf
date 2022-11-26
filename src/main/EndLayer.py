@@ -157,6 +157,7 @@ class EndLayers():
 
     def openMaxMod(self,percentages:torch.Tensor, labels:torch.Tensor):
 
+        
         try:
             import CodeFromImplementations.OpenMaxByMaXu as Open
         except ImportError:

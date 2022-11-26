@@ -29,7 +29,7 @@ device = GPU.get_default_device() # selects a device, cpu or gpu
 
 def main():
         #Delete me
-        #FileHandling.refreshFiles(root_path)
+        FileHandling.refreshFiles(root_path)
 
         FileHandling.generateHyperparameters(root_path) # generate hyper parameters if not present.
         batch_size,num_workers,attemptLoad,testlen,num_epochs,lr,threshold,unknownVals = FileHandling.readCSVs(root_path)
