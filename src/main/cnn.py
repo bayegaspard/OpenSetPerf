@@ -42,7 +42,7 @@ class Conv1DClassifier(nn.Module):
         n = 3  # This is the DOO for COOL, I will need to make some way of easily editing it.
         # self.COOL = nn.Linear(256, 15*n)
 
-        self.end = EndLayers(15, type="Energy", cutoff=Config.parameters["threshold"][0])
+        self.end = EndLayers(15, type="Soft", cutoff=Config.parameters["threshold"][0])
         self.batchnum = 0
         self.device = GPU.get_default_device()
         self.store = GPU.to_device(torch.tensor([]), self.device), GPU.to_device(torch.tensor([]), self.device), GPU.to_device(torch.tensor([]), self.device)
@@ -173,7 +173,10 @@ class AttackTrainingClassification(Conv1DClassifier):
         self.batchnum += 1
         labels = labels_extended[:,0]
         out = self(data)  # Generate predictions
-        loss = F.cross_entropy(torch.cat((out,torch.zeros(len(out),1)),dim=1), labels)  # Calculate loss
+        print("out",out.get_device())
+        print("labels",labels.get_device())
+        zeross = GPU.to_device(torch.zeros(len(out),1),self.device)
+        loss = F.cross_entropy(torch.cat((out,zeross),dim=1), labels)  # Calculate loss
         out = self.end.endlayer(out,
                                 labels)  # <----Here is where it is using Softmax TODO: make this be able to run all of the versions and save the outputs.
         # out = self.end.endlayer(out, labels, type="Open")
