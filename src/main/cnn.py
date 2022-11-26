@@ -17,36 +17,32 @@ class ModdedParallel(nn.DataParallel):
             return super().__getattr__(name)
         except AttributeError:
             return getattr(self.module, name)
+        
 
 
-
-
-class Conv1DClassifier(nn.Module):
+class AttackTrainingClassification(nn.Module):
     def __init__(self):
         super().__init__()
-        self.layer1 = nn.Sequential(
-            nn.Conv1d(1, 32, 3),
-            nn.ReLU(),
-            nn.MaxPool1d(4),
-            nn.Dropout(0.5))
-        self.layer2 = nn.Sequential(
-            nn.Conv1d(32, 64, 3),
-            nn.ReLU(),
-            nn.MaxPool1d(2),
-            nn.Dropout(0.5))
 
-        self.flatten = nn.Flatten()
-        self.dropout = nn.Dropout()
         self.fc1 = nn.Linear(11904, 256)
         self.fc2 = nn.Linear(256, 15)
         n = 3  # This is the DOO for COOL, I will need to make some way of easily editing it.
         # self.COOL = nn.Linear(256, 15*n)
+        self.flatten = nn.Flatten()
+        self.dropout = nn.Dropout()
 
         self.end = EndLayers(15, type="Soft", cutoff=Config.parameters["threshold"][0])
         self.batchnum = 0
         self.device = GPU.get_default_device()
         self.store = GPU.to_device(torch.tensor([]), self.device), GPU.to_device(torch.tensor([]), self.device), GPU.to_device(torch.tensor([]), self.device)
+        # self.model = model
+        # self.batch = batch
+        # self.to_device = to_device
+        # self.device = device
+        # self.Y_Pred = Y_Pred
+        # self.Y_test = Y_test
 
+        
     # Specify how the data passes in the neural network
     def forward(self, x: torch.Tensor):
         # x = to_device(x, device)
@@ -69,28 +65,6 @@ class Conv1DClassifier(nn.Module):
         # return F.log_softmax(x, dim=1)
 
 
-class FullyConnected(Conv1DClassifier):
-    def __init__(self):
-        super().__init__()
-        self.layer1 = nn.Sequential(
-            nn.Linear(1504,12000),
-            nn.ReLU(),
-            nn.Dropout(0.5))
-        self.layer2 = nn.Sequential(
-            nn.Linear(12000,11904),
-            nn.ReLU(),
-            nn.Dropout(0.5))
-
-
-class AttackTrainingClassification(Conv1DClassifier):
-    def __init__(self):
-        super().__init__()
-        # self.model = model
-        # self.batch = batch
-        # self.to_device = to_device
-        # self.device = device
-        # self.Y_Pred = Y_Pred
-        # self.Y_test = Y_test
 
     def training_step(self, batch):
         data, labels = batch
@@ -211,7 +185,7 @@ class AttackTrainingClassification(Conv1DClassifier):
                                                                                          result['val_loss'],
                                                                                          result['val_acc']))
 
-    def savePoint(net: Conv1DClassifier, path: str, epoch=0, phase=None):
+    def savePoint(net, path: str, epoch=0, phase=None):
         if not os.path.exists(path):
             os.mkdir(path)
         torch.save(net.state_dict(), path + f"/Epoch{epoch:03d}.pth")
@@ -220,7 +194,7 @@ class AttackTrainingClassification(Conv1DClassifier):
             file.write(str(phase))
             file.close()
 
-    def loadPoint(net: Conv1DClassifier, path: str):
+    def loadPoint(net, path: str):
         if not os.path.exists(path):
             os.mkdir(path)
         i = 999
@@ -240,6 +214,44 @@ class AttackTrainingClassification(Conv1DClassifier):
             file.close()
             return int(phase), epochFound
         return -1, -1
+
+
+
+
+
+class Conv1DClassifier(AttackTrainingClassification):
+    def __init__(self):
+        super().__init__()
+        self.layer1 = nn.Sequential(
+            nn.Conv1d(1, 32, 3),
+            nn.ReLU(),
+            nn.MaxPool1d(4),
+            nn.Dropout(0.5))
+        self.layer2 = nn.Sequential(
+            nn.Conv1d(32, 64, 3),
+            nn.ReLU(),
+            nn.MaxPool1d(2),
+            nn.Dropout(0.5))
+
+        
+        
+
+        
+
+
+
+class FullyConnected(AttackTrainingClassification):
+    def __init__(self):
+        super().__init__()
+        self.layer1 = nn.Sequential(
+            nn.Linear(1504,12000),
+            nn.ReLU(),
+            nn.Dropout(0.5))
+        self.layer2 = nn.Sequential(
+            nn.Linear(12000,11904),
+            nn.ReLU(),
+            nn.Dropout(0.5))
+
 
 
 

@@ -36,9 +36,10 @@ def readCSVs(root_path):
         num_epochs = int(param["num_epochs"][0])
         lr = float(param["learningRate"][0])
         threshold = float(param["threshold"][0])
+        model_type = param["model"][0]
         param = pd.read_csv(os.path.join(root_path,"Saves","unknown","unknowns.csv"))
         unknownVals = param["unknowns"].to_list()
-        return batch_size,num_workers,attemptLoad,testlen,num_epochs,lr,threshold,unknownVals
+        return batch_size,num_workers,attemptLoad,testlen,num_epochs,lr,threshold,model_type,unknownVals
 
 
 def loopOverUnknowns(unknownlist):
@@ -53,7 +54,7 @@ def loopOverUnknowns(unknownlist):
 # def readFromFiles(path):
 def checkAttempLoad(root_path):
 
-    _,_,_,_,_,_,_,unknownlist = readCSVs(root_path)
+    _,_,_,_,_,_,_,_,unknownlist = readCSVs(root_path)
     # get the data and create a test set and train set
     print("Reading datasets to create test and train sets")
     train = Dataload.Dataset(os.path.join(root_path,"datasets","Payload_data_CICIDS2017"), use=loopOverUnknowns(unknownlist))

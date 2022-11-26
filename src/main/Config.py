@@ -16,6 +16,7 @@ parameters = {
     "num_epochs":[1,"Number of times it trains on the whole trainset"],
     "learningRate":[0.001, "a modifier for training"],
     "threshold":[5,"When to declare something to be unknown"],
+    "model":["Fully_Connected","Model type [Fully_Connected,Convolutional]"],
     "optimizer":opt_func["Adam"],
     "Unknowns":"refer to unknowns.CSV",
     "CLASSES":[15,"Number of classes, do not change"],
