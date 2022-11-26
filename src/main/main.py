@@ -28,6 +28,8 @@ opt_func = Config.parameters["optimizer"]
 device = GPU.get_default_device() # selects a device, cpu or gpu
 
 def main():
+        #Delete me
+        FileHandling.refreshFiles(root_path)
 
         FileHandling.generateHyperparameters(root_path) # generate hyper parameters if not present.
         batch_size,num_workers,attemptLoad,testlen,num_epochs,lr,threshold,unknownVals = FileHandling.readCSVs(root_path)
@@ -85,7 +87,7 @@ def main():
         print("class names", class_names)
         cnf_matrix = plots.confusionMatrix(y_test, y_pred)
         plots.plot_confusion_matrix(cnf_matrix, classes=class_names, normalize=True,
-                          title='Confusion matrix')
+                          title='Confusion matrix', knowns = knownVals)
         plt.show()
 
         recall = recall_score(y_compaire,y_pred,average='weighted',zero_division=0)
@@ -93,8 +95,8 @@ def main():
         f1 = 2 * (precision * recall) / (precision + recall)
     # auprc = average_precision_score(y_test, y_pred, average='samples')
         score_list = [recall,precision,f1]
-        plots.write_hist_to_file(history_final,num_epochs,model.end.type)
-        plots.write_scores_to_file(score_list,num_epochs,model.end.type)
+        FileHandling.write_hist_to_file(history_final,num_epochs,model.end.type)
+        FileHandling.write_scores_to_file(score_list,num_epochs,model.end.type)
         print("F-Score : ", f1*100)
         print("Precision : " ,precision*100)
         print("Recall : ", recall*100)

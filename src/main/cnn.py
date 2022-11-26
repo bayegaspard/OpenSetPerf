@@ -2,12 +2,12 @@ from torch import nn
 import torch
 from torch.nn import functional as F
 import os
-import plots
 
 ### user defined functions
 import Config
 from EndLayer import EndLayers
 import GPU
+import FileHandling
 
 
 class ModdedParallel(nn.DataParallel):
@@ -140,7 +140,7 @@ class AttackTrainingClassification(Conv1DClassifier):
                     # batch = DeviceDataLoader(batch, device)
                     loss = self.training_step(batch)
 
-                    plots.write_batch_to_file(loss, num, self.end.type, "train")
+                    FileHandling.write_batch_to_file(loss, num, self.end.type, "train")
                     train_losses.append(loss.detach())
                     loss.backward()
                     optimizer.step()
@@ -190,7 +190,7 @@ class AttackTrainingClassification(Conv1DClassifier):
         out = GPU.to_device(out, self.device)
         test = torch.argmax(out, dim=1)
         acc = self.accuracy(out, labels_extended)  # Calculate accuracy
-        plots.write_batch_to_file(loss, self.batchnum, self.end.type, "test")
+        FileHandling.write_batch_to_file(loss, self.batchnum, self.end.type, "Saves")
         print("validation accuracy: ", acc)
         return {'val_loss': loss.detach(), 'val_acc': acc, "val_avgUnknown": unknowns}
 

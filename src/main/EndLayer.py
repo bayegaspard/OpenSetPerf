@@ -8,6 +8,10 @@ import Config
 #three lines from https://xxx-cook-book.gitbooks.io/python-cook-book/content/Import/import-from-parent-folder.html
 import os
 import sys
+root_folder = os.path.abspath(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.append(root_folder)
+
+
 root_path = os.getcwd()
 
 
@@ -101,8 +105,8 @@ class EndLayers():
     
 
     def setArgs(self, classes=None, weibullThreshold=0.9, weibullTail=20, weibullAlpha=3, score="energy", m_in=-1, m_out=0, temp=None):
-        param = pd.read_csv(os.path.join(root_path,"src","main","hyperparam","hyperParam.csv"))
-        unknowns = pd.read_csv(os.path.join(root_path,"src","main","unknown","unknowns.csv"))
+        param = pd.read_csv(os.path.join(root_path,"Saves","hyperparam","hyperParam.csv"))
+        unknowns = pd.read_csv(os.path.join(root_path,"Saves","unknown","unknowns.csv"))
         unknowns = unknowns["unknowns"].to_list()
         if temp is None:
             temp = float(param["Temperature"][0])
@@ -152,32 +156,36 @@ class EndLayers():
         net.train()
 
     def openMaxMod(self,percentages:torch.Tensor, labels:torch.Tensor):
-
+        failed = False
+        
         try:
-            import OpenMaxByMaXu as Open
+            import CodeFromImplementations.OpenMaxByMaXu as Open
         except ImportError:
             print("Openmax will be skipped as not all of its libraries could be loaded.")
+            failed = True
 
         if self.args == None:
             self.setArgs()
         
-        try:
-            scores_open = Open.openmaxevaluation([percentages.detach()],[labels.detach()],self.args,self.weibulInfo)
-        except LookupError:
-            print("OpenMax failed to idenitify at least 1 class!")
-            #Note: usual reason for failure is having no correct examples for at least 1 class.
+        if not failed:
+            try:
+                scores_open = Open.openmaxevaluation([percentages.detach()],[labels.detach()],self.args,self.weibulInfo)
+            except LookupError:
+                print("OpenMax failed to idenitify at least 1 class!")
+                #Note: usual reason for failure is having no correct examples for at least 1 class.
+                failed = True
+            except NotImplementedError:
+                print("Warning: OpenMax has failed to load!")
+                failed = True
+                
+        
+        if failed:
             errorreturn = torch.zeros((percentages.size()))
             unknownColumn =torch.ones(len(percentages)).unsqueeze(1)
             errorreturn = torch.cat((errorreturn,unknownColumn),1)
             self.Save_score.append(torch.zeros(0))
             return errorreturn
-        except NotImplementedError:
-            print("Warning: OpenMax has failed to load!")
-            errorreturn = torch.zeros((percentages.size()))
-            unknownColumn =torch.ones(len(percentages)).unsqueeze(1)
-            errorreturn = torch.cat((errorreturn,unknownColumn),1)
-            self.Save_score.append(torch.zeros(0))
-            return errorreturn
+            
         #print(scores_open)
         scores = torch.tensor(np.array(scores_open))
         self.Save_score.append(scores.squeeze().mean())

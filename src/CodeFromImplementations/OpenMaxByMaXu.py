@@ -7,6 +7,13 @@
 import numpy as np
 import scipy.spatial.distance as spd
 import torch
+
+#three lines from https://xxx-cook-book.gitbooks.io/python-cook-book/content/Import/import-from-parent-folder.html
+import os
+import sys
+root_folder = os.path.abspath(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.append(os.path.join(root_folder,"CodeFromImplementations"))
+
 import Config
 
 
