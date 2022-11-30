@@ -13,7 +13,7 @@ parameters = {
     "num_workers":[3, "Number of threads working on building batches"],
     "attemptLoad":[0, "0: do not use saves\n1:use saves"],
     "testlength":[1/4, "[0,1) percentage of training to test with"],
-    "num_epochs":[1,"Number of times it trains on the whole trainset"],
+    "num_epochs":[3,"Number of times it trains on the whole trainset"],
     "learningRate":[0.001, "a modifier for training"],
     "threshold":[5,"When to declare something to be unknown"],
     "model":["Fully_Connected","Model type [Fully_Connected,Convolutional]"],

@@ -21,28 +21,25 @@ class EndLayers():
         self.cutoff = cutoff
         self.classCount = num_classes
         self.type = type
-        self.DOO = 3    #Degree of Overcompleteness for COOL
+        self.DOO = 3    #Degree of Overcompleteness for COOL TODO: add this to the parameters file
         self.args = None
         self.Save_score = []        #this is really not great but I don't have time to find something better.
 
 
 
-    def endlayer(self, output_true:torch.Tensor, y:torch.Tensor, type=None, offset=0):
+    def endlayer(self, output_true:torch.Tensor, y:torch.Tensor, type=None, Train=False):
         #check if a type is specified
         if type is None:
             type = self.type
         
-        if type == "COOL":
-            type = "Soft"
-
         #modify outputs
         if type != "Open":
             output_modified = self.typesOfMod[type](self,output_true)
         else:
+            #Openmax needs labels but does not use them? Should I modify this?
             output_modified = self.typesOfMod[type](self,output_true,y)
 
-
-        #reject from unknown, foundunknowns is a mask to be applied to the output vector
+        #This is supposted to add an extra column for unknowns
         output_complete = self.typesOfUnknown[type](self,output_modified)
 
 
@@ -94,7 +91,7 @@ class EndLayers():
         return percentages.max(dim=1,keepdim=True)[0].greater_equal(self.cutoff)
 
     #all functions here return a mask with 1 in all valid locations and 0 in all invalid locations
-    typesOfUnknown = {"Soft":softMaxUnknown, "Open":openMaxUnknown, "Energy":energyUnknown, "Odin":odinUnknown}
+    typesOfUnknown = {"Soft":softMaxUnknown, "Open":openMaxUnknown, "Energy":energyUnknown, "Odin":odinUnknown, "COOL":softMaxUnknown}
 
     #---------------------------------------------------------------------------------------------
     #This is the section for modifying the outputs for the final layer
@@ -210,67 +207,42 @@ class EndLayers():
         self.model.openMax = True
         return new_percentages[:len(percentages)]
 
-    def COOL_Label_Mod(self, targets:torch.Tensor):
-        new = []
-        for target in targets:
-            #DOO stands for degree of overcompletness and it is the number of nodes per class.
-            l = torch.zeros(self.DOO,self.classCount)
-            val = 1/self.DOO
-            for i in range(self.DOO):
-                l[(i),(target)] = val
-            #l = torch.nn.functional.one_hot(targets, num_classes=self.classCount).unsqueeze(dim=1).repeat_interleave(3,dim=1)/self.DOO
-            new.append(l)
-        targets = torch.stack(new)
-        return targets
-
-    def COOL_predict_Mod(self, prediction:torch.Tensor):
-        new = []
-        for predict in prediction:
-            l = torch.ones(self.classCount)
-            for i in range(self.DOO):
-                for j in range(self.classCount):
-                    l[j] = l[j]*predict[(j)+(i)*self.classCount]*self.DOO
-            new.append(l)
-        targets = torch.stack(new)
-        return targets
+    def FittedLearningEval(self, percentages:torch.Tensor):
+        import CodeFromImplementations.FittedLearningByYhenon as fitted
+        store = []
+        for x in percentages:
+            store.append(fitted.infer(x,self.DOO,self.classCount))
+        store = np.array(store)
+        return torch.tensor(store)
 
     def iiMod(self, percentages:torch.Tensor):
         #https://arxiv.org/pdf/1802.04365.pdf
         return percentages
 
     #all functions here return a tensor, sometimes it has an extra column for unknowns
-    typesOfMod = {"Soft":softMaxMod, "Open":openMaxMod, "Energy":energyMod, "Odin":odinMod}
+    typesOfMod = {"Soft":softMaxMod, "Open":openMaxMod, "Energy":energyMod, "Odin":odinMod, "COOL":FittedLearningEval}
+
+    #---------------------------------------------------------------------------------------------
+    #This is the section for training label modification
+
+    def noChange(self,X:torch.Tensor):
+        return X
+
+    def FittedLearningLabel(self,labelList:torch.Tensor):
+        import CodeFromImplementations.FittedLearningByYhenon as fitted
+        store = []
+        for x in labelList:
+            store.append(fitted.build_label(x,self.classCount,self.DOO))
+        store = np.array(store)
+        return torch.tensor(store)
+
+    typesOfLabelMod = {"Soft":noChange, "Open":noChange, "Energy":noChange, "Odin":noChange, "COOL":FittedLearningLabel}
+
+    def labelMod(self,labelList:torch.Tensor):
+        return self.typesOfLabelMod[self.type](self,labelList)
 
 
     
-    #-------------------------------------------------------------------------------------
-    #crates a cutoff with a certian percent labeled to be in distribution
 
-    def cutoffStorage(self, newNumbers:torch.Tensor, type=None):
-        if type is None:
-            type = self.type
-        if type == "Energy":
-            import EnergyCodeByWetliu as Eng
-            scores = []
-            Eng.energyScoreCalc(scores,newNumbers)
-            highestPercent = -torch.tensor(np.array(scores)).squeeze(dim=0)
-        else:
-            numbers = self.typesOfMod[type](self,newNumbers)
-            highestPercent = torch.max(numbers,dim=1)[0]
-
-            if type == "Open":
-                highestPercent = highestPercent*(torch.max(numbers,dim=1)[1]!=self.classCount).int()
-            
-
-        self.highestPercentStorage = torch.cat((self.highestPercentStorage,highestPercent),dim=0)
-
-
-    def findcutoff(self, numbers:torch.Tensor, percent):
-        sortednums = numbers.sort(descending=True)[0]
-        val = sortednums[int(percent*len(sortednums))]
-        return val
-
-    def autocutoff(self, percent=0.95):
-        self.cutoff = self.findcutoff(self.highestPercentStorage, percent)
 
     

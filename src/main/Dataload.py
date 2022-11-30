@@ -41,7 +41,7 @@ def chunkprocess(x:pd.DataFrame):
 
     label = x
     label = label["label"]                          #This selects the label
-    label = torch.tensor(label.to_numpy())    #The int is because the loss function is expecting ints
+    label = torch.tensor(label.to_numpy(),requires_grad=False)    #The int is because the loss function is expecting ints
 
     return (data,label)
 
