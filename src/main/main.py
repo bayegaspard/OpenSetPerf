@@ -1,7 +1,7 @@
 import torch.nn as nn
 import matplotlib.pyplot as plt
 from torch.utils.data import DataLoader
-from sklearn.metrics import (precision_score, recall_score)
+from sklearn.metrics import (precision_score, recall_score, average_precision_score)
 import numpy as np
 import torch
 
@@ -20,8 +20,7 @@ import os
 root_path = os.getcwd()
 
 
-# root_folder = os.path.abspath(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-# sys.path.append(root_folder)
+
 
 #useful variables
 opt_func = Config.parameters["optimizer"]
@@ -32,26 +31,27 @@ def main():
         FileHandling.refreshFiles(root_path)
 
         FileHandling.generateHyperparameters(root_path) # generate hyper parameters if not present.
-        batch_size,num_workers,attemptLoad,testlen,num_epochs,lr,threshold,unknownVals = FileHandling.readCSVs(root_path)
+        batch_size,num_workers,attemptLoad,testlen,num_epochs,lr,threshold,model_type,unknownVals = FileHandling.readCSVs(root_path)
         knownVals = FileHandling.loopOverUnknowns(unknownVals)
         # print(knownVals)
         # print(unknownVals)
-        model_conv1d = cnn.AttackTrainingClassification()
+        model_conv1d = cnn.Conv1DClassifier()
         model_fully_connected = cnn.FullyConnected()
-        model_list = [model_conv1d,model_fully_connected]
-        model = model_list[0] # change index to select a specific architecture. 0=conv1d ad 1=fully connected
+        model_list = {"Convolutional":model_conv1d,"Fully_Connected":model_fully_connected}
+        model = model_list[model_type] # change index to select a specific architecture. 0=conv1d ad 1=fully connected
         model = cnn.ModdedParallel(model)
         model.to(device)
         model.device = device
         model.end.type = "Soft"
+        model.end.cutoff = threshold
 
         train, test = FileHandling.checkAttempLoad(root_path)
 
 
-        trainset = DataLoader(train, batch_size, num_workers=Config.parameters["num_workers"][0],shuffle=True,
+        trainset = DataLoader(train, batch_size, num_workers=num_workers,shuffle=True,
                 pin_memory=False)  # for faster processing enable pin memory to true and num_workers=4
-        validationset = DataLoader(test, batch_size, shuffle=True, num_workers=Config.parameters["num_workers"][0],pin_memory=False)
-        testset = DataLoader(test, batch_size, shuffle=True, num_workers=Config.parameters["num_workers"][0], pin_memory=False)
+        validationset = DataLoader(test, batch_size, shuffle=True, num_workers=num_workers,pin_memory=False)
+        testset = DataLoader(test, batch_size, shuffle=True, num_workers=num_workers, pin_memory=False)
 
         print("length of train",len(train),"\nlength of test",len(test))
 
@@ -93,7 +93,8 @@ def main():
         recall = recall_score(y_compaire,y_pred,average='weighted',zero_division=0)
         precision = precision_score(y_compaire,y_pred,average='weighted',zero_division=0)
         f1 = 2 * (precision * recall) / (precision + recall)
-    # auprc = average_precision_score(y_test, y_pred, average='samples')
+        FileHandling.create_params_Fscore(root_path,f1)
+        #auprc = average_precision_score(y_compaire, y_pred, average='weighted')
         score_list = [recall,precision,f1]
         FileHandling.write_hist_to_file(history_final,num_epochs,model.end.type)
         FileHandling.write_scores_to_file(score_list,num_epochs,model.end.type)
