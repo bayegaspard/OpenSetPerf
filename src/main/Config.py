@@ -15,7 +15,7 @@ parameters = {
     "testlength":[1/4, "[0,1) percentage of training to test with"],
     "num_epochs":[3,"Number of times it trains on the whole trainset"],
     "learningRate":[0.001, "a modifier for training"],
-    "threshold":[5,"When to declare something to be unknown"],
+    "threshold":[0.5,"When to declare something to be unknown"],
     "model":["Fully_Connected","Model type [Fully_Connected,Convolutional]"],
     "optimizer":opt_func["Adam"],
     "Unknowns":"refer to unknowns.CSV",

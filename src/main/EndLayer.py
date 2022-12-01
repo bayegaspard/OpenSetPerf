@@ -58,6 +58,13 @@ class EndLayers():
         unknownColumn = self.cutoff * torch.zeros(batchsize,device=percentages.device)
         return torch.cat((percentages,unknownColumn.unsqueeze(1)),dim=1)
 
+    def normalThesholdUnknown(self,percentages:torch.Tensor):
+        self.Save_score.append(percentages.max(dim=1)[0].mean())
+        #this adds a row that is of the cutoff amout so unless there is another value greater it will be unknown
+        batchsize = len(percentages)
+        unknownColumn = self.cutoff * torch.ones(batchsize,device=percentages.device)
+        return torch.cat((percentages,unknownColumn.unsqueeze(1)),dim=1)
+
     def openMaxUnknown(self,percentages:torch.Tensor):
         #Openmax already has a column for how much it thinks something is unknown
         return percentages
@@ -91,7 +98,7 @@ class EndLayers():
         return percentages.max(dim=1,keepdim=True)[0].greater_equal(self.cutoff)
 
     #all functions here return a mask with 1 in all valid locations and 0 in all invalid locations
-    typesOfUnknown = {"Soft":softMaxUnknown, "Open":openMaxUnknown, "Energy":energyUnknown, "Odin":odinUnknown, "COOL":softMaxUnknown}
+    typesOfUnknown = {"Soft":softMaxUnknown, "Open":openMaxUnknown, "Energy":energyUnknown, "Odin":odinUnknown, "COOL":normalThesholdUnknown}
 
     #---------------------------------------------------------------------------------------------
     #This is the section for modifying the outputs for the final layer

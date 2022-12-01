@@ -104,6 +104,7 @@ class AttackTrainingClassification(nn.Module):
         # torch.cuda.empty_cache()
         if epochs > 0:
             for epoch in range(epochs):
+                self.store = GPU.to_device(torch.tensor([]), self.device), GPU.to_device(torch.tensor([]), self.device), GPU.to_device(torch.tensor([]), self.device)
                 # Training Phase
                 self.train()
                 train_losses = []
