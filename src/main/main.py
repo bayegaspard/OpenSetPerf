@@ -42,7 +42,7 @@ def main():
         model = cnn.ModdedParallel(model)
         model.to(device)
         model.device = device
-        model.end.type = "Soft"
+        model.end.type = "COOL"
         model.end.cutoff = threshold
 
         train, test = FileHandling.checkAttempLoad(root_path)

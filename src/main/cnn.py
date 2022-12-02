@@ -35,6 +35,8 @@ class AttackTrainingClassification(nn.Module):
         self.batchnum = 0
         self.device = GPU.get_default_device()
         self.store = GPU.to_device(torch.tensor([]), self.device), GPU.to_device(torch.tensor([]), self.device), GPU.to_device(torch.tensor([]), self.device)
+
+        self.COOL = nn.Linear(256, 15*self.end.DOO)
         # self.model = model
         # self.batch = batch
         # self.to_device = to_device
@@ -70,10 +72,7 @@ class AttackTrainingClassification(nn.Module):
         data, labels = batch
         labels = labels[:,0]    #Select the data we want not the metadata
         out = self(data)  # Generate predictions
-        if self.end.type == "COOL":
-            labels = self.end.COOL_Label_Mod(labels)
-            out = torch.split(out.unsqueeze(dim=1), 15, dim=2)
-            out = torch.cat(out, dim=1)
+        labels = self.end.labelMod(labels)
 
         # out = DeviceDataLoader(out, device)
         loss = F.cross_entropy(out, labels)  # Calculate loss
@@ -105,6 +104,7 @@ class AttackTrainingClassification(nn.Module):
         # torch.cuda.empty_cache()
         if epochs > 0:
             for epoch in range(epochs):
+                self.store = GPU.to_device(torch.tensor([]), self.device), GPU.to_device(torch.tensor([]), self.device), GPU.to_device(torch.tensor([]), self.device)
                 # Training Phase
                 self.train()
                 train_losses = []
@@ -147,8 +147,6 @@ class AttackTrainingClassification(nn.Module):
         self.batchnum += 1
         labels = labels_extended[:,0]
         out = self(data)  # Generate predictions
-        print("out",out.get_device())
-        print("labels",labels.get_device())
         zeross = GPU.to_device(torch.zeros(len(out),1),self.device)
         loss = F.cross_entropy(torch.cat((out,zeross),dim=1), labels)  # Calculate loss
         out = self.end.endlayer(out,
