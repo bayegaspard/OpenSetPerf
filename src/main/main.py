@@ -31,7 +31,7 @@ def main():
         FileHandling.refreshFiles(root_path)
 
         FileHandling.generateHyperparameters(root_path) # generate hyper parameters if not present.
-        batch_size,num_workers,attemptLoad,testlen,num_epochs,lr,threshold,model_type,unknownVals = FileHandling.readCSVs(root_path)
+        batch_size,num_workers,attemptLoad,testlen,num_epochs,lr,threshold,model_type,datagroup,unknownVals = FileHandling.readCSVs(root_path)
         knownVals = FileHandling.loopOverUnknowns(unknownVals)
         # print(knownVals)
         # print(unknownVals)
@@ -42,7 +42,7 @@ def main():
         model = cnn.ModdedParallel(model)
         model.to(device)
         model.device = device
-        model.end.type = "COOL"
+        model.end.type = Config.parameters["OOD Type"][0]
         model.end.cutoff = threshold
 
         train, test = FileHandling.checkAttempLoad(root_path)
@@ -55,6 +55,8 @@ def main():
 
         print("length of train",len(train),"\nlength of test",len(test))
 
+        #train_loader = trainset
+        #val_loader = validationset
         train_loader =  GPU.DeviceDataLoader(trainset, device)
         val_loader = GPU.DeviceDataLoader(validationset, device)
         test_loader = testset
@@ -94,6 +96,7 @@ def main():
         precision = precision_score(y_compaire,y_pred,average='weighted',zero_division=0)
         f1 = 2 * (precision * recall) / (precision + recall)
         FileHandling.create_params_Fscore(root_path,f1)
+        
         #auprc = average_precision_score(y_compaire, y_pred, average='weighted')
         score_list = [recall,precision,f1]
         FileHandling.write_hist_to_file(history_final,num_epochs,model.end.type)
@@ -101,6 +104,9 @@ def main():
         print("F-Score : ", f1*100)
         print("Precision : " ,precision*100)
         print("Recall : ", recall*100)
+
+        
+        model.thresholdTest(validationset)
     # print("AUPRC : ", auprc * 100)
 
 
