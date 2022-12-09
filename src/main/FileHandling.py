@@ -36,10 +36,11 @@ def readCSVs(root_path):
         num_epochs = int(param["num_epochs"][0])
         lr = float(param["learningRate"][0])
         threshold = float(param["threshold"][0])
+        datagroup = param["Datagrouping"][0]
         model_type = param["model"][0]
         param = pd.read_csv(os.path.join(root_path,"Saves","unknown","unknowns.csv"))
         unknownVals = param["unknowns"].to_list()
-        return batch_size,num_workers,attemptLoad,testlen,num_epochs,lr,threshold,model_type,unknownVals
+        return batch_size,num_workers,attemptLoad,testlen,num_epochs,lr,threshold,model_type,datagroup,unknownVals
 
 
 def loopOverUnknowns(unknownlist):
@@ -54,12 +55,20 @@ def loopOverUnknowns(unknownlist):
 # def readFromFiles(path):
 def checkAttempLoad(root_path):
 
-    _,_,_,_,_,_,_,_,unknownlist = readCSVs(root_path)
+    _,_,_,_,_,_,_,_,datagroup,unknownlist = readCSVs(root_path)
     # get the data and create a test set and train set
     print("Reading datasets to create test and train sets")
-    train = Dataload.Dataset(os.path.join(root_path,"datasets","Payload_data_CICIDS2017"), use=loopOverUnknowns(unknownlist))
+    
+    if datagroup == "ClassChunk":
+        train = Dataload.ClassDivDataset(os.path.join(root_path,"datasets","Payload_data_CICIDS2017"), use=loopOverUnknowns(unknownlist))
+        unknowns = Dataload.ClassDivDataset(os.path.join(root_path,"datasets","Payload_data_CICIDS2017"), use=unknownlist, unknownData=True)
+    elif datagroup == "DendrogramChunk":
+        train = Dataload.ClusterDivDataset(os.path.join(root_path,"datasets","Payload_data_CICIDS2017"), use=loopOverUnknowns(unknownlist))
+        unknowns = Dataload.ClusterDivDataset(os.path.join(root_path,"datasets","Payload_data_CICIDS2017"), use=unknownlist, unknownData=True)
+    else:
+        raise ValueError("Invalid Dataloader type")
     train, test = torch.utils.data.random_split(train,[len(train) - int(len(train) * Config.parameters["testlength"][0]),int(len(train) * Config.parameters["testlength"][0])])  # randomly takes 4000 lines to use as a testing dataset
-    unknowns = Dataload.Dataset(os.path.join(root_path,"datasets","Payload_data_CICIDS2017"), use=unknownlist, unknownData=True)
+    
     test = torch.utils.data.ConcatDataset([test, unknowns])
     if Config.parameters["attemptLoad"][0] and os.path.exists(os.path.join(root_path,"Saves","Data.pt")):
         train = torch.load(os.path.join(root_path,"Saves","Data.pt"))
@@ -164,9 +173,11 @@ def store_values(history: list, Y_predict: list, Y_test: list, num_epochs: int, 
     write_scores_to_file(score_list, num_epochs, end_type)
 
     
-def create_params_Fscore(path, score):
+def create_params_Fscore(path, score, threshold = None):
     params = pd.read_csv(os.path.join(path,"Saves","hyperparam","hyperParam.csv"),index_col=0)
     
+    if threshold != None:
+        params["threshold"] = threshold
 
     params["Fscore"] = [score,"Score"]
     if os.path.exists(os.path.join(path,"Saves","fscore.csv")):

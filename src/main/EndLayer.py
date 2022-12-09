@@ -10,6 +10,7 @@ import os
 import sys
 root_folder = os.path.abspath(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.append(root_folder)
+import Config
 
 
 root_path = os.getcwd()
@@ -21,7 +22,7 @@ class EndLayers():
         self.cutoff = cutoff
         self.classCount = num_classes
         self.type = type
-        self.DOO = 3    #Degree of Overcompleteness for COOL TODO: add this to the parameters file
+        self.DOO = Config.parameters["Degree of Overcompleteness"][0]    #Degree of Overcompleteness for COOL
         self.args = None
         self.Save_score = []        #this is really not great but I don't have time to find something better.
 
@@ -98,7 +99,7 @@ class EndLayers():
         return percentages.max(dim=1,keepdim=True)[0].greater_equal(self.cutoff)
 
     #all functions here return a mask with 1 in all valid locations and 0 in all invalid locations
-    typesOfUnknown = {"Soft":softMaxUnknown, "Open":openMaxUnknown, "Energy":energyUnknown, "Odin":odinUnknown, "COOL":normalThesholdUnknown}
+    typesOfUnknown = {"Soft":softMaxUnknown, "Open":openMaxUnknown, "Energy":energyUnknown, "Odin":odinUnknown, "COOL":normalThesholdUnknown, "SoftThresh":normalThesholdUnknown}
 
     #---------------------------------------------------------------------------------------------
     #This is the section for modifying the outputs for the final layer
@@ -227,7 +228,7 @@ class EndLayers():
         return percentages
 
     #all functions here return a tensor, sometimes it has an extra column for unknowns
-    typesOfMod = {"Soft":softMaxMod, "Open":openMaxMod, "Energy":energyMod, "Odin":odinMod, "COOL":FittedLearningEval}
+    typesOfMod = {"Soft":softMaxMod, "Open":openMaxMod, "Energy":energyMod, "Odin":odinMod, "COOL":FittedLearningEval, "SoftThresh":softMaxMod}
 
     #---------------------------------------------------------------------------------------------
     #This is the section for training label modification
@@ -243,7 +244,7 @@ class EndLayers():
         store = np.array(store)
         return torch.tensor(store)
 
-    typesOfLabelMod = {"Soft":noChange, "Open":noChange, "Energy":noChange, "Odin":noChange, "COOL":FittedLearningLabel}
+    typesOfLabelMod = {"Soft":noChange, "Open":noChange, "Energy":noChange, "Odin":noChange, "COOL":FittedLearningLabel, "SoftThresh":noChange}
 
     def labelMod(self,labelList:torch.Tensor):
         return self.typesOfLabelMod[self.type](self,labelList)

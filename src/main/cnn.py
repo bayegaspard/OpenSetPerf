@@ -8,6 +8,7 @@ import Config
 from EndLayer import EndLayers
 import GPU
 import FileHandling
+from sklearn.metrics import (precision_score, recall_score, average_precision_score)
 
 
 class ModdedParallel(nn.DataParallel):
@@ -26,10 +27,9 @@ class AttackTrainingClassification(nn.Module):
 
         self.fc1 = nn.Linear(11904, 256)
         self.fc2 = nn.Linear(256, 15)
-        n = 3  # This is the DOO for COOL, I will need to make some way of easily editing it.
         # self.COOL = nn.Linear(256, 15*n)
         self.flatten = nn.Flatten()
-        self.dropout = nn.Dropout()
+        self.dropout = nn.Dropout(int(Config.parameters["Dropout"][0]))
 
         self.end = EndLayers(15, type="Soft", cutoff=Config.parameters["threshold"][0])
         self.batchnum = 0
@@ -212,6 +212,23 @@ class AttackTrainingClassification(nn.Module):
             file.close()
             return int(phase), epochFound
         return -1, -1
+    
+    def thresholdTest(net,val_loader):
+        net.loadPoint("Saves")
+        for x in [0.1,0.5,0.75,0.9,0.99,1.1,2,5,10,100]:
+            net.store = GPU.to_device(torch.tensor([]), net.device), GPU.to_device(torch.tensor([]), net.device), GPU.to_device(torch.tensor([]), net.device)
+            net.end.cutoff = x
+            net.evaluate(val_loader)
+            y_pred,y_test,y_compaire = net.store
+            y_test = y_test.to(torch.int).tolist()
+            y_pred = y_pred.to(torch.int).tolist()
+            y_compaire = y_compaire.to(torch.int).tolist()
+            recall = recall_score(y_compaire,y_pred,average='weighted',zero_division=0)
+            precision = precision_score(y_compaire,y_pred,average='weighted',zero_division=0)
+            f1 = 2 * (precision * recall) / (precision + recall)
+            FileHandling.create_params_Fscore("",f1,x)
+        
+
 
 
 
@@ -224,12 +241,12 @@ class Conv1DClassifier(AttackTrainingClassification):
             nn.Conv1d(1, 32, 3),
             nn.ReLU(),
             nn.MaxPool1d(4),
-            nn.Dropout(0.5))
+            nn.Dropout(int(Config.parameters["Dropout"][0])))
         self.layer2 = nn.Sequential(
             nn.Conv1d(32, 64, 3),
             nn.ReLU(),
             nn.MaxPool1d(2),
-            nn.Dropout(0.5))
+            nn.Dropout(int(Config.parameters["Dropout"][0])))
 
         
         
@@ -244,11 +261,11 @@ class FullyConnected(AttackTrainingClassification):
         self.layer1 = nn.Sequential(
             nn.Linear(1504,12000),
             nn.ReLU(),
-            nn.Dropout(0.5))
+            nn.Dropout(int(Config.parameters["Dropout"][0])))
         self.layer2 = nn.Sequential(
             nn.Linear(12000,11904),
             nn.ReLU(),
-            nn.Dropout(0.5))
+            nn.Dropout(int(Config.parameters["Dropout"][0])))
 
 
 
