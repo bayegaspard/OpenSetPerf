@@ -25,18 +25,22 @@ class AttackTrainingClassification(nn.Module):
     def __init__(self):
         super().__init__()
 
+        numClasses = 15
+        if Config.parameters['Datagrouping'][0] == "DendrogramChunk":
+            numClasses = numClasses*32
+
         self.fc1 = nn.Linear(11904, 256)
-        self.fc2 = nn.Linear(256, 15)
+        self.fc2 = nn.Linear(256, numClasses)
         # self.COOL = nn.Linear(256, 15*n)
         self.flatten = nn.Flatten()
         self.dropout = nn.Dropout(int(Config.parameters["Dropout"][0]))
 
-        self.end = EndLayers(15, type="Soft", cutoff=Config.parameters["threshold"][0])
+        self.end = EndLayers(numClasses, type="Soft", cutoff=Config.parameters["threshold"][0])
         self.batchnum = 0
         self.device = GPU.get_default_device()
         self.store = GPU.to_device(torch.tensor([]), self.device), GPU.to_device(torch.tensor([]), self.device), GPU.to_device(torch.tensor([]), self.device)
 
-        self.COOL = nn.Linear(256, 15*self.end.DOO)
+        self.COOL = nn.Linear(256, numClasses*self.end.DOO)
         # self.model = model
         # self.batch = batch
         # self.to_device = to_device
@@ -104,6 +108,7 @@ class AttackTrainingClassification(nn.Module):
         # torch.cuda.empty_cache()
         if epochs > 0:
             for epoch in range(epochs):
+                self.end.resetvals()
                 self.store = GPU.to_device(torch.tensor([]), self.device), GPU.to_device(torch.tensor([]), self.device), GPU.to_device(torch.tensor([]), self.device)
                 # Training Phase
                 self.train()

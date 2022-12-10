@@ -43,12 +43,7 @@ def readCSVs(root_path):
         return batch_size,num_workers,attemptLoad,testlen,num_epochs,lr,threshold,model_type,datagroup,unknownVals
 
 
-def loopOverUnknowns(unknownlist):
-    print(torch.__version__)
-    knownVals = list(range(15))
-    for un in unknownlist:
-        knownVals.remove(un)
-    return knownVals
+
 
 # generateHyperparameters(hyperpath,unknownpath)
 
@@ -60,10 +55,10 @@ def checkAttempLoad(root_path):
     print("Reading datasets to create test and train sets")
     
     if datagroup == "ClassChunk":
-        train = Dataload.ClassDivDataset(os.path.join(root_path,"datasets","Payload_data_CICIDS2017"), use=loopOverUnknowns(unknownlist))
+        train = Dataload.ClassDivDataset(os.path.join(root_path,"datasets","Payload_data_CICIDS2017"), use=Config.helper_variables["knowns_clss"])
         unknowns = Dataload.ClassDivDataset(os.path.join(root_path,"datasets","Payload_data_CICIDS2017"), use=unknownlist, unknownData=True)
     elif datagroup == "DendrogramChunk":
-        train = Dataload.ClusterDivDataset(os.path.join(root_path,"datasets","Payload_data_CICIDS2017"), use=loopOverUnknowns(unknownlist))
+        train = Dataload.ClusterDivDataset(os.path.join(root_path,"datasets","Payload_data_CICIDS2017"), use=Config.helper_variables["knowns_clss"])
         unknowns = Dataload.ClusterDivDataset(os.path.join(root_path,"datasets","Payload_data_CICIDS2017"), use=unknownlist, unknownData=True)
     else:
         raise ValueError("Invalid Dataloader type")

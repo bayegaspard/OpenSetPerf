@@ -56,7 +56,8 @@ class ClassDivDataset(Dataset):
         self.path = path
         self.length = None
         self.listOfCounts = None
-
+        
+        
 
         #This is setting what classes are considered to be knowns.
         if use is not None:
@@ -113,7 +114,7 @@ class ClassDivDataset(Dataset):
 
         return item
 
-    def seriesprocess(self,x:pd.Series) -> tuple([torch.tensor,torch.tensor]):
+    def seriesprocess(self,x:pd.Series) -> tuple([torch.Tensor,torch.Tensor]):
         #this separates the data from the labels with series
 
         data = x.iloc[:len(x)-1]
@@ -184,7 +185,10 @@ class ClusterDivDataset(ClassDivDataset):
         self.path = path+"_Clustered"
         self.length = None
         self.listOfCounts = None
+        self.perclassgroups = None
         self.clusters = 32
+        self.minclass = 0
+        
 
 
         #This is setting what classes are considered to be knowns.
@@ -208,8 +212,11 @@ class ClusterDivDataset(ClassDivDataset):
             self.listOfCounts = pd.read_csv(self.path+"/counts.csv", index_col=None)
             #This removes all of the unused classes
             self.listOfCounts = self.listOfCounts.loc[self.use]
+            #count how many classes we have the minumim number of examples in.
+            self.perclassgroups = (self.listOfCounts>self.minclass).sum(axis=1)
         if self.length is None:
-            self.length = self.listOfCounts.sum().sum().item()
+            self.length = self.listOfCounts[self.listOfCounts>self.minclass].sum().sum().item()
+            self.length = int(self.length)
         return self.length
 
 
@@ -221,12 +228,16 @@ class ClusterDivDataset(ClassDivDataset):
         #Now it needs to figure out what type of data it is using.
         chunktype = 0
         chunkNumber = 0
+        classNumber = 0
         while index>=self.listOfCounts.iat[chunktype,chunkNumber]:
-            
-            index -= self.listOfCounts.iat[chunktype,chunkNumber]
+
+            if self.listOfCounts.iat[chunktype,chunkNumber]>self.minclass:
+                classNumber+=1
+                index -= self.listOfCounts.iat[chunktype,chunkNumber]
 
             #look at next chunk
             chunkNumber+=1
+            
             #looked at all of the chunks of this type (32 chunks)
             if chunkNumber>=self.clusters:
                 chunktype+=1
@@ -242,7 +253,8 @@ class ClusterDivDataset(ClassDivDataset):
             print(f"load took {t_total:.2f} seconds")
 
             
-        data, labels = self.seriesprocess(chunk.iloc[0])  
+        data, labels = self.seriesprocess(chunk.iloc[0],classNumber)  
+
         
         #print(f"index: {index} does not exist in chunk: {chunkNumber} of type: {chunktype} ")
 
@@ -275,6 +287,26 @@ class ClusterDivDataset(ClassDivDataset):
                     X3 = X[lst==i]
                     X3.to_csv(self.path+f"/chunk{CLASSLIST[x]}-type{i:03d}.csv",index_label=False,index=False)
             counts.to_csv(f"{self.path}/counts.csv",index_label=False,index=False)
+
+    def seriesprocess(self,x:pd.Series,classNumber:int) -> tuple([torch.Tensor,torch.Tensor]):
+        #this separates the data from the labels with series
+
+        data = x.iloc[:len(x)-1]
+        data = torch.tensor(data.to_numpy())
+
+        label = torch.tensor(int(classNumber),dtype=torch.long)    #The int is because the loss function is expecting ints
+        label.unsqueeze_(0)              #This is to allow it to be two dimentional
+        if self.unknownData:
+            #label2 = torch.tensor(self.perclassgroups.sum().item(),dtype=torch.long).unsqueeze_(0)    #unknowns are marked as unknown
+            label2 = torch.tensor(15,dtype=torch.long).unsqueeze_(0)
+        else:
+            label2 = x.iloc[len(x)-1]         #This selects the label
+            label2 = torch.tensor(int(label2),dtype=torch.long)    #The int is because the loss function is expecting ints
+            label2.unsqueeze_(0)              #This is to allow it to be two dimentional
+        label = torch.cat([label,label2], dim=0)
+
+
+        return (data,label)
 
 
         
