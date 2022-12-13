@@ -14,7 +14,7 @@ class modelstruct():
 def muStandardsFromDataloader(seen,Dataloader,model):
     labelArray = []
     outputArray = []
-    with torch.no_grad:
+    with torch.no_grad():
         for inputs,labels in Dataloader:
             outputArray.append(model(inputs).numpy())
             labelArray.append(labels.numpy())

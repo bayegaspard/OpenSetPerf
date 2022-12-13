@@ -267,11 +267,12 @@ class ClusterDivDataset(ClassDivDataset):
             print("Generating clustered data folder.")
             os.mkdir(self.path)
 
-
+            #Create an dataframe to store how many of each cluster there is
             counts = pd.DataFrame(0, index=range(15),columns=range(self.clusters))
+            #Read the data and make sure that the protocols and labels are numbers. Then convert them to integers
             data = pd.read_csv(path+".csv",converters={"protocol":protocalConvert,"label":classConvert})
-            for x in range(15):
-                X = data
+            for x in range(1,15):
+                X = data.astype(int)
                 X = X[X["label"]==x]
                 #X = X.sample(n=100 if 100<len(X) else len(X))
                 X2 = X.to_numpy()
