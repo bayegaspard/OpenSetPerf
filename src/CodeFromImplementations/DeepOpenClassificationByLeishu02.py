@@ -74,7 +74,7 @@ def runDOC(test_X_pred_true, mu_stds, seen):
 
 def muStandards(seen, predictions, labels):
     seen_train_X_pred = predictions
-    seen_train_y = labels[:,1]
+    seen_train_y = labels[:,0]
 
     #Start code by Leishu
 

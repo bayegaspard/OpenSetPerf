@@ -19,6 +19,9 @@ helper_variables = {
 
 helper_variables["knowns_clss"] = loopOverUnknowns(helper_variables["unknowns_clss"])
 parameters = {
+    #These parameters are orginized like this:
+    #"ParamName":[Value,"Description"]
+    #for a parameter called "ParamName" with a value of Value
     "batch_size":[100, "Number of items per batch"],
     "num_workers":[3, "Number of threads working on building batches"],
     "attemptLoad":[0, "0: do not use saves\n1:use saves"],

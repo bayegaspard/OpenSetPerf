@@ -227,9 +227,9 @@ class AttackTrainingClassification(nn.Module):
         return -1, -1
     
     def thresholdTest(net,val_loader):
-        val_loader = GPU.to_device(val_loader,net.device)
         net.loadPoint("Saves")
         for x in [0.1,0.5,0.75,0.9,0.99,1.1,2,5,10,100]:
+            net.end.resetvals()
             net.store = GPU.to_device(torch.tensor([]), net.device), GPU.to_device(torch.tensor([]), net.device), GPU.to_device(torch.tensor([]), net.device)
             net.end.cutoff = x
             net.evaluate(val_loader)
