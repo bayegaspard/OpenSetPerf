@@ -20,7 +20,8 @@ import CodeFromImplementations.DeepOpenClassificationByLeishu02 as DOC
 
 root_path = os.getcwd()
 
-
+if __name__ == "__main__":
+    print(torch.__version__)
 
 
 #useful variables
@@ -56,10 +57,10 @@ def main():
 
         print("length of train",len(train),"\nlength of test",len(test))
 
-        train_loader = trainset
-        val_loader = validationset
-        #train_loader =  GPU.DeviceDataLoader(trainset, device)
-        #val_loader = GPU.DeviceDataLoader(validationset, device)
+        #train_loader = trainset
+        #val_loader = validationset
+        train_loader =  GPU.DeviceDataLoader(trainset, device)
+        val_loader = GPU.DeviceDataLoader(validationset, device)
         test_loader = testset
 
         

@@ -3,7 +3,6 @@ import pandas as pd
 import os
 
 def loopOverUnknowns(unknownlist):
-    print(torch.__version__)
     knownVals = list(range(15))
     for un in unknownlist["unknowns"]:
         knownVals.remove(un)
@@ -21,7 +20,7 @@ helper_variables = {
 helper_variables["knowns_clss"] = loopOverUnknowns(helper_variables["unknowns_clss"])
 parameters = {
     "batch_size":[100, "Number of items per batch"],
-    "num_workers":[0, "Number of threads working on building batches"],
+    "num_workers":[3, "Number of threads working on building batches"],
     "attemptLoad":[0, "0: do not use saves\n1:use saves"],
     "testlength":[1/4, "[0,1) percentage of training to test with"],
     "num_epochs":[3,"Number of times it trains on the whole trainset"],

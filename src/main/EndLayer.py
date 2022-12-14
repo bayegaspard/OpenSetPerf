@@ -106,8 +106,9 @@ class EndLayers():
                 return
             else:
                 self.docMu = DOC.muStandardsFromDataloader(Config.helper_variables["knowns_clss"],self.weibulInfo["loader"],self.weibulInfo["net"])
+                self.Save_score = [torch.tensor(self.docMu)[:,1]]
         
-        newPredictions = DOC.runDOC(percentages,self.docMu)
+        newPredictions = DOC.runDOC(percentages.detach().numpy(),self.docMu,Config.helper_variables["knowns_clss"])
         return torch.tensor(newPredictions)
 
     #all functions here return a mask with 1 in all valid locations and 0 in all invalid locations
@@ -258,7 +259,7 @@ class EndLayers():
         for x in labelList:
             store.append(fitted.build_label(x,self.classCount,self.DOO))
         store = np.array(store)
-        return torch.tensor(store)
+        return torch.tensor(store,device=labelList.device)
 
     typesOfLabelMod = {"COOL":FittedLearningLabel}
 

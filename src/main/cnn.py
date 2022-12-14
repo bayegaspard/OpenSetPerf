@@ -89,8 +89,12 @@ class AttackTrainingClassification(nn.Module):
         outputs = [self.validation_step(batch) for batch in validationset]  ### reverted bac
         return self.validation_epoch_end(outputs)
 
-    def accuracy(self, outputs, labels):
-        preds = torch.argmax(outputs, dim=1)
+    def accuracy(self, outputs:torch.Tensor, labels):
+        if outputs.ndim == 2:
+            preds = torch.argmax(outputs, dim=1)
+        else:
+            #DOC already applies an argmax equivalent so we do not apply one here.
+            preds = outputs
         # print("preds from accuracy", preds)
         # print("labels from accuracy", labels)
         # Y_Pred.append(preds.tolist()[:])
@@ -163,9 +167,13 @@ class AttackTrainingClassification(nn.Module):
         # Y_test = labels
         # print("y-test from validation",Y_test)
         # print("y-pred from validation", Y_pred)
-        unknowns = out[:, 15].mean()
+        if out.ndim == 2:
+            unknowns = out[:, 15].mean()
+            test = torch.argmax(out, dim=1)
+        else:
+            unknowns = torch.zeros(out.shape)
+
         out = GPU.to_device(out, self.device)
-        test = torch.argmax(out, dim=1)
         acc = self.accuracy(out, labels_extended)  # Calculate accuracy
         FileHandling.write_batch_to_file(loss, self.batchnum, self.end.type, "Saves")
         print("validation accuracy: ", acc)
@@ -219,6 +227,7 @@ class AttackTrainingClassification(nn.Module):
         return -1, -1
     
     def thresholdTest(net,val_loader):
+        val_loader = GPU.to_device(val_loader,net.device)
         net.loadPoint("Saves")
         for x in [0.1,0.5,0.75,0.9,0.99,1.1,2,5,10,100]:
             net.store = GPU.to_device(torch.tensor([]), net.device), GPU.to_device(torch.tensor([]), net.device), GPU.to_device(torch.tensor([]), net.device)
