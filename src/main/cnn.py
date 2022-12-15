@@ -25,18 +25,22 @@ class AttackTrainingClassification(nn.Module):
     def __init__(self):
         super().__init__()
 
+        numClasses = 15
+        if Config.parameters['Datagrouping'][0] == "DendrogramChunk":
+            numClasses = numClasses*32
+
         self.fc1 = nn.Linear(11904, 256)
-        self.fc2 = nn.Linear(256, 15)
+        self.fc2 = nn.Linear(256, numClasses)
         # self.COOL = nn.Linear(256, 15*n)
         self.flatten = nn.Flatten()
         self.dropout = nn.Dropout(int(Config.parameters["Dropout"][0]))
 
-        self.end = EndLayers(15, type="Soft", cutoff=Config.parameters["threshold"][0])
+        self.end = EndLayers(numClasses, type="Soft", cutoff=Config.parameters["threshold"][0])
         self.batchnum = 0
         self.device = GPU.get_default_device()
         self.store = GPU.to_device(torch.tensor([]), self.device), GPU.to_device(torch.tensor([]), self.device), GPU.to_device(torch.tensor([]), self.device)
 
-        self.COOL = nn.Linear(256, 15*self.end.DOO)
+        self.COOL = nn.Linear(256, numClasses*self.end.DOO)
         # self.model = model
         # self.batch = batch
         # self.to_device = to_device
@@ -85,8 +89,12 @@ class AttackTrainingClassification(nn.Module):
         outputs = [self.validation_step(batch) for batch in validationset]  ### reverted bac
         return self.validation_epoch_end(outputs)
 
-    def accuracy(self, outputs, labels):
-        preds = torch.argmax(outputs, dim=1)
+    def accuracy(self, outputs:torch.Tensor, labels):
+        if outputs.ndim == 2:
+            preds = torch.argmax(outputs, dim=1)
+        else:
+            #DOC already applies an argmax equivalent so we do not apply one here.
+            preds = outputs
         # print("preds from accuracy", preds)
         # print("labels from accuracy", labels)
         # Y_Pred.append(preds.tolist()[:])
@@ -104,6 +112,7 @@ class AttackTrainingClassification(nn.Module):
         # torch.cuda.empty_cache()
         if epochs > 0:
             for epoch in range(epochs):
+                self.end.resetvals()
                 self.store = GPU.to_device(torch.tensor([]), self.device), GPU.to_device(torch.tensor([]), self.device), GPU.to_device(torch.tensor([]), self.device)
                 # Training Phase
                 self.train()
@@ -158,9 +167,13 @@ class AttackTrainingClassification(nn.Module):
         # Y_test = labels
         # print("y-test from validation",Y_test)
         # print("y-pred from validation", Y_pred)
-        unknowns = out[:, 15].mean()
+        if out.ndim == 2:
+            unknowns = out[:, 15].mean()
+            test = torch.argmax(out, dim=1)
+        else:
+            unknowns = torch.zeros(out.shape)
+
         out = GPU.to_device(out, self.device)
-        test = torch.argmax(out, dim=1)
         acc = self.accuracy(out, labels_extended)  # Calculate accuracy
         FileHandling.write_batch_to_file(loss, self.batchnum, self.end.type, "Saves")
         print("validation accuracy: ", acc)
@@ -216,6 +229,7 @@ class AttackTrainingClassification(nn.Module):
     def thresholdTest(net,val_loader):
         net.loadPoint("Saves")
         for x in [0.1,0.5,0.75,0.9,0.99,1.1,2,5,10,100]:
+            net.end.resetvals()
             net.store = GPU.to_device(torch.tensor([]), net.device), GPU.to_device(torch.tensor([]), net.device), GPU.to_device(torch.tensor([]), net.device)
             net.end.cutoff = x
             net.evaluate(val_loader)

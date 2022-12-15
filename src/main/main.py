@@ -15,11 +15,13 @@ import cnn
 import Config
 import os
 
+import CodeFromImplementations.DeepOpenClassificationByLeishu02 as DOC
 
 
 root_path = os.getcwd()
 
-
+if __name__ == "__main__":
+    print(torch.__version__)
 
 
 #useful variables
@@ -32,7 +34,7 @@ def main():
 
         FileHandling.generateHyperparameters(root_path) # generate hyper parameters if not present.
         batch_size,num_workers,attemptLoad,testlen,num_epochs,lr,threshold,model_type,datagroup,unknownVals = FileHandling.readCSVs(root_path)
-        knownVals = FileHandling.loopOverUnknowns(unknownVals)
+        knownVals = Config.helper_variables["knowns_clss"]
         # print(knownVals)
         # print(unknownVals)
         model_conv1d = cnn.Conv1DClassifier()
@@ -61,6 +63,8 @@ def main():
         val_loader = GPU.DeviceDataLoader(validationset, device)
         test_loader = testset
 
+        
+
         history_final = []
         model.end.prepWeibull(train_loader,device,model)
         history_final += model.fit(num_epochs, lr, train_loader, val_loader, opt_func=opt_func)
@@ -71,6 +75,8 @@ def main():
         plots.plot_accuracies(history_final)
 
         y_pred,y_test,y_compaire = model.store
+        y_pred = y_pred / (Config.parameters["CLASSES"][0]/15) #The whole config thing is if we are splitting the classes further
+        y_test = y_test / (Config.parameters["CLASSES"][0]/15)
         y_test = y_test.to(torch.int).tolist()
         y_pred = y_pred.to(torch.int).tolist()
         y_compaire = y_compaire.to(torch.int).tolist()
@@ -87,7 +93,7 @@ def main():
             class_names[x] = class_names[x]+"*"
         class_names.append("*Unknowns")
         print("class names", class_names)
-        cnf_matrix = plots.confusionMatrix(y_test, y_pred)
+        cnf_matrix = plots.confusionMatrix(y_test, y_pred) 
         plots.plot_confusion_matrix(cnf_matrix, classes=class_names, normalize=True,
                           title='Confusion matrix', knowns = knownVals)
         plt.show()

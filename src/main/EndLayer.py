@@ -23,8 +23,8 @@ class EndLayers():
         self.classCount = num_classes
         self.type = type
         self.DOO = Config.parameters["Degree of Overcompleteness"][0]    #Degree of Overcompleteness for COOL
-        self.args = None
-        self.Save_score = []        #this is really not great but I don't have time to find something better.
+        self.weibulInfo = None
+        self.resetvals()
 
 
 
@@ -98,8 +98,21 @@ class EndLayers():
         print("ODIN is not working at the moment")
         return percentages.max(dim=1,keepdim=True)[0].greater_equal(self.cutoff)
 
+    def DOCUnknown(self, percentages:torch.Tensor):
+        import CodeFromImplementations.DeepOpenClassificationByLeishu02 as DOC
+        if self.docMu is None:
+            print("Mu Standards need to be collected")
+            if self.weibulInfo is None:
+                return
+            else:
+                self.docMu = DOC.muStandardsFromDataloader(Config.helper_variables["knowns_clss"],self.weibulInfo["loader"],self.weibulInfo["net"])
+                self.Save_score = [torch.tensor(self.docMu)[:,1]]
+        
+        newPredictions = DOC.runDOC(percentages.detach().numpy(),self.docMu,Config.helper_variables["knowns_clss"])
+        return torch.tensor(newPredictions)
+
     #all functions here return a mask with 1 in all valid locations and 0 in all invalid locations
-    typesOfUnknown = {"Soft":softMaxUnknown, "Open":openMaxUnknown, "Energy":energyUnknown, "Odin":odinUnknown, "COOL":normalThesholdUnknown, "SoftThresh":normalThesholdUnknown}
+    typesOfUnknown = {"Soft":softMaxUnknown, "Open":openMaxUnknown, "Energy":energyUnknown, "Odin":odinUnknown, "COOL":normalThesholdUnknown, "SoftThresh":normalThesholdUnknown, "DOC":DOCUnknown}
 
     #---------------------------------------------------------------------------------------------
     #This is the section for modifying the outputs for the final layer
@@ -223,12 +236,16 @@ class EndLayers():
         store = np.array(store)
         return torch.tensor(store)
 
+    def DOCmod(self, logits:torch.Tensor):
+        percent = torch.sigmoid(logits)
+        return percent
+
     def iiMod(self, percentages:torch.Tensor):
         #https://arxiv.org/pdf/1802.04365.pdf
         return percentages
 
     #all functions here return a tensor, sometimes it has an extra column for unknowns
-    typesOfMod = {"Soft":softMaxMod, "Open":openMaxMod, "Energy":energyMod, "Odin":odinMod, "COOL":FittedLearningEval, "SoftThresh":softMaxMod}
+    typesOfMod = {"Soft":softMaxMod, "Open":openMaxMod, "Energy":energyMod, "Odin":odinMod, "COOL":FittedLearningEval, "SoftThresh":softMaxMod, "DOC":DOCmod}
 
     #---------------------------------------------------------------------------------------------
     #This is the section for training label modification
@@ -242,13 +259,24 @@ class EndLayers():
         for x in labelList:
             store.append(fitted.build_label(x,self.classCount,self.DOO))
         store = np.array(store)
-        return torch.tensor(store)
+        return torch.tensor(store,device=labelList.device)
 
-    typesOfLabelMod = {"Soft":noChange, "Open":noChange, "Energy":noChange, "Odin":noChange, "COOL":FittedLearningLabel, "SoftThresh":noChange}
+    typesOfLabelMod = {"COOL":FittedLearningLabel}
 
     def labelMod(self,labelList:torch.Tensor):
-        return self.typesOfLabelMod[self.type](self,labelList)
+        try:
+            return self.typesOfLabelMod[self.type](self,labelList)
+        except:
+            return self.noChange(labelList)
 
+
+    #---------------------------------------------------------------------------------------------
+    #This is the section for resetting each epoch
+
+    def resetvals(self):
+        self.args = None    #This is the arguements for OPENMAX
+        self.Save_score = []    #This is saving the score values for threshold for testing
+        self.docMu = None    #This is saving the muStandards from DOC so that they dont need to be recalculated 
 
     
 
