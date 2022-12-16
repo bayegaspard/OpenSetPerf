@@ -108,7 +108,7 @@ def main():
         print("Recall : ", recall*100)
 
         
-        model.thresholdTest(validationset)
+        model.thresholdTest(val_loader)
     # print("AUPRC : ", auprc * 100)
 
 
