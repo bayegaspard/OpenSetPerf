@@ -15,8 +15,6 @@ import cnn
 import Config
 import os
 
-import CodeFromImplementations.DeepOpenClassificationByLeishu02 as DOC
-
 
 root_path = os.getcwd()
 
@@ -37,10 +35,8 @@ def main():
         knownVals = Config.helper_variables["knowns_clss"]
         # print(knownVals)
         # print(unknownVals)
-        model_conv1d = cnn.Conv1DClassifier()
-        model_fully_connected = cnn.FullyConnected()
-        model_list = {"Convolutional":model_conv1d,"Fully_Connected":model_fully_connected}
-        model = model_list[model_type] # change index to select a specific architecture. 0=conv1d ad 1=fully connected
+        model_list = {"Convolutional":cnn.Conv1DClassifier,"Fully_Connected":cnn.FullyConnected}
+        model = model_list[model_type]() # change index to select a specific architecture. 0=conv1d ad 1=fully connected
         model = cnn.ModdedParallel(model)
         model.to(device)
         model.device = device
@@ -120,7 +116,7 @@ def main():
 if __name__ == '__main__':
     while (os.path.basename(root_path) == "main.py" or os.path.basename(root_path) == "main" or os.path.basename(root_path) == "src"):
         #checking that you are running from the right folder.
-        print("Please run this from the source of the repository.")
+        print(f"Please run this from the source of the repository not from {os.path.basename(root_path)}. <---- Look at this!!!!")
         os.chdir("..")
         root_path=os.getcwd()
 

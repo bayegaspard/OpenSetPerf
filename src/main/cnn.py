@@ -29,8 +29,19 @@ class AttackTrainingClassification(nn.Module):
         if Config.parameters['Datagrouping'][0] == "DendrogramChunk":
             numClasses = numClasses*32
 
-        self.fc1 = nn.Linear(11904, 256)
-        self.fc2 = nn.Linear(256, numClasses)
+        self.activation = nn.ReLU()
+        if Config.parameters["Activation"][0] == "Sigmoid":
+            self.activation = nn.Sigmoid()
+
+        self.fc1 = nn.Linear(11904, Config.parameters["Nodes"][0])
+        self.fc2 = nn.Linear(Config.parameters["Nodes"][0], numClasses)
+
+
+        self.addedLayers = torch.nn.Sequential()
+        for x in range(Config.parameters["Number of Layers"][0]):
+            self.addedLayers.append(torch.nn.Linear(Config.parameters["Nodes"][0],Config.parameters["Nodes"][0]))
+            self.addedLayers.append(self.activation)
+
         # self.COOL = nn.Linear(256, 15*n)
         self.flatten = nn.Flatten()
         self.dropout = nn.Dropout(int(Config.parameters["Dropout"][0]))
@@ -40,7 +51,7 @@ class AttackTrainingClassification(nn.Module):
         self.device = GPU.get_default_device()
         self.store = GPU.to_device(torch.tensor([]), self.device), GPU.to_device(torch.tensor([]), self.device), GPU.to_device(torch.tensor([]), self.device)
 
-        self.COOL = nn.Linear(256, numClasses*self.end.DOO)
+        self.COOL = nn.Linear(Config.parameters["Nodes"][0], numClasses*self.end.DOO)
         # self.model = model
         # self.batch = batch
         # self.to_device = to_device
@@ -60,7 +71,8 @@ class AttackTrainingClassification(nn.Module):
         x = self.layer2(x)
         #print(f"end: {x.shape}")
         x = self.flatten(x)
-        x = F.relu(self.fc1(x))
+        x = self.activation(self.fc1(x))
+        x = self.addedLayers(x)
         x = self.dropout(x)
         if self.end.type != "COOL":
             x = self.fc2(x)
@@ -253,12 +265,12 @@ class Conv1DClassifier(AttackTrainingClassification):
         super().__init__()
         self.layer1 = nn.Sequential(
             nn.Conv1d(1, 32, 3),
-            nn.ReLU(),
+            self.activation,
             nn.MaxPool1d(4),
             nn.Dropout(int(Config.parameters["Dropout"][0])))
         self.layer2 = nn.Sequential(
             nn.Conv1d(32, 64, 3),
-            nn.ReLU(),
+            self.activation,
             nn.MaxPool1d(2),
             nn.Dropout(int(Config.parameters["Dropout"][0])))
 
@@ -274,11 +286,11 @@ class FullyConnected(AttackTrainingClassification):
         super().__init__()
         self.layer1 = nn.Sequential(
             nn.Linear(1504,12000),
-            nn.ReLU(),
+            self.activation,
             nn.Dropout(int(Config.parameters["Dropout"][0])))
         self.layer2 = nn.Sequential(
             nn.Linear(12000,11904),
-            nn.ReLU(),
+            self.activation,
             nn.Dropout(int(Config.parameters["Dropout"][0])))
 
 
