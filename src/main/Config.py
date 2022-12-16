@@ -28,7 +28,7 @@ parameters = {
     "testlength":[1/4, "[0,1) percentage of training to test with"],
     "MaxPerClass": [5, "Maximum number of samples per class"],
     "num_epochs":[5,"Number of times it trains on the whole trainset"],
-    "learningRate":[0.01, "a modifier for training"],
+    "learningRate":[0.001, "a modifier for training"],
     "threshold":[0.5,"When to declare something to be unknown"],
     "model":["Convolutional","Model type [Fully_Connected,Convolutional]"],
     "OOD Type":["DOC","type of out of distribution detection [Soft,Open,Energy,COOL,DOC]"],
