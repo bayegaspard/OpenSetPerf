@@ -90,6 +90,12 @@ class AttackTrainingClassification(nn.Module):
         out = self(data)  # Generate predictions
         labels = self.end.labelMod(labels)
 
+        #Not sure if this is nessiary. 
+        if self.end == "DOC":
+            out = nn.Sigmoid()(out)
+        else:
+            out = nn.ReLU()(out)
+
         # out = DeviceDataLoader(out, device)
         loss = F.cross_entropy(out, labels)  # Calculate loss
         torch.cuda.empty_cache()

@@ -12,7 +12,7 @@ opt_func = {"Adam":torch.optim.Adam,"SGD":torch.optim.SGD}
 helper_variables = {
     "phase" : -1,
     "startphase" : 0,
-    "unknowns_clss": {"unknowns":[2,3]},
+    "unknowns_clss": {"unknowns":[2,3,4,5,6]},
 
     "e": 0
 }
@@ -28,10 +28,10 @@ parameters = {
     "testlength":[1/4, "[0,1) percentage of training to test with"],
     "MaxPerClass": [5, "Maximum number of samples per class"],
     "num_epochs":[5,"Number of times it trains on the whole trainset"],
-    "learningRate":[0.001, "a modifier for training"],
+    "learningRate":[0.01, "a modifier for training"],
     "threshold":[0.5,"When to declare something to be unknown"],
     "model":["Convolutional","Model type [Fully_Connected,Convolutional]"],
-    "OOD Type":["Energy","type of out of distribution detection [Soft,Open,Energy,COOL,DOC]"],
+    "OOD Type":["DOC","type of out of distribution detection [Soft,Open,Energy,COOL,DOC]"],
     "Dropout":[0.01,"percent of nodes that are skipped per run, larger numbers for more complex models [0,1)"],
     "Datagrouping":["Dendrogramlimit","Datagroup type [ClassChunk,Dendrogramlimit]"],
     "optimizer":opt_func["Adam"],

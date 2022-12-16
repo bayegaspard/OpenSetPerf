@@ -76,8 +76,8 @@ def main():
         y_test = y_test.to(torch.int).tolist()
         y_pred = y_pred.to(torch.int).tolist()
         y_compaire = y_compaire.to(torch.int).tolist()
-        print("y len and pred",len(y_pred),y_pred)
-        print("y len and test", len(y_test),y_test)
+        # print("y len and pred",len(y_pred),y_pred)
+        # print("y len and test", len(y_test),y_test)
     #plots.plot_confusion_matrix(y_test,y_pred)
 
         

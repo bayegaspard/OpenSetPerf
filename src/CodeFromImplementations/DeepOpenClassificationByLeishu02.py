@@ -1,9 +1,39 @@
 #From https://github.com/leishu02/EMNLP2017_DOC/blob/2b870170ab20cdc9d6f0ec85631a9ddd199a2b18/DOC_emnlp17.py#L225
 import numpy as np
+import torch
+import main.Config
+
+#ADDED FOR USE
+def renameClasses(modelOut:torch.Tensor, labels:torch.Tensor):
+    labels = labels.clone()
+    lastval = -1
+    label = list(range(15))
+    newout = []
+    for val in Config.helper_variables["unknowns_clss"]["unknowns"] :
+        label.remove(val)
+        if val > lastval+1:
+            if modelOut.dim() == 2:
+                newout.append(modelOut[:,lastval+1:val])
+            else:
+                newout.append(modelOut[lastval+1:val])
+        lastval = val
+    if modelOut.dim() == 2:
+        newout.append(modelOut[:,lastval+1:])
+    else:
+        newout.append(modelOut[lastval+1:])
+
+    newout = torch.cat(newout, dim=-1)
+
+    i = 0
+    for l in label:
+        labels[labels==l] = i
+        i+=1
+    return newout, labels
+
 
 
 #my code
-import torch
+
 class modelstruct():
     def __init__(self,model):
         self.model = model
@@ -17,11 +47,12 @@ def muStandardsFromDataloader(seen,Dataloader,model):
     labelArray = None
     with torch.no_grad():
         for inputs,labels in Dataloader:
+            outputs, labels = renameClasses(model(inputs),labels)
             if labelArray is None:
-                outputArray = model(inputs).numpy()
+                outputArray = outputs.numpy()
                 labelArray = labels.numpy()
             else:
-                outputArray = np.vstack((outputArray,model(inputs).numpy()))
+                outputArray = np.vstack((outputArray,outputs.numpy()))
                 labelArray = np.vstack((labelArray,labels.numpy()))
 
     return muStandards(seen,outputArray,labelArray)
@@ -91,7 +122,7 @@ def muStandards(seen, predictions, labels):
     mu_stds = []
     #THIS HAS BEEN CHANGED
     for i in range(len(predictions[0])):
-        if i in seen:
+        if i in seen or True: #this was modified again
             pos_mu, pos_std = fit(seen_train_X_pred[seen_train_y==i, i])
             mu_stds.append([pos_mu, pos_std])
         else:
