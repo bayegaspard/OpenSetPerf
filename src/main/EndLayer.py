@@ -3,6 +3,7 @@ import numpy as np
 import torch.nn.functional as F
 import pandas as pd
 import Config
+import helperFunctions
 
 
 #three lines from https://xxx-cook-book.gitbooks.io/python-cook-book/content/Import/import-from-parent-folder.html
@@ -10,7 +11,6 @@ import os
 import sys
 root_folder = os.path.abspath(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.append(root_folder)
-import Config
 
 
 root_path = os.getcwd()
@@ -109,7 +109,10 @@ class EndLayers():
                 self.Save_score = [torch.tensor(self.docMu)[:,1]]
         
         newPredictions = DOC.runDOC(percentages.detach().numpy(),self.docMu,Config.helper_variables["knowns_clss"])
-        return torch.tensor(newPredictions)
+        newPredictions = torch.tensor(newPredictions)
+        for x in range(len(newPredictions)):
+            newPredictions[x] = torch.tensor(helperFunctions.rerelabel[newPredictions[x].item()])
+        return newPredictions
 
     #all functions here return a mask with 1 in all valid locations and 0 in all invalid locations
     typesOfUnknown = {"Soft":softMaxUnknown, "Open":openMaxUnknown, "Energy":energyUnknown, "Odin":odinUnknown, "COOL":normalThesholdUnknown, "SoftThresh":normalThesholdUnknown, "DOC":DOCUnknown}
