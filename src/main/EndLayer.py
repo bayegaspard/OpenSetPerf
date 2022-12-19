@@ -73,7 +73,7 @@ class EndLayers():
     def energyUnknown(self, percentages:torch.Tensor):
         if self.args is None:
             self.setArgs()
-        import EnergyCodeByWetliu as Eng
+        import src.CodeFromImplementations.EnergyCodeByWetliu as Eng # useful link to import in relative directories https://stackoverflow.com/questions/4383571/importing-files-from-different-folder
 
 
 
@@ -99,7 +99,7 @@ class EndLayers():
         return percentages.max(dim=1,keepdim=True)[0].greater_equal(self.cutoff)
 
     def DOCUnknown(self, percentages:torch.Tensor):
-        import CodeFromImplementations.DeepOpenClassificationByLeishu02 as DOC
+        import src.CodeFromImplementations.DeepOpenClassificationByLeishu02 as DOC
         if self.docMu is None:
             print("Mu Standards need to be collected")
             if self.weibulInfo is None:
@@ -126,8 +126,8 @@ class EndLayers():
     
 
     def setArgs(self, classes=None, weibullThreshold=0.9, weibullTail=20, weibullAlpha=3, score="energy", m_in=-1, m_out=0, temp=None):
-        param = pd.read_csv(os.path.join(root_path,"Saves","hyperparam","hyperParam.csv"))
-        unknowns = pd.read_csv(os.path.join(root_path,"Saves","unknown","unknowns.csv"))
+        param = pd.read_csv(os.path.join("Saves","hyperparam","hyperParam.csv"))
+        unknowns = pd.read_csv(os.path.join("Saves","unknown","unknowns.csv"))
         unknowns = unknowns["unknowns"].to_list()
         if temp is None:
             temp = float(param["Temperature"][0])
@@ -225,14 +225,14 @@ class EndLayers():
 
     def odinMod(self, percentages:torch.Tensor):
         print("ODIN is not working at the moment")
-        import CodeFromImplementations.OdinCodeByWetliu as Odin
+        import src.CodeFromImplementations.OdinCodeByWetliu as Odin
         self.model.openMax = False
         new_percentages = torch.tensor(Odin.ODIN(self.OdinX,self.model(self.OdinX), self.model, self.temp, self.noise))
         self.model.openMax = True
         return new_percentages[:len(percentages)]
 
     def FittedLearningEval(self, percentages:torch.Tensor):
-        import CodeFromImplementations.FittedLearningByYhenon as fitted
+        import src.CodeFromImplementations.FittedLearningByYhenon as fitted
         store = []
         for x in percentages:
             store.append(fitted.infer(x,self.DOO,self.classCount))
@@ -257,7 +257,7 @@ class EndLayers():
         return X
 
     def FittedLearningLabel(self,labelList:torch.Tensor):
-        import CodeFromImplementations.FittedLearningByYhenon as fitted
+        import src.CodeFromImplementations.FittedLearningByYhenon as fitted
         store = []
         for x in labelList:
             store.append(fitted.build_label(x,self.classCount,self.DOO))
