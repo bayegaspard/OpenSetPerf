@@ -66,9 +66,10 @@ def main():
         history_final += model.fit(num_epochs, lr, train_loader, val_loader, opt_func=opt_func)
         # epochs, lr, model, train_loader, val_loader, opt_func
 
-        #plots.plot_all_losses(history_final)
-        #plots.plot_losses(history_final)
-        #plots.plot_accuracies(history_final)
+        if not Config.parameters["LOOP"]:
+            plots.plot_all_losses(history_final)
+            plots.plot_losses(history_final)
+            plots.plot_accuracies(history_final)
 
         y_pred,y_test,y_compaire = model.store
         y_pred = y_pred / (Config.parameters["CLASSES"][0]/15) #The whole config thing is if we are splitting the classes further
@@ -90,9 +91,10 @@ def main():
         class_names.append("*Unknowns")
         print("class names", class_names)
         cnf_matrix = plots.confusionMatrix(y_test, y_pred) 
-        #plots.plot_confusion_matrix(cnf_matrix, classes=class_names, normalize=True,
-        #                  title='Confusion matrix', knowns = knownVals)
-        #plt.show()
+        if not Config.parameters["LOOP"]:
+            plots.plot_confusion_matrix(cnf_matrix, classes=class_names, normalize=True,
+                            title='Confusion matrix', knowns = knownVals)
+            plt.show()
 
         recall = recall_score(y_compaire,y_pred,average='weighted',zero_division=0)
         precision = precision_score(y_compaire,y_pred,average='weighted',zero_division=0)
@@ -108,8 +110,8 @@ def main():
         print("Precision : " ,precision*100)
         print("Recall : ", recall*100)
 
-        
-        model.thresholdTest(val_loader)
+        if Config.parameters["LOOP"]:
+            model.thresholdTest(val_loader)
     # print("AUPRC : ", auprc * 100)
 
 
@@ -122,8 +124,9 @@ if __name__ == '__main__':
         root_path=os.getcwd()
 
     main()
-    while helperFunctions.testRotate():
-        main()
+    if Config.parameters["LOOP"]:
+        while helperFunctions.testRotate():
+            main()
 
 
 

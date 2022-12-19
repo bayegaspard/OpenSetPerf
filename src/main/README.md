@@ -40,3 +40,4 @@ This is a description of how to modify the hyperparameters in the `Config.py` fi
     - Number of Layers - The number of extra fully connected layers to add into the model. Each extra layer needs more training but can improve the models performance in the long run. It can be any integer ≥0
     - Nodes - The number of nodes in the added layers. This also is the number of nodes before the last layer so it has an effect even if the number of layers is zero. Default is 256.
     - Activation - This is the activation function to use. Currently the only option is ReLU but if you are using bigger models you should add leakyReLU.
+    - LOOP - This is a hyper-hyperparameter that if it is 1 the model loops over all of the algorithms in order and saves the values.

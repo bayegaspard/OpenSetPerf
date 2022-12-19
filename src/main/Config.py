@@ -41,7 +41,8 @@ parameters = {
     "Degree of Overcompleteness": [3,"Parameter for Fitted Learning"],
     "Number of Layers": [1,"Number of layers to add to the base model"],
     "Nodes": [256,"The number of nodes per added layer"],
-    "Activation": ["ReLU","The type of activation function to use"]
+    "Activation": ["ReLU","The type of activation function to use"],
+    "LOOP": [1,"This is a parameter that detumines if we want to loop over the algorithms."]
 }
 
 if parameters["Datagrouping"][0] == "DendrogramChunk":
