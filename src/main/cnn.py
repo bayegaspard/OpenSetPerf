@@ -101,8 +101,9 @@ class AttackTrainingClassification(nn.Module):
         torch.cuda.empty_cache()
         # print("loss from training step ... ", loss)
         return loss
-
+    @torch.no_grad()
     def evaluate(self, validationset):
+        self.eval()
         self.batchnum = 0
         outputs = [self.validation_step(batch) for batch in validationset]  ### reverted bac
         return self.validation_epoch_end(outputs)
@@ -154,7 +155,7 @@ class AttackTrainingClassification(nn.Module):
                 result['train_loss'] = torch.stack(train_losses).mean().item()
                 result["epoch"] = epoch
                 self.epoch_end(epoch, result)
-                print("result", result)
+                #print("result", result)
 
                 history.append(result)
         else:
@@ -163,12 +164,12 @@ class AttackTrainingClassification(nn.Module):
             result = self.evaluate(val_loader)
             result['train_loss'] = -1
             self.epoch_end(0, result)
-            print("result", result)
+            #print("result", result)
             history.append(result)
         return history
 
     def validation_step(self, batch):
-        self.eval()
+        #self.eval()
         #self.savePoint("test", phase=Config.helper_variables["phase"])
         data, labels_extended = batch
         self.batchnum += 1
@@ -194,7 +195,7 @@ class AttackTrainingClassification(nn.Module):
         out = GPU.to_device(out, self.device)
         acc = self.accuracy(out, labels_extended)  # Calculate accuracy
         FileHandling.write_batch_to_file(loss, self.batchnum, self.end.type, "Saves")
-        print("validation accuracy: ", acc)
+        #print("validation accuracy: ", acc)
         return {'val_loss': loss.detach(), 'val_acc': acc, "val_avgUnknown": unknowns}
 
     def validation_epoch_end(self, outputs):
