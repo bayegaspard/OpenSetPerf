@@ -39,10 +39,10 @@ source opensetper/bin/activate
   - This is the folder that contains all of the code from this project
   - `main`
     - Folder containing all of the central aspects for running the model.
-      - `main.py` - The controll file for the entire model.
-      - `Config.py` - This is the file that controlls all of the hyperparameters of the model.
+      - `main.py` - The control file for the entire model.
+      - `Config.py` - This is the file that controls all of the hyperparameters of the model.
       - `Dataload.py` - This file gets the whole dataset and splits it up into chunks that the model can read.
-      - `FileHandeling.py` - This file controlls dealing with files.
+      - `FileHandeling.py` - This file controls dealing with files.
       - `ModelStruct.py` - This file defines the model and its structure. But it does not implement the diffrent algorithms.
       - `EndLayer.py` - This file works with the folder `CodeFromImplementations` to implement each of the diffrent algorithms.
       - `plots.py` - This file generates 4 png files of diffrent matplotlib graphs.
