@@ -99,7 +99,6 @@ class AttackTrainingClassification(nn.Module):
         torch.cuda.empty_cache()
         # print("loss from training step ... ", loss)
         return loss
-
     @torch.no_grad()
     def evaluate(self, validationset):
         self.eval()
