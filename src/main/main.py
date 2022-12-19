@@ -11,7 +11,7 @@ import GPU, FileHandling
 from EndLayer import EndLayers
 import plots
 import Dataload
-import cnn
+import ModelStruct
 import Config
 import os
 import helperFunctions
@@ -35,9 +35,9 @@ def main():
         knownVals = Config.helper_variables["knowns_clss"]
         # print(knownVals)
         # print(unknownVals)
-        model_list = {"Convolutional":cnn.Conv1DClassifier,"Fully_Connected":cnn.FullyConnected}
+        model_list = {"Convolutional":ModelStruct.Conv1DClassifier,"Fully_Connected":ModelStruct.FullyConnected}
         model = model_list[model_type]() # change index to select a specific architecture. 0=conv1d ad 1=fully connected
-        model = cnn.ModdedParallel(model)
+        model = ModelStruct.ModdedParallel(model)
         model.to(device)
         model.device = device
         model.end.type = Config.parameters["OOD Type"][0]

@@ -19,6 +19,8 @@ def generateHyperparameters(root_path):
         parameters = Config.parameters
         # print(parameters)
         param = pd.DataFrame.from_dict(parameters, orient="columns")
+        if param["num_epochs"][0] == 0:
+            param["num_epochs"][0] = Config.num_epochs
         param.to_csv(os.path.join(root_path,"Saves","hyperparam","hyperParam.csv"))
         unknown_classes = Config.helper_variables["unknowns_clss"]
         param = pd.DataFrame.from_dict(unknown_classes)
@@ -173,7 +175,7 @@ def store_values(history: list, Y_predict: list, Y_test: list, num_epochs: int, 
     
 def create_params_Fscore(path, score, threshold = None):
     params = pd.read_csv(os.path.join(path,"Saves","hyperparam","hyperParam.csv"),index_col=0)
-    
+
     if threshold != None:
         params["threshold"] = threshold
 

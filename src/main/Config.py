@@ -48,3 +48,5 @@ if parameters["Datagrouping"][0] == "DendrogramChunk":
     parameters["CLASSES"][0] = parameters["CLASSES"][0] *32
 
 
+#This is for saving the original number of epochs
+num_epochs = parameters["num_epochs"][0]
