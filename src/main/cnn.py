@@ -93,8 +93,6 @@ class AttackTrainingClassification(nn.Module):
         #Not sure if this is nessiary. 
         if self.end == "DOC":
             out = nn.Sigmoid()(out)
-        else:
-            out = nn.ReLU()(out)
 
         # out = DeviceDataLoader(out, device)
         loss = F.cross_entropy(out, labels)  # Calculate loss

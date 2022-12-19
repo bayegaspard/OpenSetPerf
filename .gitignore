@@ -11,3 +11,4 @@
 test.py
 *.pyc
 Saves/*
+*.json
