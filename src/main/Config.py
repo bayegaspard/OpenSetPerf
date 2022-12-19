@@ -12,7 +12,7 @@ opt_func = {"Adam":torch.optim.Adam,"SGD":torch.optim.SGD}
 helper_variables = {
     "phase" : -1,
     "startphase" : 0,
-    "unknowns_clss": {"unknowns":[2,3]},
+    "unknowns_clss": {"unknowns":[2,3,4,5,6]},
 
     "e": 0
 }
@@ -26,18 +26,22 @@ parameters = {
     "num_workers":[3, "Number of threads working on building batches"],
     "attemptLoad":[0, "0: do not use saves\n1:use saves"],
     "testlength":[1/4, "[0,1) percentage of training to test with"],
-    "num_epochs":[3,"Number of times it trains on the whole trainset"],
+    "MaxPerClass": [5, "Maximum number of samples per class"],
+    "num_epochs":[5,"Number of times it trains on the whole trainset"],
     "learningRate":[0.001, "a modifier for training"],
     "threshold":[0.5,"When to declare something to be unknown"],
     "model":["Convolutional","Model type [Fully_Connected,Convolutional]"],
-    "OOD Type":["DOC","type of out of distribution detection [Soft,Open,Energy,COOL]"],
+    "OOD Type":["DOC","type of out of distribution detection [Soft,Open,Energy,COOL,DOC]"],
     "Dropout":[0.01,"percent of nodes that are skipped per run, larger numbers for more complex models [0,1)"],
-    "Datagrouping":["ClassChunk","Datagroup type [ClassChunk,DendrogramChunk]"],
+    "Datagrouping":["Dendrogramlimit","Datagroup type [ClassChunk,Dendrogramlimit]"],
     "optimizer":opt_func["Adam"],
     "Unknowns":"refer to unknowns.CSV",
     "CLASSES":[15,"Number of classes, do not change"],
     "Temperature":[1,"Energy OOD scaling parameter"],
-    "Degree of Overcompleteness": [3,"Parameter for Fitted Learning"]
+    "Degree of Overcompleteness": [3,"Parameter for Fitted Learning"],
+    "Number of Layers": [5,"Number of layers to add to the base model"],
+    "Nodes": [256,"The number of nodes per added layer"],
+    "Activation": ["ReLU","The type of activation function to use"]
 }
 
 if parameters["Datagrouping"][0] == "DendrogramChunk":

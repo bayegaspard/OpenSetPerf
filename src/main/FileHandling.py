@@ -57,6 +57,9 @@ def checkAttempLoad(root_path):
     if datagroup == "ClassChunk":
         train = Dataload.ClassDivDataset(os.path.join(root_path,"datasets","Payload_data_CICIDS2017"), use=Config.helper_variables["knowns_clss"])
         unknowns = Dataload.ClassDivDataset(os.path.join(root_path,"datasets","Payload_data_CICIDS2017"), use=unknownlist, unknownData=True)
+    elif datagroup == "Dendrogramlimit":
+        train = Dataload.ClusterLimitDataset(os.path.join(root_path,"datasets","Payload_data_CICIDS2017"), use=Config.helper_variables["knowns_clss"])
+        unknowns = Dataload.ClusterLimitDataset(os.path.join(root_path,"datasets","Payload_data_CICIDS2017"), use=unknownlist, unknownData=True)
     elif datagroup == "DendrogramChunk":
         train = Dataload.ClusterDivDataset(os.path.join(root_path,"datasets","Payload_data_CICIDS2017"), use=Config.helper_variables["knowns_clss"])
         unknowns = Dataload.ClusterDivDataset(os.path.join(root_path,"datasets","Payload_data_CICIDS2017"), use=unknownlist, unknownData=True)

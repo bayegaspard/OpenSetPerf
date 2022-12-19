@@ -102,7 +102,7 @@ def plot_confusion_matrix(cm:np.ndarray, classes,
     Normalization can be applied by setting `normalize=True`.
     """
 
-
+    plt.xkcd()
     plt.imshow(cm, interpolation='nearest', cmap=cmap)
     plt.title(title)
     plt.colorbar()

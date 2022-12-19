@@ -8,7 +8,9 @@ import tensorflow as tf
 #https://stackoverflow.com/a/60724300
 
 class OpenNetBase(object):
-
+    #This is not the original initializer
+    def __init__(self):
+        self.dist = "mean_separation_spread"
 
     def loss_fn_training_op(self, x, y, z, logits, x_recon, class_means):
         """ Computes the loss functions and creates the update ops.
