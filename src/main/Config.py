@@ -26,12 +26,12 @@ parameters = {
     "num_workers":[3, "Number of threads working on building batches"],
     "attemptLoad":[0, "0: do not use saves\n1:use saves"],
     "testlength":[1/4, "[0,1) percentage of training to test with"],
-    "MaxPerClass": [5, "Maximum number of samples per class"],
-    "num_epochs":[5,"Number of times it trains on the whole trainset"],
-    "learningRate":[0.001, "a modifier for training"],
+    "MaxPerClass": [10, "Maximum number of samples per class"],
+    "num_epochs":[7,"Number of times it trains on the whole trainset"],
+    "learningRate":[0.0001, "a modifier for training"],
     "threshold":[0.5,"When to declare something to be unknown"],
     "model":["Convolutional","Model type [Fully_Connected,Convolutional]"],
-    "OOD Type":["DOC","type of out of distribution detection [Soft,Open,Energy,COOL,DOC]"],
+    "OOD Type":["Soft","type of out of distribution detection [Soft,Open,Energy,COOL,DOC]"],
     "Dropout":[0.01,"percent of nodes that are skipped per run, larger numbers for more complex models [0,1)"],
     "Datagrouping":["Dendrogramlimit","Datagroup type [ClassChunk,Dendrogramlimit]"],
     "optimizer":opt_func["Adam"],
@@ -39,12 +39,15 @@ parameters = {
     "CLASSES":[15,"Number of classes, do not change"],
     "Temperature":[1,"Energy OOD scaling parameter"],
     "Degree of Overcompleteness": [3,"Parameter for Fitted Learning"],
-    "Number of Layers": [5,"Number of layers to add to the base model"],
+    "Number of Layers": [1,"Number of layers to add to the base model"],
     "Nodes": [256,"The number of nodes per added layer"],
-    "Activation": ["ReLU","The type of activation function to use"]
+    "Activation": ["ReLU","The type of activation function to use"],
+    "LOOP": [1,"This is a parameter that detumines if we want to loop over the algorithms."]
 }
 
 if parameters["Datagrouping"][0] == "DendrogramChunk":
     parameters["CLASSES"][0] = parameters["CLASSES"][0] *32
 
 
+#This is for saving the original number of epochs
+num_epochs = parameters["num_epochs"][0]

@@ -93,14 +93,13 @@ class AttackTrainingClassification(nn.Module):
         #Not sure if this is nessiary. 
         if self.end == "DOC":
             out = nn.Sigmoid()(out)
-        else:
-            out = nn.ReLU()(out)
 
         # out = DeviceDataLoader(out, device)
         loss = F.cross_entropy(out, labels)  # Calculate loss
         torch.cuda.empty_cache()
         # print("loss from training step ... ", loss)
         return loss
+
     @torch.no_grad()
     def evaluate(self, validationset):
         self.eval()

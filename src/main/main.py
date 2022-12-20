@@ -11,10 +11,10 @@ import GPU, FileHandling
 from EndLayer import EndLayers
 import plots
 import Dataload
-import cnn
+import ModelStruct
 import Config
 import os
-
+import helperFunctions
 
 root_path = os.getcwd()
 
@@ -35,9 +35,9 @@ def main():
         knownVals = Config.helper_variables["knowns_clss"]
         # print(knownVals)
         # print(unknownVals)
-        model_list = {"Convolutional":cnn.Conv1DClassifier,"Fully_Connected":cnn.FullyConnected}
+        model_list = {"Convolutional":ModelStruct.Conv1DClassifier,"Fully_Connected":ModelStruct.FullyConnected}
         model = model_list[model_type]() # change index to select a specific architecture. 0=conv1d ad 1=fully connected
-        model = cnn.ModdedParallel(model)
+        model = ModelStruct.ModdedParallel(model)
         model.to(device)
         model.device = device
         model.end.type = Config.parameters["OOD Type"][0]
@@ -66,9 +66,10 @@ def main():
         history_final += model.fit(num_epochs, lr, train_loader, val_loader, opt_func=opt_func)
         # epochs, lr, model, train_loader, val_loader, opt_func
 
-        plots.plot_all_losses(history_final)
-        plots.plot_losses(history_final)
-        plots.plot_accuracies(history_final)
+        if not Config.parameters["LOOP"]:
+            plots.plot_all_losses(history_final)
+            plots.plot_losses(history_final)
+            plots.plot_accuracies(history_final)
 
         y_pred,y_test,y_compaire = model.store
         y_pred = y_pred / (Config.parameters["CLASSES"][0]/15) #The whole config thing is if we are splitting the classes further
@@ -90,9 +91,10 @@ def main():
         class_names.append("*Unknowns")
         print("class names", class_names)
         cnf_matrix = plots.confusionMatrix(y_test, y_pred) 
-        plots.plot_confusion_matrix(cnf_matrix, classes=class_names, normalize=True,
-                          title='Confusion matrix', knowns = knownVals)
-        plt.show()
+        if not Config.parameters["LOOP"]:
+            plots.plot_confusion_matrix(cnf_matrix, classes=class_names, normalize=True,
+                            title='Confusion matrix', knowns = knownVals)
+            plt.show()
 
         recall = recall_score(y_compaire,y_pred,average='weighted',zero_division=0)
         precision = precision_score(y_compaire,y_pred,average='weighted',zero_division=0)
@@ -103,12 +105,13 @@ def main():
         score_list = [recall,precision,f1]
         FileHandling.write_hist_to_file(history_final,num_epochs,model.end.type)
         FileHandling.write_scores_to_file(score_list,num_epochs,model.end.type)
+        print("Type : ",model.end.type)
         print("F-Score : ", f1*100)
         print("Precision : " ,precision*100)
         print("Recall : ", recall*100)
 
-        
-        model.thresholdTest(val_loader)
+        if Config.parameters["LOOP"]:
+            model.thresholdTest(val_loader)
     # print("AUPRC : ", auprc * 100)
 
 
@@ -121,6 +124,9 @@ if __name__ == '__main__':
         root_path=os.getcwd()
 
     main()
+    if Config.parameters["LOOP"]:
+        while helperFunctions.testRotate():
+            main()
 
 
 
