@@ -66,7 +66,7 @@ def main():
         history_final += model.fit(num_epochs, lr, train_loader, val_loader, opt_func=opt_func)
         # epochs, lr, model, train_loader, val_loader, opt_func
 
-        if not Config.parameters["LOOP"]:
+        if not Config.parameters["LOOP"][0]:
             plots.plot_all_losses(history_final)
             plots.plot_losses(history_final)
             plots.plot_accuracies(history_final)
@@ -91,7 +91,7 @@ def main():
         class_names.append("*Unknowns")
         print("class names", class_names)
         cnf_matrix = plots.confusionMatrix(y_test, y_pred) 
-        if not Config.parameters["LOOP"]:
+        if not Config.parameters["LOOP"][0]:
             plots.plot_confusion_matrix(cnf_matrix, classes=class_names, normalize=True,
                             title='Confusion matrix', knowns = knownVals)
             plt.show()
@@ -110,7 +110,7 @@ def main():
         print("Precision : " ,precision*100)
         print("Recall : ", recall*100)
 
-        if Config.parameters["LOOP"]:
+        if Config.parameters["LOOP"][0]:
             model.thresholdTest(val_loader)
     # print("AUPRC : ", auprc * 100)
 
@@ -124,7 +124,7 @@ if __name__ == '__main__':
         root_path=os.getcwd()
 
     main()
-    if Config.parameters["LOOP"]:
+    if Config.parameters["LOOP"][0]:
         while helperFunctions.testRotate():
             main()
 
