@@ -8,7 +8,7 @@ def loopOverUnknowns(unknownlist):
         knownVals.remove(un)
     return knownVals
 
-opt_func = {"Adam":torch.optim.Adam,"SGD":torch.optim.SGD}
+opt_func = {"Adam":torch.optim.Adam,"SGD":torch.optim.SGD, "RMSprop":torch.optim.RMSprop}
 helper_variables = {
     "phase" : -1,
     "startphase" : 0,
@@ -26,7 +26,7 @@ parameters = {
     "num_workers":[3, "Number of threads working on building batches"],
     "attemptLoad":[0, "0: do not use saves\n1:use saves"],
     "testlength":[1/4, "[0,1) percentage of training to test with"],
-    "MaxPerClass": [10, "Maximum number of samples per class"],
+    "MaxPerClass": [2, "Maximum number of samples per class"],
     "num_epochs":[7,"Number of times it trains on the whole trainset"],
     "learningRate":[0.0001, "a modifier for training"],
     "threshold":[0.5,"When to declare something to be unknown"],

@@ -144,7 +144,9 @@ def plot_confusion_matrix(cm:np.ndarray, classes,
     plt.tight_layout()
     plt.ylabel('True label')
     plt.xlabel('Predicted label')
-    plt.savefig("Saves/confusion_matrix.png", dpi=600)
+    specific = pd.read_csv("Saves/fscore.csv").tail(1).to_string(header=False,index=False,).replace(" ","")
+    plt.savefig(f"Saves/conf/confusion_matrix{specific}.png", dpi=600)
+    plt.savefig(f"Saves/confusion_matrix.png", dpi=600)
 
 
 # Compute confusion matrix

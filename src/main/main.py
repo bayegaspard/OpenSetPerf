@@ -91,15 +91,18 @@ def main():
         class_names.append("*Unknowns")
         print("class names", class_names)
         cnf_matrix = plots.confusionMatrix(y_test, y_pred) 
-        if not Config.parameters["LOOP"][0]:
-            plots.plot_confusion_matrix(cnf_matrix, classes=class_names, normalize=True,
-                            title='Confusion matrix', knowns = knownVals)
-            plt.show()
 
         recall = recall_score(y_compaire,y_pred,average='weighted',zero_division=0)
         precision = precision_score(y_compaire,y_pred,average='weighted',zero_division=0)
         f1 = 2 * (precision * recall) / (precision + recall)
         FileHandling.create_params_Fscore(root_path,f1)
+
+        plots.plot_confusion_matrix(cnf_matrix, classes=class_names, normalize=True,
+                        title='Confusion matrix', knowns = knownVals)
+        if not Config.parameters["LOOP"][0]:
+            plt.show()
+
+        
         
         #auprc = average_precision_score(y_compaire, y_pred, average='weighted')
         score_list = [recall,precision,f1]
