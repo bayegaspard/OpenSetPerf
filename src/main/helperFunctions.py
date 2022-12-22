@@ -1,6 +1,6 @@
 #These are all the functions that dont fit elsewhere
 import Config as Config
-
+import os
 
 #Translation dictionaries for algorithms that cannot have gaps in their numbers.
 relabel = {15:15}
@@ -13,6 +13,15 @@ for x in range(15):
         relabel[x] = x-temp
         rerelabel[x-temp] = x
 temp = None
+
+
+def deleteSaves():
+    i = 0
+    while os.path.exists(f"Saves/Epoch{i:03d}.pth"):
+        os.remove(f"Saves/Epoch{i:03d}.pth")
+        i = i+1
+
+
 
 #This is to test all of the algorithms one after the other
 #THIS IS REALLY BADLY WRITTEN
@@ -83,6 +92,7 @@ def testRotateLayer2():
     return True
 
 def testRotate():
+    deleteSaves()
     if Config.parameters["learningRate"][0] == 0.001:
         Config.parameters["learningRate"][0] = 0.01
     elif Config.parameters["learningRate"][0] == 0.01:
