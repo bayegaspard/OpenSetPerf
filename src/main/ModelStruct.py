@@ -32,6 +32,8 @@ class AttackTrainingClassification(nn.Module):
         self.activation = nn.ReLU()
         if Config.parameters["Activation"][0] == "Sigmoid":
             self.activation = nn.Sigmoid()
+        if Config.parameters["Activation"][0] == "Tanh":
+            self.activation = nn.Tanh()
 
         self.fc1 = nn.Linear(11904, Config.parameters["Nodes"][0])
         self.fc2 = nn.Linear(Config.parameters["Nodes"][0], numClasses)

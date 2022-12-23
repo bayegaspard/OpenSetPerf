@@ -73,7 +73,7 @@ class EndLayers():
     def energyUnknown(self, percentages:torch.Tensor):
         if self.args is None:
             self.setArgs()
-        import src.CodeFromImplementations.EnergyCodeByWetliu as Eng # useful link to import in relative directories https://stackoverflow.com/questions/4383571/importing-files-from-different-folder
+        import CodeFromImplementations.EnergyCodeByWetliu as Eng # useful link to import in relative directories https://stackoverflow.com/questions/4383571/importing-files-from-different-folder
 
 
 
@@ -232,7 +232,7 @@ class EndLayers():
         return new_percentages[:len(percentages)]
 
     def FittedLearningEval(self, percentages:torch.Tensor):
-        import src.CodeFromImplementations.FittedLearningByYhenon as fitted
+        import CodeFromImplementations.FittedLearningByYhenon as fitted
         store = []
         for x in percentages:
             store.append(fitted.infer(x,self.DOO,self.classCount))
@@ -257,7 +257,7 @@ class EndLayers():
         return X
 
     def FittedLearningLabel(self,labelList:torch.Tensor):
-        import src.CodeFromImplementations.FittedLearningByYhenon as fitted
+        import CodeFromImplementations.FittedLearningByYhenon as fitted
         store = []
         for x in labelList:
             store.append(fitted.build_label(x,self.classCount,self.DOO))

@@ -5,3 +5,5 @@
 wget http://205.174.165.80/CICDataset/CIC-IDS-2017/Dataset/MachineLearningCSV.zip
 ```
 - Unzip the `GeneratedLabelledFlows.zip` and place  `*.csv` files in the `datasets` folder.
+
+- Dataloader.py will generate one of two folders. Clustered or normal. The clustered folder keeps its own counts.csv while the normal folder just generates a counts.csv in the datasets directory.

@@ -12,3 +12,4 @@ test.py
 *.pyc
 Saves/*
 *.json
+src/CodeFromImplementations/Ignore.py
