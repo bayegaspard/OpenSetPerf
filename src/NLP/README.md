@@ -66,7 +66,7 @@ Output: powerful password cracking tool available | Confidence: 0.82620333785843
 >>> df = pd.read_csv('Payload_data_UNSW.csv', nrows=10000)
 
 # Get Payload bytes of a random packet (1500 bytes)
->>> ascii = df2.iloc[2457,:1500].values
+>>> ascii = df.iloc[2457,:1500].values
 
 # Get words from the ASCII values
 >>> pcap_words = set(''.join([chr(i) if (i in range(65,91) or i in range(97,123)) else ' ' for i in ascii]).split())
