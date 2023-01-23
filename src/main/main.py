@@ -128,7 +128,9 @@ if __name__ == '__main__':
 
     main()
     if Config.parameters["LOOP"][0]:
-        while helperFunctions.testRotate():
+        step = (0,0,0)
+        while step:
+            step = helperFunctions.testRotate(step)
             plt.clf()
             main()
 
