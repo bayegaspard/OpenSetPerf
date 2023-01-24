@@ -30,11 +30,13 @@ learning_rates = [0.001,0.01,1]
 epochs = [10,50,100]
 optim = [Config.opt_func["Adam"], Config.opt_func["SGD"], Config.opt_func["RMSprop"]]
 activation = ["ReLU", "Tanh", "Sigmoid"]
+groups = [[2],[2,3,6],[2,3,4,5,6],[2,3,4,5,6,7,11],[2,3,4,5,6,7,11,12,14],[2,3,4,5,6,7,8,9,11,12,14],[2,3,4,5,6,7,8,9,10,11,12,13,14],[1,2,3,4,5,6,7,8,9,10,11,12,13,14]]
 
 learning_rates.insert(0,Config.parameters["learningRate"][0])
 epochs.insert(0,Config.parameters["num_epochs"][0])
+groups.insert(0,Config.helper_variables["unknowns_clss"]["unknowns"])
 
-loops = [learning_rates,epochs,optim,activation]
+loops = [learning_rates,epochs,optim,activation,groups]
 loops2 = ["learningRate","num_epochs","optimizer","Activation"]
 
 def testRotate(notes=(0,0,0)):
@@ -49,34 +51,51 @@ def testRotate(notes=(0,0,0)):
     Config.parameters["OOD Type"][0] = alg[al]
     if step+1 < len(loops[stage]):
         step = step+1
-        if stage != 2:
-            Config.parameters[loops2[stage]][0] = loops[stage][step]
-        else:
+
+        if stage == 2:
             Config.parameters[loops2[stage]] = loops[stage][step]
+        elif stage == 4:
+            Config.helper_variables["unknowns_clss"]["unknowns"] = loops[stage][step]
+            Config.parameters["Unknowns"] = f"{len(loops[stage][step])} Unknowns"
+        else:
+            Config.parameters[loops2[stage]][0] = loops[stage][step]
+
         return (stage,step,al)
     step = 0
-    if stage != 2:
-        Config.parameters[loops2[stage]][0] = loops[stage][step]
-    else:
+
+    if stage == 2:
         Config.parameters[loops2[stage]] = loops[stage][step]
+    elif stage == 4:
+        Config.helper_variables["unknowns_clss"]["unknowns"] = loops[stage][step]
+        Config.parameters["Unknowns"] = f"{len(loops[stage][step])} Unknowns"
+    else:
+        Config.parameters[loops2[stage]][0] = loops[stage][step]
+
     if stage+1 < len(loops):
         stage = stage+1
         return testRotate((stage,step,al))
+
+    #Done with looping
+    Config.parameters["LOOP"][0] = False
     return False
 
 
 def looptest():
     out = pd.DataFrame(())
+    out2 = pd.DataFrame(())
 
     notes = (0,0,0)
     while notes:
-        notes = testRotate(notes)
         current = pd.DataFrame(Config.parameters)
+        current2 = pd.DataFrame(Config.helper_variables["unknowns_clss"]["unknowns"])
         out = pd.concat([out,current.iloc[0]],axis=1)
+        out2 = pd.concat([out2,current2],axis=1)
+        notes = testRotate(notes)
 
     out = pd.concat([current.iloc[0],out],axis=1)
 
     out.to_csv("Testing.csv")
+    out2.to_csv("Testing2.csv")
 
 
 if __name__ == "__main__":
