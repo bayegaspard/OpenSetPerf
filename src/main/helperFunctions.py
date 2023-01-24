@@ -37,7 +37,7 @@ epochs.insert(0,Config.parameters["num_epochs"][0])
 groups.insert(0,Config.helper_variables["unknowns_clss"]["unknowns"])
 
 loops = [learning_rates,epochs,optim,activation,groups]
-loops2 = ["learningRate","num_epochs","optimizer","Activation"]
+loops2 = ["learningRate","num_epochs","optimizer","Activation","Unknowns"]
 
 def testRotate(notes=(0,0,0)):
     stage = notes[0]
@@ -79,6 +79,12 @@ def testRotate(notes=(0,0,0)):
     Config.parameters["LOOP"][0] = False
     return False
 
+def getcurrentlychanged(notes):
+    algorithm = alg[notes[2]]
+    currentlyChanging = loops2[notes[0]]
+    currentSetting = loops[notes[0]][notes[1]]
+    return str(algorithm)+" "+str(currentlyChanging)+" "+str(currentSetting)
+
 
 def looptest():
     out = pd.DataFrame(())
@@ -90,6 +96,7 @@ def looptest():
         current2 = pd.DataFrame(Config.helper_variables["unknowns_clss"]["unknowns"])
         out = pd.concat([out,current.iloc[0]],axis=1)
         out2 = pd.concat([out2,current2],axis=1)
+        print(getcurrentlychanged(notes))
         notes = testRotate(notes)
 
     out = pd.concat([current.iloc[0],out],axis=1)
