@@ -127,10 +127,13 @@ if __name__ == '__main__':
         root_path=os.getcwd()
 
     main()
-    if Config.parameters["LOOP"][0]:
-        while helperFunctions.testRotate():
-            plt.clf()
-            main()
+
+    step = (0,0,0) #keeps track of what is being updated.
+    while Config.parameters["LOOP"][0]:
+        step = helperFunctions.testRotate(step)
+        plt.clf()
+        plots.name_override = helperFunctions.getcurrentlychanged(step)
+        main()
 
 
 

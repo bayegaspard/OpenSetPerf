@@ -27,6 +27,7 @@ import pandas as pd
 
 
 # y_test, y_pred = convert_to_1d(Y_test,Y_pred)
+name_override = False
 
 def plot_losses(history):
     losses = [x['val_loss'] for x in history]
@@ -144,7 +145,10 @@ def plot_confusion_matrix(cm:np.ndarray, classes,
     plt.tight_layout()
     plt.ylabel('True label')
     plt.xlabel('Predicted label')
-    specific = pd.read_csv("Saves/fscore.csv").tail(1).to_string(header=False,index=False,).replace(" ","")
+    if not name_override:
+        specific = pd.read_csv("Saves/fscore.csv").tail(1).to_string(header=False,index=False,).replace(" ","")
+    else:
+        specific = name_override
     plt.savefig(f"Saves/conf/confusion_matrix{specific}.png", dpi=600)
     plt.savefig(f"Saves/confusion_matrix.png", dpi=600)
 

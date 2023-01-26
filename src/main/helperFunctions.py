@@ -1,6 +1,7 @@
 #These are all the functions that dont fit elsewhere
 import Config as Config
 import os
+import pandas as pd
 
 #Translation dictionaries for algorithms that cannot have gaps in their numbers.
 relabel = {15:15}
@@ -24,88 +25,85 @@ def deleteSaves():
 
 
 #This is to test all of the algorithms one after the other
-#THIS IS REALLY BADLY WRITTEN
-AlgstartedOn = Config.parameters["OOD Type"][0]
-LrstartedOn = Config.parameters["learningRate"][0]
-EPstartedOn = Config.parameters["num_epochs"][0]
-OPstartedOn = Config.parameters["optimizer"]
-ACstartedOn = Config.parameters["Activation"][0]
-
-startedEpochs = Config.parameters["num_epochs"][0]
-def testRotateLayerFinal():
-    current = Config.parameters["OOD Type"][0]
-    if current == "Soft":
-        Config.parameters["OOD Type"][0] = "Open"
-        #Config.parameters["num_epochs"][0] = 0
-    elif current == "Open":
-        Config.parameters["OOD Type"][0] = "Energy"
-        #Config.parameters["num_epochs"][0] = 0
-    elif current == "Energy":
-        Config.parameters["OOD Type"][0] = "COOL"
-        #Config.parameters["num_epochs"][0] = startedEpochs
-    elif current == "COOL":
-        Config.parameters["OOD Type"][0] = "DOC"
-        #Config.parameters["num_epochs"][0] = startedEpochs
-    elif current == "DOC":
-        Config.parameters["OOD Type"][0] = "Soft"
-        #Config.parameters["num_epochs"][0] = startedEpochs
-    if Config.parameters["OOD Type"][0] == AlgstartedOn:
-        return False
-    return True
-
-def testRotateLayer4():
-    if Config.parameters["Activation"][0] == "ReLU":
-        Config.parameters["Activation"][0] = "Tanh"
-    elif Config.parameters["Activation"][0] == "Tanh":
-        Config.parameters["Activation"][0] = "Sigmoid"
-    elif Config.parameters["Activation"][0] == "Sigmoid":
-        Config.parameters["Activation"][0] = ACstartedOn
-        return False
-    else:
-        Config.parameters["Activation"][0] = "ReLU"
-    return True
-
-def testRotateLayer3():
-    if Config.parameters["optimizer"] is optim[0]:
-        Config.parameters["optimizer"] = optim[1]
-    elif Config.parameters["optimizer"] is optim[1]:
-        Config.parameters["optimizer"] = optim[2]
-    elif Config.parameters["optimizer"] is optim[2]:
-        Config.parameters["optimizer"] = OPstartedOn
-        if not testRotateLayer4():
-            return False
-    else:
-        Config.parameters["optimizer"] = optim[0]
-    return True
-
-def testRotateLayer2():
-    if Config.parameters["num_epochs"][0] == 10:
-        Config.parameters["num_epochs"][0] = 50
-    elif Config.parameters["num_epochs"][0] == 50:
-        Config.parameters["num_epochs"][0] = 100
-    elif Config.parameters["num_epochs"][0] == 100:
-        Config.parameters["num_epochs"][0] = EPstartedOn
-        if not testRotateLayer3():
-            return False
-    else:
-        Config.parameters["num_epochs"][0] = 10
-    return True
-
-def testRotate():
-    deleteSaves()
-    if Config.parameters["learningRate"][0] == 0.001:
-        Config.parameters["learningRate"][0] = 0.01
-    elif Config.parameters["learningRate"][0] == 0.01:
-        Config.parameters["learningRate"][0]= 1
-    elif Config.parameters["learningRate"][0] == 1:
-        Config.parameters["learningRate"][0] = LrstartedOn
-        if not testRotateLayer2():
-            return testRotateLayerFinal()
-    else:
-        Config.parameters["learningRate"][0] = 0.001
-    return True
-
+alg = ["Soft","Open","Energy","COOL","DOC"]
 learning_rates = [0.001,0.01,1]
 epochs = [10,50,100]
 optim = [Config.opt_func["Adam"], Config.opt_func["SGD"], Config.opt_func["RMSprop"]]
 activation = ["ReLU", "Tanh", "Sigmoid"]
+groups = [[2],[2,3,6],[2,3,4,5,6],[2,3,4,5,6,7,11],[2,3,4,5,6,7,11,12,14],[2,3,4,5,6,7,8,9,11,12,14],[2,3,4,5,6,7,8,9,10,11,12,13,14],[1,2,3,4,5,6,7,8,9,10,11,12,13,14]]
+
+learning_rates.insert(0,Config.parameters["learningRate"][0])
+epochs.insert(0,Config.parameters["num_epochs"][0])
+groups.insert(0,Config.helper_variables["unknowns_clss"]["unknowns"])
+
+loops = [learning_rates,epochs,optim,activation,groups]
+loops2 = ["learningRate","num_epochs","optimizer","Activation","Unknowns"]
+
+def testRotate(notes=(0,0,0)):
+    stage = notes[0]
+    step = notes[1]
+    al = notes[2]
+    if al+1 < len(alg):
+        al = al+1
+        Config.parameters["OOD Type"][0] = alg[al]
+        return (stage,step,al)
+    al = 0
+    Config.parameters["OOD Type"][0] = alg[al]
+    if step+1 < len(loops[stage]):
+        step = step+1
+
+        if stage == 2:
+            Config.parameters[loops2[stage]] = loops[stage][step]
+        elif stage == 4:
+            Config.helper_variables["unknowns_clss"]["unknowns"] = loops[stage][step]
+            Config.parameters["Unknowns"] = f"{len(loops[stage][step])} Unknowns"
+        else:
+            Config.parameters[loops2[stage]][0] = loops[stage][step]
+
+        return (stage,step,al)
+    step = 0
+
+    if stage == 2:
+        Config.parameters[loops2[stage]] = loops[stage][step]
+    elif stage == 4:
+        Config.helper_variables["unknowns_clss"]["unknowns"] = loops[stage][step]
+        Config.parameters["Unknowns"] = f"{len(loops[stage][step])} Unknowns"
+    else:
+        Config.parameters[loops2[stage]][0] = loops[stage][step]
+
+    if stage+1 < len(loops):
+        stage = stage+1
+        return testRotate((stage,step,al))
+
+    #Done with looping
+    Config.parameters["LOOP"][0] = False
+    return False
+
+def getcurrentlychanged(notes):
+    algorithm = alg[notes[2]]
+    currentlyChanging = loops2[notes[0]]
+    currentSetting = loops[notes[0]][notes[1]]
+    return str(algorithm)+" "+str(currentlyChanging)+" "+str(currentSetting)
+
+
+def looptest():
+    out = pd.DataFrame(())
+    out2 = pd.DataFrame(())
+
+    notes = (0,0,0)
+    while notes:
+        current = pd.DataFrame(Config.parameters)
+        current2 = pd.DataFrame(Config.helper_variables["unknowns_clss"]["unknowns"])
+        out = pd.concat([out,current.iloc[0]],axis=1)
+        out2 = pd.concat([out2,current2],axis=1)
+        print(getcurrentlychanged(notes))
+        notes = testRotate(notes)
+
+    out = pd.concat([current.iloc[0],out],axis=1)
+
+    out.to_csv("Testing.csv")
+    out2.to_csv("Testing2.csv")
+
+
+if __name__ == "__main__":
+    looptest()
