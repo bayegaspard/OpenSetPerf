@@ -27,6 +27,10 @@ def deleteSaves():
 #This is to test all of the algorithms one after the other
 alg = ["Soft","Open","Energy","COOL","DOC"]
 learning_rates = [0.001,0.01,1]
+#alg.remove("Soft")
+#alg.remove("Open")
+#alg.remove("Energy")
+#epochs= []
 epochs = [10,50,100]
 optim = [Config.opt_func["Adam"], Config.opt_func["SGD"], Config.opt_func["RMSprop"]]
 activation = ["ReLU", "Tanh", "Sigmoid"]
@@ -47,6 +51,7 @@ def testRotate(notes=(0,0,0)):
         al = al+1
         Config.parameters["OOD Type"][0] = alg[al]
         return (stage,step,al)
+    deleteSaves()
     al = 0
     Config.parameters["OOD Type"][0] = alg[al]
     if step+1 < len(loops[stage]):
@@ -73,7 +78,8 @@ def testRotate(notes=(0,0,0)):
 
     if stage+1 < len(loops):
         stage = stage+1
-        return testRotate((stage,step,al))
+        #Skip the next rotate algorithm step and just go to rotate step
+        return testRotate((stage,step,len(alg)))
 
     #Done with looping
     Config.parameters["LOOP"][0] = False

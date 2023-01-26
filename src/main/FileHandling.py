@@ -12,6 +12,9 @@ import plots
 # modelsavespath = r"C:\Users\bgaspard\Desktop\OpenSetPerf\src\main\Saves\\"
 
 def generateHyperparameters(root_path):
+    if not (os.path.exists(os.path.join(root_path,"Saves","hyperparam")) and os.path.exists(os.path.join(root_path,"Saves","unknown"))):
+        os.mkdir(os.path.join(root_path,"Saves","hyperparam"))
+        os.mkdir(os.path.join(root_path,"Saves","unknown"))
     if os.path.exists(os.path.join(root_path,"Saves","hyperparam","hyperParam.csv")) and os.path.exists(os.path.join(root_path,"src","main","unknown","unknowns.csv")):
         print("Hyperparam.csv and unknown.csv files exist")
     else:
@@ -191,4 +194,5 @@ def create_params_Fscore(path, score, threshold = None):
     
     
     hist.to_csv(os.path.join(path,"Saves","fscore.csv"),index=False)
+
 

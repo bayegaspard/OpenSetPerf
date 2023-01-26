@@ -99,7 +99,7 @@ class EndLayers():
         return percentages.max(dim=1,keepdim=True)[0].greater_equal(self.cutoff)
 
     def DOCUnknown(self, percentages:torch.Tensor):
-        import src.CodeFromImplementations.DeepOpenClassificationByLeishu02 as DOC
+        import CodeFromImplementations.DeepOpenClassificationByLeishu02 as DOC
         if self.docMu is None:
             print("Mu Standards need to be collected")
             if self.weibulInfo is None:
@@ -225,7 +225,7 @@ class EndLayers():
 
     def odinMod(self, percentages:torch.Tensor):
         print("ODIN is not working at the moment")
-        import src.CodeFromImplementations.OdinCodeByWetliu as Odin
+        import CodeFromImplementations.OdinCodeByWetliu as Odin
         self.model.openMax = False
         new_percentages = torch.tensor(Odin.ODIN(self.OdinX,self.model(self.OdinX), self.model, self.temp, self.noise))
         self.model.openMax = True

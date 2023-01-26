@@ -94,7 +94,7 @@ def runDOC(test_X_pred_true, mu_stds, seen):
         max_value = np.max(p)# predicted probability
         threshold = max(0.5, 1. - scale * mu_stds[max_class][1])#find threshold for the predicted class
         if max_value > threshold:
-            test_y_pred.append(max_class)#predicted probability is greater than threshold, accept
+             test_y_pred.append(max_class)#predicted probability is greater than threshold, accept
         else:
             #THE NEXT LINE HAS BEEN MODIFIED
             test_y_pred.append(15)#otherwise, reject
