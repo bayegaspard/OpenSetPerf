@@ -138,6 +138,7 @@ if __name__ == '__main__':
         step = helperFunctions.testRotate(step)
         plt.clf()
         plots.name_override = helperFunctions.getcurrentlychanged(step)
+        plt.figure(figsize=(4,4))
         main()
 
 
