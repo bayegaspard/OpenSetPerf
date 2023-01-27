@@ -224,5 +224,5 @@ def renameClasses(modelOut:torch.Tensor, labels:torch.Tensor):
     for l in label:
         labels[labels==l] = i
         i+=1
-    return newout, labels
+    return newout, labels.numpy()
 
