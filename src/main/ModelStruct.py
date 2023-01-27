@@ -127,11 +127,13 @@ class AttackTrainingClassification(nn.Module):
         # def fit(epochs, lr, model, train_loader, val_loader, opt_func=torch.optim.SGD):
 
     def fit(self, epochs, lr, train_loader, val_loader, opt_func):
+        #print("test1.1")
         history = []
         optimizer = opt_func(self.parameters(), lr)
         # torch.cuda.empty_cache()
         if epochs > 0:
             for epoch in range(epochs):
+                #print("test1.2")
                 self.end.resetvals()
                 self.store = GPU.to_device(torch.tensor([]), self.device), GPU.to_device(torch.tensor([]), self.device), GPU.to_device(torch.tensor([]), self.device)
                 # Training Phase
@@ -139,6 +141,7 @@ class AttackTrainingClassification(nn.Module):
                 train_losses = []
                 num = 0
                 for batch in train_loader:
+                    #print("Batch")
                     # batch = to_device(batch,device)
                     # batch = DeviceDataLoader(batch, device)
                     loss = self.training_step(batch)
@@ -150,15 +153,19 @@ class AttackTrainingClassification(nn.Module):
                     optimizer.zero_grad()
                     num += 1
 
+                #print("test1.3")
                 # Validation phase
                 self.savePoint(f"Saves", epoch, Config.helper_variables["phase"])
                 result = self.evaluate(val_loader)
+                #print("test1.4")
                 result['train_loss'] = torch.stack(train_losses).mean().item()
                 result["epoch"] = epoch
+                #print("test1.5")
                 self.epoch_end(epoch, result)
                 #print("result", result)
 
                 history.append(result)
+                #print("test1.6")
         else:
             # Validation phase
             self.loadPoint("Saves")

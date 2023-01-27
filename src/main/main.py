@@ -27,94 +27,99 @@ opt_func = Config.parameters["optimizer"]
 device = GPU.get_default_device() # selects a device, cpu or gpu
 
 def main():
-        #Delete me
-        FileHandling.refreshFiles(root_path)
+    #Delete me
+    FileHandling.refreshFiles(root_path)
 
-        FileHandling.generateHyperparameters(root_path) # generate hyper parameters if not present.
-        batch_size,num_workers,attemptLoad,testlen,num_epochs,lr,threshold,model_type,datagroup,unknownVals = FileHandling.readCSVs(root_path)
-        knownVals = Config.helper_variables["knowns_clss"]
-        # print(knownVals)
-        # print(unknownVals)
-        model_list = {"Convolutional":ModelStruct.Conv1DClassifier,"Fully_Connected":ModelStruct.FullyConnected}
-        model = model_list[model_type]() # change index to select a specific architecture. 0=conv1d ad 1=fully connected
-        model = ModelStruct.ModdedParallel(model)
-        model.to(device)
-        model.device = device
-        model.end.type = Config.parameters["OOD Type"][0]
-        model.end.cutoff = threshold
+    FileHandling.generateHyperparameters(root_path) # generate hyper parameters if not present.
+    batch_size,num_workers,attemptLoad,testlen,num_epochs,lr,threshold,model_type,datagroup,unknownVals = FileHandling.readCSVs(root_path)
+    knownVals = Config.helper_variables["knowns_clss"]
+    # print(knownVals)
+    # print(unknownVals)
+    model_list = {"Convolutional":ModelStruct.Conv1DClassifier,"Fully_Connected":ModelStruct.FullyConnected}
+    model = model_list[model_type]() # change index to select a specific architecture. 0=conv1d ad 1=fully connected
+    model = ModelStruct.ModdedParallel(model)
+    model.to(device)
+    model.device = device
+    model.end.type = Config.parameters["OOD Type"][0]
+    model.end.cutoff = threshold
 
-        train, test = FileHandling.checkAttempLoad(root_path)
+    train, test = FileHandling.checkAttempLoad(root_path)
 
 
-        trainset = DataLoader(train, batch_size, num_workers=num_workers,shuffle=True,
-                pin_memory=False)  # for faster processing enable pin memory to true and num_workers=4
-        validationset = DataLoader(test, batch_size, shuffle=True, num_workers=num_workers,pin_memory=False)
-        testset = DataLoader(test, batch_size, shuffle=True, num_workers=num_workers, pin_memory=False)
+    trainset = DataLoader(train, batch_size, num_workers=num_workers,shuffle=True,
+            pin_memory=False)  # for faster processing enable pin memory to true and num_workers=4
+    validationset = DataLoader(test, batch_size, shuffle=True, num_workers=num_workers,pin_memory=False)
+    testset = DataLoader(test, batch_size, shuffle=True, num_workers=num_workers, pin_memory=False)
 
-        print("length of train",len(train),"\nlength of test",len(test))
+    print("length of train",len(train),"\nlength of test",len(test))
 
-        #train_loader = trainset
-        #val_loader = validationset
-        train_loader =  GPU.DeviceDataLoader(trainset, device)
-        val_loader = GPU.DeviceDataLoader(validationset, device)
-        test_loader = testset
+    #train_loader = trainset
+    #val_loader = validationset
+    train_loader =  GPU.DeviceDataLoader(trainset, device)
+    val_loader = GPU.DeviceDataLoader(validationset, device)
+    test_loader = testset
 
-        
+    #print("Test1")
 
-        history_final = []
-        model.end.prepWeibull(train_loader,device,model)
-        history_final += model.fit(num_epochs, lr, train_loader, val_loader, opt_func=opt_func)
-        # epochs, lr, model, train_loader, val_loader, opt_func
+    history_final = []
+    model.end.prepWeibull(train_loader,device,model)
+    history_final += model.fit(num_epochs, lr, train_loader, val_loader, opt_func=opt_func)
+    # epochs, lr, model, train_loader, val_loader, opt_func
 
-        if not Config.parameters["LOOP"][0]:
-            plots.plot_all_losses(history_final)
-            plots.plot_losses(history_final)
-            plots.plot_accuracies(history_final)
+    #print("Test2")
 
-        y_pred,y_test,y_compaire = model.store
-        y_pred = y_pred / (Config.parameters["CLASSES"][0]/15) #The whole config thing is if we are splitting the classes further
-        y_test = y_test / (Config.parameters["CLASSES"][0]/15)
-        y_test = y_test.to(torch.int).tolist()
-        y_pred = y_pred.to(torch.int).tolist()
-        y_compaire = y_compaire.to(torch.int).tolist()
-        # print("y len and pred",len(y_pred),y_pred)
-        # print("y len and test", len(y_test),y_test)
-    #plots.plot_confusion_matrix(y_test,y_pred)
+    if not Config.parameters["LOOP"][0]:
+        plots.plot_all_losses(history_final)
+        plots.plot_losses(history_final)
+        plots.plot_accuracies(history_final)
 
-        
-        np.set_printoptions(precision=1)
-        #class_names = Dataload.get_class_names(knownVals) #+ Dataload.get_class_names(unknownVals)
-        #class_names.append("Unknown")
-        class_names = Dataload.get_class_names(range(15))
-        for x in unknownVals:
-            class_names[x] = class_names[x]+"*"
-        class_names.append("*Unknowns")
-        print("class names", class_names)
-        cnf_matrix = plots.confusionMatrix(y_test, y_pred) 
+    y_pred,y_test,y_compaire = model.store
+    y_pred = y_pred / (Config.parameters["CLASSES"][0]/15) #The whole config thing is if we are splitting the classes further
+    y_test = y_test / (Config.parameters["CLASSES"][0]/15)
+    y_test = y_test.to(torch.int).tolist()
+    y_pred = y_pred.to(torch.int).tolist()
+    y_compaire = y_compaire.to(torch.int).tolist()
+    # print("y len and pred",len(y_pred),y_pred)
+    # print("y len and test", len(y_test),y_test)
+#plots.plot_confusion_matrix(y_test,y_pred)
 
-        recall = recall_score(y_compaire,y_pred,average='weighted',zero_division=0)
-        precision = precision_score(y_compaire,y_pred,average='weighted',zero_division=0)
-        f1 = 2 * (precision * recall) / (precision + recall)
-        FileHandling.create_params_Fscore(root_path,f1)
+    #print("Test3")
 
-        plots.plot_confusion_matrix(cnf_matrix, classes=class_names, normalize=True,
-                        title='Confusion matrix', knowns = knownVals)
-        if not Config.parameters["LOOP"][0]:
-            plt.show()
+    np.set_printoptions(precision=1)
+    #class_names = Dataload.get_class_names(knownVals) #+ Dataload.get_class_names(unknownVals)
+    #class_names.append("Unknown")
+    class_names = Dataload.get_class_names(range(15))
+    for x in unknownVals:
+        class_names[x] = class_names[x]+"*"
+    class_names.append("*Unknowns")
+    print("class names", class_names)
+    cnf_matrix = plots.confusionMatrix(y_test, y_pred) 
 
-        
-        
-        #auprc = average_precision_score(y_compaire, y_pred, average='weighted')
-        score_list = [recall,precision,f1]
-        FileHandling.write_hist_to_file(history_final,num_epochs,model.end.type)
-        FileHandling.write_scores_to_file(score_list,num_epochs,model.end.type)
-        print("Type : ",model.end.type)
-        print("F-Score : ", f1*100)
-        print("Precision : " ,precision*100)
-        print("Recall : ", recall*100)
+    #print("Test4")
 
-        if Config.parameters["LOOP"][0]:
-            model.thresholdTest(val_loader)
+    recall = recall_score(y_compaire,y_pred,average='weighted',zero_division=0)
+    precision = precision_score(y_compaire,y_pred,average='weighted',zero_division=0)
+    f1 = 2 * (precision * recall) / (precision + recall)
+    FileHandling.create_params_Fscore(root_path,f1)
+
+    plots.plot_confusion_matrix(cnf_matrix, classes=class_names, normalize=True,
+                    title='Confusion matrix', knowns = knownVals)
+    if not Config.parameters["LOOP"][0]:
+        plt.show()
+
+    
+    
+    #auprc = average_precision_score(y_compaire, y_pred, average='weighted')
+    score_list = [recall,precision,f1]
+    FileHandling.write_hist_to_file(history_final,num_epochs,model.end.type)
+    FileHandling.write_scores_to_file(score_list,num_epochs,model.end.type)
+    print("Type : ",model.end.type)
+    print("F-Score : ", f1*100)
+    print("Precision : " ,precision*100)
+    print("Recall : ", recall*100)
+
+    #if Config.parameters["LOOP"][0]:
+    #    model.thresholdTest(val_loader)
     # print("AUPRC : ", auprc * 100)
 
 
@@ -133,6 +138,7 @@ if __name__ == '__main__':
         step = helperFunctions.testRotate(step)
         plt.clf()
         plots.name_override = helperFunctions.getcurrentlychanged(step)
+        plt.figure(figsize=(4,4))
         main()
 
 

@@ -103,6 +103,8 @@ def plot_confusion_matrix(cm:np.ndarray, classes,
     Normalization can be applied by setting `normalize=True`.
     """
 
+    plt.figure(figsize=(12,12))
+
     #plt.xkcd()
     plt.imshow(cm, interpolation='nearest', cmap=cmap)
     plt.title(title)
@@ -146,11 +148,12 @@ def plot_confusion_matrix(cm:np.ndarray, classes,
     plt.ylabel('True label')
     plt.xlabel('Predicted label')
     if not name_override:
-        specific = pd.read_csv("Saves/fscore.csv").tail(1).to_string(header=False,index=False,).replace(" ","")
+        specific = pd.read_csv("Saves/fscore.csv").tail(1).to_string(header=False,index=False,).replace(" ","").replace(".","")
     else:
         specific = name_override
-    plt.savefig(f"Saves/conf/confusion_matrix{specific}.png", dpi=600)
-    plt.savefig(f"Saves/confusion_matrix.png", dpi=600)
+    plt.savefig(f"Saves/conf/confusion_matrix{specific}.png", dpi=1600)
+    plt.savefig(f"Saves/confusion_matrix.png", dpi=1600)
+
 
 
 # Compute confusion matrix

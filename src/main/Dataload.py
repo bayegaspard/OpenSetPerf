@@ -77,11 +77,13 @@ class ClassDivDataset(Dataset):
             self.usedDict = CLASSLIST
         
         #this will check if the file is chunked and chunk it if it is not
-        self.checkIfSplit()
+        self.checkIfSplit(path)
 
     def __len__(self) -> int:
         if self.listOfCounts is None:
             self.listOfCounts = pd.read_csv(self.path+"counts.csv", index_col=0)
+            #add max per class
+            self.listOfCounts.mask(self.listOfCounts>self.maxclass,self.maxclass,inplace=True)
             #This removes all of the unused classes
             self.listOfCounts = self.listOfCounts.loc[self.use]
         if self.length is None:
@@ -136,8 +138,9 @@ class ClassDivDataset(Dataset):
 
         return (data,label)
     
-    def checkIfSplit(self):
-        path = self.path
+    def checkIfSplit(self, path=None):
+        if path is None:
+            path = self.path
         if not os.path.exists(os.path.join(path,"")): 
             os.mkdir(path)
 
@@ -188,6 +191,7 @@ class ClassDivDataset(Dataset):
 
 class ClusterDivDataset(ClassDivDataset):
     def __init__(self, path:str, use:list=None, unknownData=False):
+        super().__init__(path+"_Clustered",use,unknownData)
         #path is the string path that is the main datafile
         #use is the list of integers corrispoding with the class dictionary above that you want to load.
         #Unknown Data is if the dataset should only give unknown labels.
@@ -197,44 +201,13 @@ class ClusterDivDataset(ClassDivDataset):
         #"Payload_data_CICIDS2017_Sorted" is the main name for where the chunked data folder is
         #use = [0] means that we are only using CLASSLIST[0] which is benign
 
-        self.unknownData=unknownData
-        self.path = path+"_Clustered"
-        self.length = None
-        self.listOfCounts = None
         self.perclassgroups = None
         self.clusters = 32
         self.minclass = 0
-        
-
-
-        #This is setting what classes are considered to be knowns.
-        if use is not None:
-            self.use = [False for i in range(len(CLASSLIST))] 
-            self.usedDict = {}
-            use.sort()
-            for case in use:
-                self.use[case] = True
-                #OK this requires you to have the use list be sorted, but otherwise it works.
-                self.usedDict[len(self.usedDict)] = CLASSLIST[case]
-        else:
-            self.use = [True for i in range(len(CLASSLIST))] 
-            self.usedDict = CLASSLIST
-        
-        #this will check if the file is chunked and chunk it if it is not
-        self.checkIfSplit(path)
             
     def __len__(self) -> int:
-        if self.listOfCounts is None:
-            self.listOfCounts = pd.read_csv(self.path+"/counts.csv", index_col=None)
-            #Limit the size of the model
-            self.listOfCounts.mask(self.listOfCounts>self.maxclass,self.maxclass,inplace=True)
-            #This removes all of the unused classes
-            self.listOfCounts = self.listOfCounts.loc[self.use]
-            #count how many classes we have the minumim number of examples in.
-            self.perclassgroups = (self.listOfCounts>self.minclass).sum(axis=1)
-        if self.length is None:
-            self.length = self.listOfCounts[self.listOfCounts>self.minclass].sum().sum().item()
-            self.length = int(self.length)
+        super().__len__()
+        self.perclassgroups = (self.listOfCounts>self.minclass).sum(axis=1)
         return self.length
 
 
@@ -346,6 +319,7 @@ class ClusterDivDataset(ClassDivDataset):
 
 class ClusterLimitDataset(ClusterDivDataset):
     def __init__(self, path:str, use:list=None, unknownData=False):
+        super().__init__(path+"_Clustered",use,unknownData)
         #path is the string path that is the main datafile
         #use is the list of integers corrispoding with the class dictionary above that you want to load.
         #Unknown Data is if the dataset should only give unknown labels.
@@ -355,45 +329,13 @@ class ClusterLimitDataset(ClusterDivDataset):
         #"Payload_data_CICIDS2017_Sorted" is the main name for where the chunked data folder is
         #use = [0] means that we are only using CLASSLIST[0] which is benign
 
-        self.unknownData=unknownData
-        self.path = path+"_Clustered"
-        self.length = None
-        self.listOfCounts = None
         self.perclassgroups = None
         self.clusters = 32
         self.minclass = 0
-        self.maxclass = Config.parameters["MaxPerClass"][0]
-        
-
-
-        #This is setting what classes are considered to be knowns.
-        if use is not None:
-            self.use = [False for i in range(len(CLASSLIST))] 
-            self.usedDict = {}
-            use.sort()
-            for case in use:
-                self.use[case] = True
-                #OK this requires you to have the use list be sorted, but otherwise it works.
-                self.usedDict[len(self.usedDict)] = CLASSLIST[case]
-        else:
-            self.use = [True for i in range(len(CLASSLIST))] 
-            self.usedDict = CLASSLIST
-        
-        #this will check if the file is chunked and chunk it if it is not
-        self.checkIfSplit(path)
             
     def __len__(self) -> int:
-        if self.listOfCounts is None:
-            self.listOfCounts = pd.read_csv(self.path+"/counts.csv", index_col=None)
-            #This is the limit part of the class name
-            self.listOfCounts.mask(self.listOfCounts>self.maxclass,self.maxclass,inplace=True)
-            #This removes all of the unused classes
-            self.listOfCounts = self.listOfCounts.loc[self.use]
-            #count how many classes we have the minumim number of examples in.
-            self.perclassgroups = (self.listOfCounts>self.minclass).sum(axis=1)
-        if self.length is None:
-            self.length = self.listOfCounts[self.listOfCounts>self.minclass].sum().sum().item()
-            self.length = int(self.length)
+        super().__len__()
+        self.perclassgroups = (self.listOfCounts>self.minclass).sum(axis=1)
         return self.length
 
 
