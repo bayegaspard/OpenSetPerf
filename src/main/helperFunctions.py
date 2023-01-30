@@ -6,15 +6,19 @@ import pandas as pd
 #Translation dictionaries for algorithms that cannot have gaps in their numbers.
 relabel = {15:15}
 rerelabel = {15:15}
-temp = 0
-for x in range(15):
-    if temp < len(Config.helper_variables["unknowns_clss"]["unknowns"]) and x == Config.helper_variables["unknowns_clss"]["unknowns"][temp]:
-        temp = temp+1
-    else:
-        relabel[x] = x-temp
-        rerelabel[x-temp] = x
-temp = None
-
+def setrelabel():
+    global relabel,rerelabel
+    relabel = {15:15}
+    rerelabel = {15:15}
+    temp = 0
+    for x in range(15):
+        if temp < len(Config.helper_variables["unknowns_clss"]["unknowns"]) and x == Config.helper_variables["unknowns_clss"]["unknowns"][temp]:
+            temp = temp+1
+        else:
+            relabel[x] = x-temp
+            rerelabel[x-temp] = x
+    temp = None
+setrelabel()
 
 def deleteSaves():
     i = 0
@@ -30,7 +34,8 @@ learning_rates = [0.001,0.01,1]
 #alg.remove("Soft")
 #alg.remove("Open")
 #alg.remove("Energy")
-#epochs= []
+#alg.remove("COOL")
+epochs= []
 epochs = [10,50,100]
 optim = [Config.opt_func["Adam"], Config.opt_func["SGD"], Config.opt_func["RMSprop"]]
 activation = ["ReLU", "Tanh", "Sigmoid"]
@@ -44,6 +49,7 @@ loops = [learning_rates,epochs,optim,activation,groups]
 loops2 = ["learningRate","num_epochs","optimizer","Activation","Unknowns"]
 
 def testRotate(notes=(0,0,0)):
+    global relabel,rerelabel
     stage = notes[0]
     step = notes[1]
     al = notes[2]
@@ -62,6 +68,8 @@ def testRotate(notes=(0,0,0)):
         elif stage == 4:
             Config.helper_variables["unknowns_clss"]["unknowns"] = loops[stage][step]
             Config.parameters["Unknowns"] = f"{len(loops[stage][step])} Unknowns"
+            Config.helper_variables["knowns_clss"] = Config.loopOverUnknowns(Config.helper_variables["unknowns_clss"])
+            setrelabel()
         else:
             Config.parameters[loops2[stage]][0] = loops[stage][step]
 
@@ -73,6 +81,8 @@ def testRotate(notes=(0,0,0)):
     elif stage == 4:
         Config.helper_variables["unknowns_clss"]["unknowns"] = loops[stage][step]
         Config.parameters["Unknowns"] = f"{len(loops[stage][step])} Unknowns"
+        Config.helper_variables["knowns_clss"] = Config.loopOverUnknowns(Config.helper_variables["unknowns_clss"])
+        setrelabel()
     else:
         Config.parameters[loops2[stage]][0] = loops[stage][step]
 

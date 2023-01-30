@@ -136,10 +136,11 @@ if __name__ == '__main__':
     step = (0,0,0) #keeps track of what is being updated.
     while Config.parameters["LOOP"][0]:
         step = helperFunctions.testRotate(step)
-        plt.clf()
-        plots.name_override = helperFunctions.getcurrentlychanged(step)
-        plt.figure(figsize=(4,4))
-        main()
+        if step:
+            plt.clf()
+            plots.name_override = helperFunctions.getcurrentlychanged(step)
+            plt.figure(figsize=(4,4))
+            main()
 
 
 
