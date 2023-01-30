@@ -11,5 +11,11 @@
 test.py
 *.pyc
 Saves/*
+!Saves/conf/
+Saves/conf/*
+!Saves/hyperparam/
+Saves/hyperparam/*
+!Saves/unknown/
+Saves/unknown/*
 *.json
 src/CodeFromImplementations/Ignore.py
