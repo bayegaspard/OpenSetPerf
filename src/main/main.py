@@ -73,12 +73,12 @@ def main():
         plots.plot_losses(history_final)
         plots.plot_accuracies(history_final)
 
-    y_pred,y_test,y_compaire = model.store
+    y_pred,y_true,y_tested_against = model.store
     y_pred = y_pred / (Config.parameters["CLASSES"][0]/15) #The whole config thing is if we are splitting the classes further
-    y_test = y_test / (Config.parameters["CLASSES"][0]/15)
-    y_test = y_test.to(torch.int).tolist()
+    y_true = y_true / (Config.parameters["CLASSES"][0]/15)
+    y_true = y_true.to(torch.int).tolist()
     y_pred = y_pred.to(torch.int).tolist()
-    y_compaire = y_compaire.to(torch.int).tolist()
+    y_tested_against = y_tested_against.to(torch.int).tolist() #This is the values with the unknowns replaced by 15
     # print("y len and pred",len(y_pred),y_pred)
     # print("y len and test", len(y_test),y_test)
 #plots.plot_confusion_matrix(y_test,y_pred)
@@ -93,12 +93,12 @@ def main():
         class_names[x] = class_names[x]+"*"
     class_names.append("*Unknowns")
     print("class names", class_names)
-    cnf_matrix = plots.confusionMatrix(y_test, y_pred) 
+    cnf_matrix = plots.confusionMatrix(y_true.copy(), y_pred.copy(), y_tested_against.copy()) 
 
     #print("Test4")
 
-    recall = recall_score(y_compaire,y_pred,average='weighted',zero_division=0)
-    precision = precision_score(y_compaire,y_pred,average='weighted',zero_division=0)
+    recall = recall_score(y_tested_against,y_pred,average='weighted',zero_division=0)
+    precision = precision_score(y_tested_against,y_pred,average='weighted',zero_division=0)
     f1 = 2 * (precision * recall) / (precision + recall)
     FileHandling.create_params_Fscore(root_path,f1)
 

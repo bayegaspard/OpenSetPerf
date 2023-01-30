@@ -71,7 +71,12 @@ def plot_all_losses(history):
 # plot_losses(history_final)
 # plot_accuracies(history_final)
 
-def confusionMatrix(y_test, y_pred):
+def confusionMatrix(y_test, y_pred, y_tested):
+    for x in range(len(y_pred)):
+        if y_pred[x] == 15 and y_tested[x] == 15:
+            y_pred[x] = y_test[x]
+        #else:
+        #    print(f"{y_pred[x]},{y_test[x]}")
     return confusion_matrix(y_test, y_pred, labels=list(range(16)))
 
 
