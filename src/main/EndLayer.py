@@ -108,7 +108,7 @@ class EndLayers():
                 self.docMu = DOC.muStandardsFromDataloader(Config.helper_variables["knowns_clss"],self.weibulInfo["loader"],self.weibulInfo["net"])
                 self.Save_score = [torch.tensor(self.docMu)[:,1]]
         
-        newPredictions = DOC.runDOC(percentages.detach().numpy(),self.docMu,Config.helper_variables["knowns_clss"])
+        newPredictions = DOC.runDOC(percentages.detach().cpu().numpy(),self.docMu,Config.helper_variables["knowns_clss"])
         newPredictions = torch.tensor(newPredictions)
         for x in range(len(newPredictions)):
             newPredictions[x] = torch.tensor(helperFunctions.rerelabel[newPredictions[x].item()])
