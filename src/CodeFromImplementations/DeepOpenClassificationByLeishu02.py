@@ -49,8 +49,8 @@ def muStandardsFromDataloader(seen,Dataloader,model):
         for inputs,labels in Dataloader:
             outputs, labels = renameClasses(model(inputs),labels)
             if labelArray is None:
-                outputArray = outputs.numpy()
-                labelArray = labels.numpy()
+                outputArray = outputs.cpu().numpy()
+                labelArray = labels.cpu().numpy()
             else:
                 outputArray = np.vstack((outputArray,outputs.numpy()))
                 labelArray = np.vstack((labelArray,labels.numpy()))
