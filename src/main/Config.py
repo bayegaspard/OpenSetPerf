@@ -51,3 +51,40 @@ if parameters["Datagrouping"][0] == "DendrogramChunk":
 
 #This is for saving the original number of epochs
 num_epochs = parameters["num_epochs"][0]
+
+
+#This is to test all of the algorithms one after the other
+alg = ["Soft","Open","Energy","COOL","DOC"]
+thresholds = [0.1,0.5,0.75,0.99,1.1,2,5,10]
+learning_rates = [1,0.1,0.001,0.0001,0.00001,0.000001,0.0000001,0.00000001]
+activation = ["ReLU", "Tanh", "Sigmoid","Leaky","Elu","PRElu","Softplus","Softmax"]
+groups = [[2],[2,3,6],[2,3,4,5,6],[2,3,4,5,6,7,11],[2,3,4,5,6,7,11,12,14],[2,3,4,5,6,7,8,9,11,12,14],[2,3,4,5,6,7,8,9,10,11,12,13,14],[1,2,3,4,5,6,7,8,9,10,11,12,13,14]]
+epochs= []
+epochs = [1,2,5,10,25,50,100,200]
+
+
+#alg.remove("Soft")
+#alg.remove("Open")
+#alg.remove("Energy")
+#alg.remove("COOL")
+
+
+#Optimizer has been removed from the list of things we are changing
+optim = [opt_func["Adam"], opt_func["SGD"], opt_func["RMSprop"]]
+optim = [opt_func["Adam"]]
+
+
+#Add in everything in config.
+
+#learning_rates.remove(Config.parameters["learningRate"][0])
+learning_rates.insert(0,parameters["learningRate"][0])
+#epochs.remove(Config.parameters["num_epochs"][0])
+epochs.insert(0,parameters["num_epochs"][0])
+groups.insert(0,helper_variables["unknowns_clss"]["unknowns"])
+
+#Always starts with the configured activation type
+alg.remove(parameters["OOD Type"][0])
+alg.insert(0,parameters["OOD Type"][0])
+
+loops = [learning_rates,epochs,optim,activation,groups]
+loops2 = ["learningRate","num_epochs","optimizer","Activation","Unknowns"]

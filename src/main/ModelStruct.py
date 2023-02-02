@@ -8,7 +8,8 @@ import Config
 from EndLayer import EndLayers
 import GPU
 import FileHandling
-from sklearn.metrics import (precision_score, recall_score, average_precision_score)
+import helperFunctions
+
 
 
 class ModdedParallel(nn.DataParallel):
@@ -34,6 +35,22 @@ class AttackTrainingClassification(nn.Module):
             self.activation = nn.Sigmoid()
         if Config.parameters["Activation"][0] == "Tanh":
             self.activation = nn.Tanh()
+        if Config.parameters["Activation"][0] == "Leaky":
+            self.activation = nn.LeakyReLU()
+        if Config.parameters["Activation"][0] == "Elu":
+            self.activation = nn.ELU()
+        if Config.parameters["Activation"][0] == "PRElu":
+            self.activation = nn.PReLU()
+        if Config.parameters["Activation"][0] == "Swish":
+            print("Swish is not implemented yet")
+        if Config.parameters["Activation"][0] == "maxout":
+            print("maxout is not implemented yet")
+        if Config.parameters["Activation"][0] == "Softplus":
+            self.activation = nn.Softplus()
+        if Config.parameters["Activation"][0] == "Softmax":
+            #why softmax?
+            self.activation = nn.Softmax()
+
 
         self.fc1 = nn.Linear(11904, Config.parameters["Nodes"][0])
         self.fc2 = nn.Linear(Config.parameters["Nodes"][0], numClasses)
@@ -92,9 +109,14 @@ class AttackTrainingClassification(nn.Module):
         out = self(data)  # Generate predictions
         labels = self.end.labelMod(labels)
 
+        
         #Not sure if this is nessiary. 
         if self.end == "DOC":
             out = nn.Sigmoid()(out)
+        
+        #This is just for datacollection.
+        self.los.addloss(torch.argmax(out,dim=1),labels)
+
 
         # out = DeviceDataLoader(out, device)
         loss = F.cross_entropy(out, labels)  # Calculate loss
@@ -130,6 +152,7 @@ class AttackTrainingClassification(nn.Module):
         #print("test1.1")
         history = []
         optimizer = opt_func(self.parameters(), lr)
+        self.los = helperFunctions.LossPerEpoch()
         # torch.cuda.empty_cache()
         if epochs > 0:
             for epoch in range(epochs):
@@ -166,6 +189,7 @@ class AttackTrainingClassification(nn.Module):
 
                 history.append(result)
                 #print("test1.6")
+                self.los.collect()
         else:
             # Validation phase
             self.loadPoint("Saves")
@@ -253,21 +277,6 @@ class AttackTrainingClassification(nn.Module):
             return int(phase), epochFound
         return -1, -1
     
-    def thresholdTest(net,val_loader):
-        net.loadPoint("Saves")
-        for x in [0.1,0.5,0.75,0.9,0.99,1.1,2,5,10,100]:
-            net.end.resetvals()
-            net.store = GPU.to_device(torch.tensor([]), net.device), GPU.to_device(torch.tensor([]), net.device), GPU.to_device(torch.tensor([]), net.device)
-            net.end.cutoff = x
-            net.evaluate(val_loader)
-            y_pred,y_test,y_compaire = net.store
-            y_test = y_test.to(torch.int).tolist()
-            y_pred = y_pred.to(torch.int).tolist()
-            y_compaire = y_compaire.to(torch.int).tolist()
-            recall = recall_score(y_compaire,y_pred,average='weighted',zero_division=0)
-            precision = precision_score(y_compaire,y_pred,average='weighted',zero_division=0)
-            f1 = 2 * (precision * recall) / (precision + recall)
-            FileHandling.create_params_Fscore("",f1,x)
         
 
 
