@@ -88,12 +88,12 @@ def main():
     np.set_printoptions(precision=1)
     #class_names = Dataload.get_class_names(knownVals) #+ Dataload.get_class_names(unknownVals)
     #class_names.append("Unknown")
-    class_names = Dataload.get_class_names(range(15))
-    for x in unknownVals:
-        class_names[x] = class_names[x]+"*"
-    class_names.append("*Unknowns")
-    print("class names", class_names)
-    cnf_matrix = plots.confusionMatrix(y_true.copy(), y_pred.copy(), y_tested_against.copy()) 
+    # class_names = Dataload.get_class_names(range(15))
+    # for x in unknownVals:
+    #     class_names[x] = class_names[x]+"*"
+    # class_names.append("*Unknowns")
+    # print("class names", class_names)
+    #cnf_matrix = plots.confusionMatrix(y_true.copy(), y_pred.copy(), y_tested_against.copy()) 
 
     #print("Test4")
 
@@ -102,8 +102,8 @@ def main():
     f1 = 2 * (precision * recall) / (precision + recall)
     FileHandling.create_params_Fscore(root_path,f1)
 
-    plots.plot_confusion_matrix(cnf_matrix, classes=class_names, normalize=True,
-                    title='Confusion matrix', knowns = knownVals)
+    #plots.plot_confusion_matrix(cnf_matrix, classes=class_names, normalize=True,
+    #                title='Confusion matrix', knowns = knownVals)
     if not Config.parameters["LOOP"][0]:
         plt.show()
 
@@ -118,8 +118,9 @@ def main():
     print("Precision : " ,precision*100)
     print("Recall : ", recall*100)
 
-    #if Config.parameters["LOOP"][0]:
-    #    model.thresholdTest(val_loader)
+    if Config.parameters["LOOP"][0]:
+        net = model_list[model_type]()
+        helperFunctions.thresholdTest(net,val_loader)
     # print("AUPRC : ", auprc * 100)
 
 
@@ -130,6 +131,8 @@ if __name__ == '__main__':
         print(f"Please run this from the source of the repository not from {os.path.basename(root_path)}. <---- Look at this!!!!")
         os.chdir("..")
         root_path=os.getcwd()
+
+    plots.name_override = "Config File settings"
 
     main()
 

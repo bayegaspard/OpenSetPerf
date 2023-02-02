@@ -191,12 +191,13 @@ class EndLayers():
         if not failed:
             try:
                 scores_open = Open.openmaxevaluation([percentages.detach()],[labels.detach()],self.args,self.weibulInfo)
-            except LookupError:
-                print("OpenMax failed to idenitify at least 1 class!")
-                #Note: usual reason for failure is having no correct examples for at least 1 class.
-                failed = True
             except NotImplementedError:
                 print("Warning: OpenMax has failed to load!")
+                failed = True
+            #except LookupError:
+            except:
+                print("OpenMax failed to idenitify at least 1 class!")
+                #Note: usual reason for failure is having no correct examples for at least 1 class.
                 failed = True
                 
         
