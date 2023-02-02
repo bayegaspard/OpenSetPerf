@@ -69,9 +69,6 @@ source opensetper/bin/activate
     - history/history{Algorithm} - These save all of the output measures from each of the algorithms after each epoch. 
     - phase - Unused from a privious refactor, it used to be a save of where in the models training we last got to.
     - scores/scores{Algorithm} - Unused from a privios refactor. It is now unknown what is being stored.
-    - *.png - Nice graphs using the data that was stored in history and a confusion matrix from the last epoch of each model.
-    - conf - This is a folder containing all of the confusion matrices from looping through hyperparameters. The initial matrix will have a name of all of the hyperparameters chosen and the rest will be in the follwing format:
-      - {Algorithm used} {Parameter currently being changed} {Current value of that parameter}
 
 - `datasets`
   - We place the NIDS dataset in this folder.
