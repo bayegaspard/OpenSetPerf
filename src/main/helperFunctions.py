@@ -5,7 +5,6 @@ import pandas as pd
 import torch
 import GPU
 import FileHandling
-import ModelStruct
 import Dataload
 import plots
 from sklearn.metrics import (precision_score, recall_score, average_precision_score)
@@ -123,8 +122,7 @@ def looptest():
 
 
 #This loops through all the thresholds without resetting the model.
-def thresholdTest(val_loader):
-        net = ModelStruct.ModdedParallel(Config.parameters["model"][0])
+def thresholdTest(net,val_loader):
         net.end.type = Config.parameters["OOD Type"][0]
         net.loadPoint("Saves")
         thresh = Config.thresholds
@@ -171,16 +169,17 @@ def thresholdTest(val_loader):
 
 
 class LossPerEpoch():
-    def __init__(self):
+    def __init__(self,name):
         self.loss = 0
+        self.name = name
 
     def addloss(self,predicted:torch.Tensor, target:torch.Tensor):
         locations = predicted!=target
         self.loss += locations.sum().item()
 
     def collect(self):
-        if os.path.exists(os.path.join("Saves","TrainingEpochs.csv")):
-            hist = pd.read_csv(os.path.join("Saves","TrainingEpochs.csv"),index_col=0)
+        if os.path.exists(os.path.join("Saves",self.name)):
+            hist = pd.read_csv(os.path.join("Saves",self.name),index_col=0)
         else:
             hist = pd.DataFrame([])
         param = pd.DataFrame(Config.parameters).iloc[0]
@@ -189,7 +188,7 @@ class LossPerEpoch():
         param["Number Of Failures"] = self.loss
 
         hist = pd.concat([hist,param],axis=1)
-        hist.to_csv(os.path.join("Saves","TrainingEpochs.csv"))
+        hist.to_csv(os.path.join("Saves",self.name))
         self.loss = 0
 
 

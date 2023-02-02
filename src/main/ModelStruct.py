@@ -77,6 +77,7 @@ class AttackTrainingClassification(nn.Module):
         # self.device = device
         # self.Y_Pred = Y_Pred
         # self.Y_test = Y_test
+        self.los = False
 
         
     # Specify how the data passes in the neural network
@@ -114,8 +115,7 @@ class AttackTrainingClassification(nn.Module):
         if self.end == "DOC":
             out = nn.Sigmoid()(out)
         
-        #This is just for datacollection.
-        self.los.addloss(torch.argmax(out,dim=1),labels)
+        
 
 
         # out = DeviceDataLoader(out, device)
@@ -152,7 +152,7 @@ class AttackTrainingClassification(nn.Module):
         #print("test1.1")
         history = []
         optimizer = opt_func(self.parameters(), lr)
-        self.los = helperFunctions.LossPerEpoch()
+        self.los = helperFunctions.LossPerEpoch("TestingDuringTrainEpochs.csv")
         # torch.cuda.empty_cache()
         if epochs > 0:
             for epoch in range(epochs):
@@ -214,6 +214,8 @@ class AttackTrainingClassification(nn.Module):
         # out = self.end.endlayer(out, labels, type="Open")
         # out = self.end.endlayer(out, labels, type="Energy")
 
+        
+
         # Y_pred = out
         # Y_test = labels
         # print("y-test from validation",Y_test)
@@ -223,6 +225,10 @@ class AttackTrainingClassification(nn.Module):
             test = torch.argmax(out, dim=1)
         else:
             unknowns = torch.zeros(out.shape)
+
+        #This is just for datacollection.
+        if self.los:
+            self.los.addloss(torch.argmax(out,dim=1),labels)
 
         out = GPU.to_device(out, self.device)
         acc = self.accuracy(out, labels_extended)  # Calculate accuracy
