@@ -26,7 +26,7 @@ if __name__ == "__main__":
 opt_func = Config.parameters["optimizer"]
 device = GPU.get_default_device() # selects a device, cpu or gpu
 
-def main():
+def run_model():
     #Delete me
     FileHandling.refreshFiles(root_path)
 
@@ -114,18 +114,17 @@ def main():
     FileHandling.write_hist_to_file(history_final,num_epochs,model.end.type)
     FileHandling.write_scores_to_file(score_list,num_epochs,model.end.type)
     print("Type : ",model.end.type)
-    print("F-Score : ", f1*100)
-    print("Precision : " ,precision*100)
-    print("Recall : ", recall*100)
+    print(f"F-Score : {f1*100:.2f}%")
+    print(f"Precision : {precision*100:.2f}%")
+    print(f"Recall : {recall*100:.2f}%")
 
     if Config.parameters["LOOP"][0]:
         net = model_list[model_type]()
         helperFunctions.thresholdTest(net,val_loader)
     # print("AUPRC : ", auprc * 100)
 
-
-
-if __name__ == '__main__':
+def main():
+    global root_path
     while (os.path.basename(root_path) == "main.py" or os.path.basename(root_path) == "main" or os.path.basename(root_path) == "src"):
         #checking that you are running from the right folder.
         print(f"Please run this from the source of the repository not from {os.path.basename(root_path)}. <---- Look at this!!!!")
@@ -134,7 +133,7 @@ if __name__ == '__main__':
 
     plots.name_override = "Config File settings"
 
-    main()
+    run_model()
 
     step = (0,0,0) #keeps track of what is being updated.
     while Config.parameters["LOOP"][0]:
@@ -143,7 +142,11 @@ if __name__ == '__main__':
             plt.clf()
             plots.name_override = helperFunctions.getcurrentlychanged(step)
             plt.figure(figsize=(4,4))
-            main()
+            run_model()
+
+
+if __name__ == '__main__':
+    main()
 
 
 

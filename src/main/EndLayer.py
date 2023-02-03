@@ -153,7 +153,7 @@ class EndLayers():
                 lastval = -1
                 label = list(range(15))
                 newout = []
-                for val in Config.helper_variables["unknowns_clss"]["unknowns"]:
+                for val in Config.helper_variables["unknowns_clss"]:
                     label.remove(val)
                     if val > lastval+1:
                         newout.append(modelOut[:,lastval+1:val])
@@ -290,7 +290,7 @@ def renameClasses(modelOut:torch.Tensor):
     lastval = -1
     label = list(range(15))
     newout = []
-    for val in Config.helper_variables["unknowns_clss"]["unknowns"] :
+    for val in Config.helper_variables["unknowns_clss"]:
         label.remove(val)
         if val > lastval+1:
             if modelOut.dim() == 2:

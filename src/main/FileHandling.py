@@ -26,7 +26,7 @@ def generateHyperparameters(root_path):
             param["num_epochs"][0] = Config.num_epochs
         param.to_csv(os.path.join(root_path,"Saves","hyperparam","hyperParam.csv"))
         unknown_classes = Config.helper_variables["unknowns_clss"]
-        param = pd.DataFrame.from_dict(unknown_classes)
+        param = pd.DataFrame(unknown_classes,columns=["Unknowns"])
         param.to_csv(os.path.join(root_path,"Saves","unknown","unknowns.csv"))
         print("Files created successfully !")
 

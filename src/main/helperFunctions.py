@@ -18,7 +18,7 @@ def setrelabel():
     rerelabel = {15:15}
     temp = 0
     for x in range(15):
-        if temp < len(Config.helper_variables["unknowns_clss"]["unknowns"]) and x == Config.helper_variables["unknowns_clss"]["unknowns"][temp]:
+        if temp < len(Config.helper_variables["unknowns_clss"]) and x == Config.helper_variables["unknowns_clss"][temp]:
             temp = temp+1
         else:
             relabel[x] = x-temp
@@ -51,7 +51,7 @@ def testRotate(notes=(0,0,0)):
         if stage == 2:
             Config.parameters[Config.loops2[stage]] = Config.loops[stage][step]
         elif stage == 4:
-            Config.helper_variables["unknowns_clss"]["unknowns"] = Config.loops[stage][step]
+            Config.helper_variables["unknowns_clss"] = Config.loops[stage][step]
             Config.parameters["Unknowns"] = f"{len(Config.loops[stage][step])} Unknowns"
             Config.helper_variables["knowns_clss"] = Config.loopOverUnknowns(Config.helper_variables["unknowns_clss"])
             setrelabel()
@@ -66,7 +66,7 @@ def testRotate(notes=(0,0,0)):
     if stage == 2:
         Config.parameters[Config.loops2[stage]] = Config.loops[stage][step]
     elif stage == 4:
-        Config.helper_variables["unknowns_clss"]["unknowns"] = Config.loops[stage][step]
+        Config.helper_variables["unknowns_clss"] = Config.loops[stage][step]
         Config.parameters["Unknowns"] = f"{len(Config.loops[stage][step])} Unknowns"
         Config.helper_variables["knowns_clss"] = Config.loopOverUnknowns(Config.helper_variables["unknowns_clss"])
         setrelabel()
@@ -107,7 +107,7 @@ def looptest():
     notes = (0,0,0)
     while notes:
         current = pd.DataFrame(Config.parameters)
-        current2 = pd.DataFrame(Config.helper_variables["unknowns_clss"]["unknowns"])
+        current2 = pd.DataFrame(Config.helper_variables["unknowns_clss"])
         out = pd.concat([out,current.iloc[0]],axis=1)
         out2 = pd.concat([out2,current2],axis=1)
         print(getcurrentlychanged(notes))

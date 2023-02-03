@@ -49,7 +49,7 @@ class AttackTrainingClassification(nn.Module):
             self.activation = nn.Softplus()
         if Config.parameters["Activation"][0] == "Softmax":
             #why softmax?
-            self.activation = nn.Softmax()
+            self.activation = nn.Softmax(dim=1)
 
 
         self.fc1 = nn.Linear(11904, Config.parameters["Nodes"][0])
