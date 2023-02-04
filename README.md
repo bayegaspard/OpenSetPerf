@@ -29,7 +29,7 @@ source opensetper/bin/activate
 
 - Edit the `src/main/Config.py` file to change the hyperparameters for the model. More information in `src/main/README.md`
 
-##### Warnigns: 
+##### Warnings: 
 -OpenMax can fail if the model does not predict at least 1 example of every class, when it does so it leaves a console error message. It however does not leave a message in the fscore.csv or other save files. The data it saves in case of those failures is not valid data. Beware: This is an error that we will fix.
 
 ##### Items in root folder: 
