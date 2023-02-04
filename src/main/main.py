@@ -118,9 +118,9 @@ def main():
     print("Precision : " ,precision*100)
     print("Recall : ", recall*100)
 
-    if Config.parameters["LOOP"][0]:
-        net = model_list[model_type]()
-        helperFunctions.thresholdTest(net,val_loader)
+#     if Config.parameters["LOOP"][0]:
+#         net = model_list[model_type]()
+#         helperFunctions.thresholdTest(net,val_loader)
     # print("AUPRC : ", auprc * 100)
 
 
