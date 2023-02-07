@@ -114,13 +114,14 @@ def run_model():
     FileHandling.write_hist_to_file(history_final,num_epochs,model.end.type)
     FileHandling.write_scores_to_file(score_list,num_epochs,model.end.type)
     print("Type : ",model.end.type)
+    print(f"Now changing : {plots.name_override}")
     print(f"F-Score : {f1*100:.2f}%")
     print(f"Precision : {precision*100:.2f}%")
     print(f"Recall : {recall*100:.2f}%")
 
-#     if Config.parameters["LOOP"][0]:
-#         net = model_list[model_type]()
-#         helperFunctions.thresholdTest(net,val_loader)
+    if Config.parameters["LOOP"][0]:
+        net = model_list[model_type]()
+        model.thresholdTest(val_loader)
     # print("AUPRC : ", auprc * 100)
 
 def main():
@@ -142,6 +143,7 @@ def main():
             plt.clf()
             plots.name_override = helperFunctions.getcurrentlychanged(step)
             plt.figure(figsize=(4,4))
+            print(f"Now changing: {plots.name_override}")
             run_model()
 
 

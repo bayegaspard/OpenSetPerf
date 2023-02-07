@@ -128,7 +128,7 @@ class EndLayers():
     def setArgs(self, classes=None, weibullThreshold=0.9, weibullTail=20, weibullAlpha=3, score="energy", m_in=-1, m_out=0, temp=None):
         param = pd.read_csv(os.path.join("Saves","hyperparam","hyperParam.csv"))
         unknowns = pd.read_csv(os.path.join("Saves","unknown","unknowns.csv"))
-        unknowns = unknowns["unknowns"].to_list()
+        unknowns = unknowns["Unknowns"].to_list()
         if temp is None:
             temp = float(param["Temperature"][0])
         if classes is None:
@@ -203,7 +203,7 @@ class EndLayers():
         
         if failed:
             errorreturn = torch.zeros((percentages.size()))
-            unknownColumn =torch.ones(len(percentages)).unsqueeze(1)
+            unknownColumn = torch.zeros(len(percentages)).unsqueeze(1)
             errorreturn = torch.cat((errorreturn,unknownColumn),1)
             self.Save_score.append(torch.zeros(0))
             return errorreturn

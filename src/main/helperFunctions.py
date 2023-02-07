@@ -5,9 +5,7 @@ import pandas as pd
 import torch
 import GPU
 import FileHandling
-import Dataload
-import plots
-from sklearn.metrics import (precision_score, recall_score, average_precision_score)
+
 
 #Translation dictionaries for algorithms that cannot have gaps in their numbers.
 relabel = {15:15}
@@ -92,13 +90,15 @@ def testRotate(notes=(0,0,0)):
     Config.parameters["LOOP"][0] = False
     return False
 
+#This puts the notes into a readable form
+#notes are how it keeps track of where in the loop it is.
 def getcurrentlychanged(notes):
     algorithm = Config.alg[notes[2]]
     currentlyChanging = Config.loops2[notes[0]]
     currentSetting = Config.loops[notes[0]][notes[1]]
     return str(algorithm)+" "+str(currentlyChanging)+" "+str(currentSetting)
 
-
+#This bit of code will loop through the entire loop and print all of the variations.
 def looptest():
     out = pd.DataFrame(())
     out2 = pd.DataFrame(())
@@ -121,51 +121,7 @@ def looptest():
     print(f"That means the model will have to run {count} times")
 
 
-#This loops through all the thresholds without resetting the model.
-def thresholdTest(net,val_loader):
-        net.end.type = Config.parameters["OOD Type"][0]
-        net.loadPoint("Saves")
-        thresh = Config.thresholds
-        for y in range(len(thresh)):
-            x = thresh[y]
-            #reset
-            net.end.resetvals()
-            net.store = GPU.to_device(torch.tensor([]), net.device), GPU.to_device(torch.tensor([]), net.device), GPU.to_device(torch.tensor([]), net.device)
-            net.end.cutoff = x
-            
-            #evaluate
-            net.evaluate(val_loader)
 
-            #get the data
-            y_pred,y_true,y_tested_against = net.store
-
-            #evaluate the data
-            y_true = y_true.to(torch.int).tolist()
-            y_pred = y_pred.to(torch.int).tolist()
-            y_tested_against = y_tested_against.to(torch.int).tolist()
-            recall = recall_score(y_tested_against,y_pred,average='weighted',zero_division=0)
-            precision = precision_score(y_tested_against,y_pred,average='weighted',zero_division=0)
-            f1 = 2 * (precision * recall) / (precision + recall)
-            #save the f1 score
-            FileHandling.create_params_Fscore("",f1,x)
-
-            #Generate and save confusion matrix
-            # if plots.name_override:
-            #     if y > 0:
-            #         plots.name_override = plots.name_override.replace(f" Threshold:{thresh[y-1]}",f" Threshold:{x}")
-            #     else:
-            #         plots.name_override = plots.name_override+f" Threshold:{x}"
-            # else:
-            #     plots.name_override = f"Default_setting Threshold:{x}"
-
-            # class_names = Dataload.get_class_names(range(15))
-            # for x in Config.helper_variables["unknowns_clss"]["unknowns"]:
-            #     class_names[x] = class_names[x]+"*"
-            # class_names.append("*Unknowns")
-            #cnf_matrix = plots.confusionMatrix(y_true.copy(), y_pred.copy(), y_tested_against.copy()) 
-
-            #plots.plot_confusion_matrix(cnf_matrix, classes=class_names, normalize=True,
-            #                title='Confusion matrix', knowns = Config.helper_variables["knowns_clss"])
 
 
 class LossPerEpoch():

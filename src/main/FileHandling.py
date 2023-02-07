@@ -3,7 +3,6 @@ import Config
 import pandas as pd
 import torch
 
-from torch.utils.data import DataLoader
 import Dataload
 import plots
 
@@ -44,7 +43,7 @@ def readCSVs(root_path):
         datagroup = param["Datagrouping"][0]
         model_type = param["model"][0]
         param = pd.read_csv(os.path.join(root_path,"Saves","unknown","unknowns.csv"))
-        unknownVals = param["unknowns"].to_list()
+        unknownVals = param["Unknowns"].to_list()
         return batch_size,num_workers,attemptLoad,testlen,num_epochs,lr,threshold,model_type,datagroup,unknownVals
 
 
