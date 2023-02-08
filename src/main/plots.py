@@ -99,7 +99,6 @@ def confusionMatrix(y_test, y_pred, y_tested):
 #     return f1_score(y_test,y_pred,average='micro')
 
 import Dataload
-import math
 
 
 def plot_confusion_matrix(cm:np.ndarray, classes,

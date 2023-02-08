@@ -9,6 +9,7 @@ from EndLayer import EndLayers
 import GPU
 import FileHandling
 import helperFunctions
+from sklearn.metrics import (precision_score, recall_score, average_precision_score)
 
 
 
@@ -30,6 +31,7 @@ class AttackTrainingClassification(nn.Module):
         if Config.parameters['Datagrouping'][0] == "DendrogramChunk":
             numClasses = numClasses*32
 
+        #So many if statements.
         self.activation = nn.ReLU()
         if Config.parameters["Activation"][0] == "Sigmoid":
             self.activation = nn.Sigmoid()
@@ -49,7 +51,7 @@ class AttackTrainingClassification(nn.Module):
             self.activation = nn.Softplus()
         if Config.parameters["Activation"][0] == "Softmax":
             #why softmax?
-            self.activation = nn.Softmax()
+            self.activation = nn.Softmax(dim=1)
 
 
         self.fc1 = nn.Linear(11904, Config.parameters["Nodes"][0])
@@ -142,6 +144,11 @@ class AttackTrainingClassification(nn.Module):
         # Y_Pred.append(preds.tolist()[:])
         # Y_test.append(labels.tolist()[:])
         # preds = torch.tensor(preds)
+
+        #Find out if something failed, if it did get no accuracy
+        if outputs.max() == 0:
+            return torch.tensor(0.0)
+
 
         #First is the guess, second is the actual class and third is the class to consider correct.
         self.store = torch.cat((self.store[0], preds)), torch.cat((self.store[1], labels[:,1])),torch.cat((self.store[2], labels[:,0]))
@@ -282,6 +289,53 @@ class AttackTrainingClassification(nn.Module):
             file.close()
             return int(phase), epochFound
         return -1, -1
+
+    
+    #This loops through all the thresholds without resetting the model.
+    def thresholdTest(net,val_loader):
+        net.end.type = Config.parameters["OOD Type"][0]
+        net.loadPoint("Saves")
+        thresh = Config.thresholds
+        for y in range(len(thresh)):
+            x = thresh[y]
+            #reset
+            net.end.resetvals()
+            net.store = GPU.to_device(torch.tensor([]), net.device), GPU.to_device(torch.tensor([]), net.device), GPU.to_device(torch.tensor([]), net.device)
+            net.end.cutoff = x
+            
+            #evaluate
+            net.evaluate(val_loader)
+
+            #get the data
+            y_pred,y_true,y_tested_against = net.store
+
+            #evaluate the data
+            y_true = y_true.to(torch.int).tolist()
+            y_pred = y_pred.to(torch.int).tolist()
+            y_tested_against = y_tested_against.to(torch.int).tolist()
+            recall = recall_score(y_tested_against,y_pred,average='weighted',zero_division=0)
+            precision = precision_score(y_tested_against,y_pred,average='weighted',zero_division=0)
+            f1 = 2 * (precision * recall) / (precision + recall)
+            #save the f1 score
+            FileHandling.create_params_Fscore("",f1,x)
+
+            #Generate and save confusion matrix
+            # if plots.name_override:
+            #     if y > 0:
+            #         plots.name_override = plots.name_override.replace(f" Threshold:{thresh[y-1]}",f" Threshold:{x}")
+            #     else:
+            #         plots.name_override = plots.name_override+f" Threshold:{x}"
+            # else:
+            #     plots.name_override = f"Default_setting Threshold:{x}"
+
+            # class_names = Dataload.get_class_names(range(15))
+            # for x in Config.helper_variables["unknowns_clss"]["unknowns"]:
+            #     class_names[x] = class_names[x]+"*"
+            # class_names.append("*Unknowns")
+            #cnf_matrix = plots.confusionMatrix(y_true.copy(), y_pred.copy(), y_tested_against.copy()) 
+
+            #plots.plot_confusion_matrix(cnf_matrix, classes=class_names, normalize=True,
+            #                title='Confusion matrix', knowns = Config.helper_variables["knowns_clss"])
     
         
 

@@ -3,7 +3,6 @@ import Config
 import pandas as pd
 import torch
 
-from torch.utils.data import DataLoader
 import Dataload
 import plots
 
@@ -26,7 +25,7 @@ def generateHyperparameters(root_path):
             param["num_epochs"][0] = Config.num_epochs
         param.to_csv(os.path.join(root_path,"Saves","hyperparam","hyperParam.csv"))
         unknown_classes = Config.helper_variables["unknowns_clss"]
-        param = pd.DataFrame.from_dict(unknown_classes)
+        param = pd.DataFrame(unknown_classes,columns=["Unknowns"])
         param.to_csv(os.path.join(root_path,"Saves","unknown","unknowns.csv"))
         print("Files created successfully !")
 
@@ -44,7 +43,7 @@ def readCSVs(root_path):
         datagroup = param["Datagrouping"][0]
         model_type = param["model"][0]
         param = pd.read_csv(os.path.join(root_path,"Saves","unknown","unknowns.csv"))
-        unknownVals = param["unknowns"].to_list()
+        unknownVals = param["Unknowns"].to_list()
         return batch_size,num_workers,attemptLoad,testlen,num_epochs,lr,threshold,model_type,datagroup,unknownVals
 
 

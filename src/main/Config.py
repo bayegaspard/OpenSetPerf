@@ -4,7 +4,7 @@ import os
 
 def loopOverUnknowns(unknownlist):
     knownVals = list(range(15))
-    for un in unknownlist["unknowns"]:
+    for un in unknownlist:
         knownVals.remove(un)
     return knownVals
 
@@ -12,7 +12,7 @@ opt_func = {"Adam":torch.optim.Adam,"SGD":torch.optim.SGD, "RMSprop":torch.optim
 helper_variables = {
     "phase" : -1,
     "startphase" : 0,
-    "unknowns_clss": {"unknowns":[0,1,2,3,4,5,6,11,12,13,14]},
+    "unknowns_clss": [0,1,2,3,4,5,6,11,12,13,14],
 
     "e": 0
 }
@@ -23,15 +23,15 @@ parameters = {
     #"ParamName":[Value,"Description"]
     #for a parameter called "ParamName" with a value of Value
     "batch_size":[100, "Number of items per batch"],
-    "num_workers":[3, "Number of threads working on building batches"],
+    "num_workers":[0, "Number of threads working on building batches"],
     "attemptLoad":[0, "0: do not use saves\n1:use saves"],
     "testlength":[1/4, "[0,1) percentage of training to test with"],
     "MaxPerClass": [200, "Maximum number of samples per class"],
-    "num_epochs":[10,"Number of times it trains on the whole trainset"],
+    "num_epochs":[1,"Number of times it trains on the whole trainset"],
     "learningRate":[0.0001, "a modifier for training"],
     "threshold":[0.5,"When to declare something to be unknown"],
     "model":["Convolutional","Model type [Fully_Connected,Convolutional]"],
-    "OOD Type":["Soft","type of out of distribution detection [Soft,Open,Energy,COOL,DOC]"],
+    "OOD Type":["Energy","type of out of distribution detection [Soft,Open,Energy,COOL,DOC]"],
     "Dropout":[0.01,"percent of nodes that are skipped per run, larger numbers for more complex models [0,1)"],
     "Datagrouping":["ClassChunk","Datagroup type [ClassChunk,Dendrogramlimit]"],
     "optimizer":opt_func["Adam"],
@@ -80,7 +80,7 @@ optim = [opt_func["Adam"]]
 learning_rates.insert(0,parameters["learningRate"][0])
 #epochs.remove(Config.parameters["num_epochs"][0])
 epochs.insert(0,parameters["num_epochs"][0])
-groups.insert(0,helper_variables["unknowns_clss"]["unknowns"])
+groups.insert(0,helper_variables["unknowns_clss"])
 
 #Always starts with the configured activation type
 alg.remove(parameters["OOD Type"][0])
