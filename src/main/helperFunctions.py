@@ -130,7 +130,8 @@ class LossPerEpoch():
         self.name = name
 
     def addloss(self,predicted:torch.Tensor, target:torch.Tensor):
-        locations = predicted.cpu()!=target
+        #https://discuss.pytorch.org/t/move-tensor-to-the-same-gpu-of-another-tensor/15168/7
+        locations = predicted.to(target.device)!=target
         self.loss += locations.sum().item()
 
     def collect(self):
