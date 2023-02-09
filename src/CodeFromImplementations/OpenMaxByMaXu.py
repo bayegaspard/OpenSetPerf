@@ -159,7 +159,7 @@ def compute_train_score_and_mavs_and_dists(train_class_num,trainloader,device,ne
     #LINES ADDED HERE
     for x in scores:
         if len(x) == 0:
-            raise helperFunctions.NoExamples(message=f"No examples for class {x}")
+            raise helperFunctions.NoExamples()
     scores = [torch.cat(x).cpu().numpy() for x in scores]  # (N_c, 1, C) * C
     mavs = np.array([np.mean(x, axis=0) for x in scores])  # (C, 1, C)
     dists = [compute_channel_distances(mcv, score) for mcv, score in zip(mavs, scores)]
