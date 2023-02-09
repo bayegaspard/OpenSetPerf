@@ -195,7 +195,7 @@ class EndLayers():
                 print("Warning: OpenMax has failed to load!")
                 failed = True
             #except LookupError:
-            except LookupError:
+            except helperFunctions.NoExamples:
                 print("OpenMax failed to idenitify at least 1 class!")
                 #Note: usual reason for failure is having no correct examples for at least 1 class.
                 failed = True

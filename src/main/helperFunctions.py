@@ -121,7 +121,8 @@ def looptest():
     print(f"That means the model will have to run {count} times")
 
 
-
+class NoExamples(Exception):
+    pass
 
 
 class LossPerEpoch():

@@ -8,6 +8,7 @@ import numpy as np
 import scipy.spatial.distance as spd
 import torch
 
+
 #three lines from https://xxx-cook-book.gitbooks.io/python-cook-book/content/Import/import-from-parent-folder.html
 import os
 import sys
@@ -15,7 +16,7 @@ root_folder = os.path.abspath(os.path.dirname(os.path.dirname(os.path.abspath(__
 sys.path.append(os.path.join(root_folder,"CodeFromImplementations"))
 
 import Config
-
+import helperFunctions
 
 
 import libmr
@@ -155,6 +156,10 @@ def compute_train_score_and_mavs_and_dists(train_class_num,trainloader,device,ne
                 # print(f"torch.argmax(score) is {torch.argmax(score)}, t is {t}")
                 if torch.argmax(score) == t:
                     scores[t].append(score.unsqueeze(dim=0).unsqueeze(dim=0))
+    #LINES ADDED HERE
+    for x in scores:
+        if len(x) == 0:
+            raise helperFunctions.NoExamples(message=f"No examples for class {x}")
     scores = [torch.cat(x).cpu().numpy() for x in scores]  # (N_c, 1, C) * C
     mavs = np.array([np.mean(x, axis=0) for x in scores])  # (C, 1, C)
     dists = [compute_channel_distances(mcv, score) for mcv, score in zip(mavs, scores)]
@@ -204,7 +209,7 @@ def renameClasses(modelOut:torch.Tensor, labels:torch.Tensor):
     lastval = -1
     label = list(range(15))
     newout = []
-    print(Config.helper_variables["unknowns_clss"])
+    #print(Config.helper_variables["unknowns_clss"])
     for val in Config.helper_variables["unknowns_clss"]:
         label.remove(val)
         if val > lastval+1:
