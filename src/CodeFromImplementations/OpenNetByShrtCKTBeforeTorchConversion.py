@@ -15,7 +15,6 @@ class OpenNetBase(object):
         self.enable_recon_loss = False
         self.enable_intra_loss = True
         self.enable_inter_loss = True
-        self.div_loss = False
 
         #I am not sure if crossentropy loss should be on?
         self.enable_ce_loss = True
@@ -76,9 +75,7 @@ class OpenNetBase(object):
             self.recon_train_op = self.recon_opt.minimize(self.recon_loss, var_list=recon_vars)
 
         if self.enable_inter_loss or self.enable_intra_loss or self.div_loss:
-            #COMPLETELY CHANGED LINE
-            #self.train_op = self.opt.minimize(self.loss, var_list=e_vars)
-            self.loss.backward()
+            self.train_op = self.opt.minimize(self.loss, var_list=e_vars)
 
         if self.enable_ce_loss:
             self.ce_train_op = self.c_opt.minimize(self.ce_loss, var_list=classifier_vars)

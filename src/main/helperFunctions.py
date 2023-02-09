@@ -130,7 +130,7 @@ class LossPerEpoch():
         self.name = name
 
     def addloss(self,predicted:torch.Tensor, target:torch.Tensor):
-        locations = predicted!=target
+        locations = predicted.cpu()!=target
         self.loss += locations.sum().item()
 
     def collect(self):
