@@ -204,8 +204,8 @@ def renameClasses(modelOut:torch.Tensor, labels:torch.Tensor):
     lastval = -1
     label = list(range(15))
     newout = []
-    print(Config.helper_variables["unknowns_clss"]["unknowns"])
-    for val in Config.helper_variables["unknowns_clss"]["unknowns"] :
+    print(Config.helper_variables["unknowns_clss"])
+    for val in Config.helper_variables["unknowns_clss"]:
         label.remove(val)
         if val > lastval+1:
             if modelOut.dim() == 2:
