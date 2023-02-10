@@ -38,8 +38,8 @@ def run_model():
     model_list = {"Convolutional":ModelStruct.Conv1DClassifier,"Fully_Connected":ModelStruct.FullyConnected}
     model = model_list[model_type]() # change index to select a specific architecture. 0=conv1d ad 1=fully connected
     model = ModelStruct.ModdedParallel(model)
-    model.to(device)
-    model.device = device
+    #model.to(device)
+    #model.device = device
     model.end.type = Config.parameters["OOD Type"][0]
     model.end.cutoff = threshold
 

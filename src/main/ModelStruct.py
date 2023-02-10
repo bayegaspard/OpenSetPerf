@@ -11,7 +11,7 @@ import FileHandling
 import helperFunctions
 from sklearn.metrics import (precision_score, recall_score, average_precision_score)
 
-
+device = GPU.get_default_device()
 
 class ModdedParallel(nn.DataParallel):
     # From https://github.com/pytorch/pytorch/issues/16885#issuecomment-551779897
@@ -54,13 +54,13 @@ class AttackTrainingClassification(nn.Module):
             self.activation = nn.Softmax(dim=1)
 
 
-        self.fc1 = nn.Linear(11904, Config.parameters["Nodes"][0])
-        self.fc2 = nn.Linear(Config.parameters["Nodes"][0], numClasses)
+        self.fc1 = nn.Linear(11904, Config.parameters["Nodes"][0],device=device)
+        self.fc2 = nn.Linear(Config.parameters["Nodes"][0], numClasses,device=device)
 
 
         self.addedLayers = torch.nn.Sequential()
         for x in range(Config.parameters["Number of Layers"][0]):
-            self.addedLayers.append(torch.nn.Linear(Config.parameters["Nodes"][0],Config.parameters["Nodes"][0]))
+            self.addedLayers.append(torch.nn.Linear(Config.parameters["Nodes"][0],Config.parameters["Nodes"][0],device=device))
             self.addedLayers.append(self.activation)
 
         # self.COOL = nn.Linear(256, 15*n)
@@ -69,10 +69,9 @@ class AttackTrainingClassification(nn.Module):
 
         self.end = EndLayers(numClasses, type="Soft", cutoff=Config.parameters["threshold"][0])
         self.batchnum = 0
-        self.device = GPU.get_default_device()
-        self.store = GPU.to_device(torch.tensor([]), self.device), GPU.to_device(torch.tensor([]), self.device), GPU.to_device(torch.tensor([]), self.device)
+        self.store = GPU.to_device(torch.tensor([]), device), GPU.to_device(torch.tensor([]), device), GPU.to_device(torch.tensor([]), device)
 
-        self.COOL = nn.Linear(Config.parameters["Nodes"][0], numClasses*self.end.DOO)
+        self.COOL = nn.Linear(Config.parameters["Nodes"][0], numClasses*self.end.DOO,device=device)
         # self.model = model
         # self.batch = batch
         # self.to_device = to_device
@@ -348,12 +347,12 @@ class Conv1DClassifier(AttackTrainingClassification):
     def __init__(self):
         super().__init__()
         self.layer1 = nn.Sequential(
-            nn.Conv1d(1, 32, 3),
+            nn.Conv1d(1, 32, 3,device=device),
             self.activation,
             nn.MaxPool1d(4),
             nn.Dropout(int(Config.parameters["Dropout"][0])))
         self.layer2 = nn.Sequential(
-            nn.Conv1d(32, 64, 3),
+            nn.Conv1d(32, 64, 3,device=device),
             self.activation,
             nn.MaxPool1d(2),
             nn.Dropout(int(Config.parameters["Dropout"][0])))
@@ -369,11 +368,11 @@ class FullyConnected(AttackTrainingClassification):
     def __init__(self):
         super().__init__()
         self.layer1 = nn.Sequential(
-            nn.Linear(1504,12000),
+            nn.Linear(1504,12000,device=device),
             self.activation,
             nn.Dropout(int(Config.parameters["Dropout"][0])))
         self.layer2 = nn.Sequential(
-            nn.Linear(12000,11904),
+            nn.Linear(12000,11904,device=device),
             self.activation,
             nn.Dropout(int(Config.parameters["Dropout"][0])))
 

@@ -152,3 +152,4 @@ class LossPerEpoch():
 
 if __name__ == "__main__":
     looptest()
+    print(f"Torch cuda utilizaton percent: {torch.cuda.utilization()}")
