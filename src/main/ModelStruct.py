@@ -299,7 +299,7 @@ class AttackTrainingClassification(nn.Module):
             x = thresh[y]
             #reset
             net.end.resetvals()
-            net.store = GPU.to_device(torch.tensor([]), net.device), GPU.to_device(torch.tensor([]), net.device), GPU.to_device(torch.tensor([]), net.device)
+            net.store = GPU.to_device(torch.tensor([]), device), GPU.to_device(torch.tensor([]), device), GPU.to_device(torch.tensor([]), device)
             net.end.cutoff = x
             
             #evaluate
