@@ -164,7 +164,7 @@ class AttackTrainingClassification(nn.Module):
             for epoch in range(epochs):
                 #print("test1.2")
                 self.end.resetvals()
-                self.store = GPU.to_device(torch.tensor([]), self.device), GPU.to_device(torch.tensor([]), self.device), GPU.to_device(torch.tensor([]), self.device)
+                self.store = GPU.to_device(torch.tensor([]), device), GPU.to_device(torch.tensor([]), device), GPU.to_device(torch.tensor([]), device)
                 # Training Phase
                 self.train()
                 train_losses = []
@@ -213,7 +213,7 @@ class AttackTrainingClassification(nn.Module):
         self.batchnum += 1
         labels = labels_extended[:,0]
         out = self(data)  # Generate predictions
-        zeross = GPU.to_device(torch.zeros(len(out),1),self.device)
+        zeross = GPU.to_device(torch.zeros(len(out),1),device)
         loss = F.cross_entropy(torch.cat((out,zeross),dim=1), labels)  # Calculate loss
         out = self.end.endlayer(out,
                                 labels)  # <----Here is where it is using Softmax TODO: make this be able to run all of the versions and save the outputs.
@@ -236,7 +236,7 @@ class AttackTrainingClassification(nn.Module):
         if self.los:
             self.los.addloss(torch.argmax(out,dim=1),labels)
 
-        out = GPU.to_device(out, self.device)
+        out = GPU.to_device(out, device)
         acc = self.accuracy(out, labels_extended)  # Calculate accuracy
         FileHandling.write_batch_to_file(loss, self.batchnum, self.end.type, "Saves")
         #print("validation accuracy: ", acc)
