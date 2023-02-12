@@ -42,7 +42,7 @@ class AttackTrainingClassification(nn.Module):
         if Config.parameters["Activation"][0] == "Elu":
             self.activation = nn.ELU()
         if Config.parameters["Activation"][0] == "PRElu":
-            self.activation = nn.PReLU()
+            self.activation = nn.PReLU(device=device)
         if Config.parameters["Activation"][0] == "Swish":
             print("Swish is not implemented yet")
         if Config.parameters["Activation"][0] == "maxout":
