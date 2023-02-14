@@ -23,13 +23,13 @@ parameters = {
     #"ParamName":[Value,"Description"]
     #for a parameter called "ParamName" with a value of Value
     "batch_size":[100, "Number of items per batch"],
-    "num_workers":[0, "Number of threads working on building batches"],
+    "num_workers":[10, "Number of threads working on building batches"],
     "attemptLoad":[0, "0: do not use saves\n1:use saves"],
     "testlength":[1/4, "[0,1) percentage of training to test with"],
     "MaxPerClass": [200, "Maximum number of samples per class"],
     "num_epochs":[1,"Number of times it trains on the whole trainset"],
-    "learningRate":[0.0001, "a modifier for training"],
-    "threshold":[0.5,"When to declare something to be unknown"],
+    "learningRate":[0.01, "a modifier for training"],
+    "threshold":[10,"When to declare something to be unknown"],
     "model":["Convolutional","Model type [Fully_Connected,Convolutional]"],
     "OOD Type":["Energy","type of out of distribution detection [Soft,Open,Energy,COOL,DOC]"],
     "Dropout":[0.01,"percent of nodes that are skipped per run, larger numbers for more complex models [0,1)"],
