@@ -122,7 +122,7 @@ def looptest():
 
 
 
-
+device = GPU.get_default_device() # selects a device, cpu or gpu
 
 class LossPerEpoch():
     def __init__(self,name):
@@ -130,6 +130,8 @@ class LossPerEpoch():
         self.name = name
 
     def addloss(self,predicted:torch.Tensor, target:torch.Tensor):
+        target = GPU.to_device(target,device)
+        predicted = GPU.to_device(predicted,device)
         locations = predicted!=target
         self.loss += locations.sum().item()
 
