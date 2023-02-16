@@ -52,8 +52,8 @@ def muStandardsFromDataloader(seen,Dataloader,model):
                 outputArray = outputs.cpu().numpy()
                 labelArray = labels.cpu().numpy()
             else:
-                outputArray = np.vstack((outputArray,outputs.numpy()))
-                labelArray = np.vstack((labelArray,labels.numpy()))
+                outputArray = np.vstack((outputArray,outputs.cpu().numpy()))
+                labelArray = np.vstack((labelArray,labels.cpu().numpy()))
 
     return muStandards(seen,outputArray,labelArray)
 
