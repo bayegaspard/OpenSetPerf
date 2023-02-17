@@ -26,8 +26,8 @@ parameters = {
     "num_workers":[0, "Number of threads working on building batches"],
     "attemptLoad":[0, "0: do not use saves\n1:use saves"],
     "testlength":[1/4, "[0,1) percentage of training to test with"],
-    "MaxPerClass": [200, "Maximum number of samples per class"],
-    "num_epochs":[1,"Number of times it trains on the whole trainset"],
+    "MaxPerClass": [2000, "Maximum number of samples per class"],
+    "num_epochs":[10,"Number of times it trains on the whole trainset"],
     "learningRate":[0.0001, "a modifier for training"],
     "threshold":[0.5,"When to declare something to be unknown"],
     "model":["Convolutional","Model type [Fully_Connected,Convolutional]"],
@@ -42,7 +42,7 @@ parameters = {
     "Number of Layers": [1,"Number of layers to add to the base model"],
     "Nodes": [256,"The number of nodes per added layer"],
     "Activation": ["ReLU","The type of activation function to use"],
-    "LOOP": [1,"This is a parameter that detumines if we want to loop over the algorithms."]
+    "LOOP": [2,"This is a parameter that detumines if we want to loop over the algorithms."]
 }
 
 if parameters["Datagrouping"][0] == "DendrogramChunk":

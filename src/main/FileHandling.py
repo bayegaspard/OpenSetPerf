@@ -202,7 +202,7 @@ def create_params_All(path=""):
 
     if os.path.exists(os.path.join(path,"Saves","Scoresall.csv")):
         hist = pd.read_csv(os.path.join(path,"Saves","Scoresall.csv"),index_col=0)
-        hist = pd.concat([hist,params.iloc[[0]]],axis=0)
+        hist = pd.concat([hist,params.iloc[[0]]],axis=0,ignore_index=True)
     else:
         hist = params.iloc[[0]]
     
@@ -211,6 +211,7 @@ def create_params_All(path=""):
 
 def addMeasurement(name:str,val):
     total = pd.read_csv(os.path.join("Saves","Scoresall.csv"),index_col=0)
+    test2 = total.last_valid_index()
     total.at[total.last_valid_index(),name] = val
     total.to_csv(os.path.join("Saves","Scoresall.csv"))
 

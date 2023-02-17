@@ -92,10 +92,15 @@ def testRotate(notes=(0,0,0)):
     return False
 
 def incrementLoop(notes=(0)):
+    notes = notes+1
+    if notes > len(Config.incGroups[notes]):
+        Config.parameters["LOOP"][0] = False
+        return False
     Config.helper_variables["unknowns_clss"] = Config.incGroups[notes]
-    Config.parameters["Unknowns"] = f"{Config.incGroups[notes]} Unknowns"
+    Config.parameters["Unknowns"] = f"{len(Config.incGroups[notes])} Unknowns"
     Config.helper_variables["knowns_clss"] = Config.loopOverUnknowns(Config.incGroups[notes])
     setrelabel()
+    return notes
 
 #This puts the notes into a readable form
 #notes are how it keeps track of where in the loop it is.

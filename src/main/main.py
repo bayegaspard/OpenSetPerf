@@ -61,6 +61,9 @@ def run_model():
 
     #print("Test1")
 
+    if Config.parameters["LOOP"][0] == 2:
+        model.loadPoint("Saves")
+
     history_final = []
     model.end.prepWeibull(train_loader,device,model)
     history_final += model.fit(num_epochs, lr, train_loader, test_loader,val_loader, opt_func=opt_func)
@@ -129,7 +132,7 @@ def run_model():
     print(f"Precision : {precision*100:.2f}%")
     print(f"Recall : {recall*100:.2f}%")
 
-    if Config.parameters["LOOP"][0]:
+    if Config.parameters["LOOP"][0] == 1:
         net = model_list[model_type]()
         model.thresholdTest(val_loader)
     # print("AUPRC : ", auprc * 100)
@@ -144,17 +147,30 @@ def main():
 
     plots.name_override = "Config File settings"
 
+
+    helperFunctions.deleteSaves()
     run_model()
 
-    step = (0,0,0) #keeps track of what is being updated.
-    while Config.parameters["LOOP"][0]:
-        step = helperFunctions.testRotate(step)
-        if step:
-            plt.clf()
-            plots.name_override = helperFunctions.getcurrentlychanged(step)
-            plt.figure(figsize=(4,4))
-            print(f"Now changing: {plots.name_override}")
-            run_model()
+    if Config.parameters["LOOP"][0] == 1:
+        step = (0,0,0) #keeps track of what is being updated.
+        while Config.parameters["LOOP"][0]:
+            step = helperFunctions.testRotate(step)
+            if step:
+                plt.clf()
+                plots.name_override = helperFunctions.getcurrentlychanged(step)
+                plt.figure(figsize=(4,4))
+                print(f"Now changing: {plots.name_override}")
+                run_model()
+    elif Config.parameters["LOOP"][0] == 2:
+        step = (0) #keeps track of what is being updated.
+        while Config.parameters["LOOP"][0]:
+            step = helperFunctions.incrementLoop(step)
+            if step:
+                plt.clf()
+                plots.name_override = f"Incremental with {Config.parameters['Unknowns']} unknowns"
+                plt.figure(figsize=(4,4))
+                print(f"unknowns: {Config.helper_variables['unknowns_clss']}")
+                run_model()
 
 
 if __name__ == '__main__':
