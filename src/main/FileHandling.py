@@ -69,21 +69,23 @@ def checkAttempLoad(root_path):
         unknowns = Dataload.ClusterDivDataset(os.path.join(root_path,"datasets","Payload_data_CICIDS2017"), use=unknownlist, unknownData=True)
     else:
         raise ValueError("Invalid Dataloader type")
-    train, test = torch.utils.data.random_split(train,[len(train) - int(len(train) * Config.parameters["testlength"][0]),int(len(train) * Config.parameters["testlength"][0])])  # randomly takes 4000 lines to use as a testing dataset
+    train, val = torch.utils.data.random_split(train,[len(train) - int(len(train) * Config.parameters["testlength"][0]),int(len(train) * Config.parameters["testlength"][0])])  # randomly takes 4000 lines to use as a testing dataset
     
-    test = torch.utils.data.ConcatDataset([test, unknowns])
+    test = torch.utils.data.ConcatDataset([val, unknowns])
     if Config.parameters["attemptLoad"][0] and os.path.exists(os.path.join(root_path,"Saves","Data.pt")):
         train = torch.load(os.path.join(root_path,"Saves","Data.pt"))
         test = torch.load(os.path.join(root_path,"Saves","DataTest.pt"))
+        val = torch.load(os.path.join(root_path,"Saves","DataVal.pt"))
         print("Loading from data and test checkpoint ...")
 
     else:
         #test = unknowns
         torch.save(train,os.path.join(root_path,"Saves","Data.pt"))
         torch.save(test,os.path.join(root_path,"Saves","DataTest.pt"))
+        torch.save(val,os.path.join(root_path,"Saves","DataVal.pt"))
         if Config.parameters["attemptLoad"][0]:
             print("No model train and test checkpoint was found, saving datacheckpoints ...")
-    return train, test
+    return train, test, val
 
 
 def deletefile(path):
@@ -193,4 +195,22 @@ def create_params_Fscore(path, score, threshold = None):
     
     
     hist.to_csv(os.path.join(path,"Saves","fscore.csv"),index=False)
+
+def create_params_All(path=""):
+    params = pd.DataFrame(Config.parameters,columns=Config.parameters.keys())
+
+
+    if os.path.exists(os.path.join(path,"Saves","Scoresall.csv")):
+        hist = pd.read_csv(os.path.join(path,"Saves","Scoresall.csv"),index_col=0)
+        hist = pd.concat([hist,params.iloc[[0]]],axis=0)
+    else:
+        hist = params.iloc[[0]]
+    
+    #hist = hist.transpose()
+    hist.to_csv(os.path.join(path,"Saves","Scoresall.csv"))
+
+def addMeasurement(name:str,val):
+    total = pd.read_csv(os.path.join("Saves","Scoresall.csv"),index_col=0)
+    total.at[total.last_valid_index(),name] = val
+    total.to_csv(os.path.join("Saves","Scoresall.csv"))
 

@@ -5,6 +5,7 @@ import pandas as pd
 import torch
 import GPU
 import FileHandling
+from sklearn.metrics import (precision_score, recall_score, average_precision_score,accuracy_score)
 
 
 #Translation dictionaries for algorithms that cannot have gaps in their numbers.
@@ -90,6 +91,12 @@ def testRotate(notes=(0,0,0)):
     Config.parameters["LOOP"][0] = False
     return False
 
+def incrementLoop(notes=(0)):
+    Config.helper_variables["unknowns_clss"] = Config.incGroups[notes]
+    Config.parameters["Unknowns"] = f"{Config.incGroups[notes]} Unknowns"
+    Config.helper_variables["knowns_clss"] = Config.loopOverUnknowns(Config.incGroups[notes])
+    setrelabel()
+
 #This puts the notes into a readable form
 #notes are how it keeps track of where in the loop it is.
 def getcurrentlychanged(notes):
@@ -143,11 +150,25 @@ class LossPerEpoch():
         param = pd.DataFrame(Config.parameters).iloc[0]
         #current = pd.DataFrame({"Number of failures":[self.loss]})
         #current = pd.concat([param,current])
-        param["Number Of Failures"] = self.loss
+        #param["Number Of Failures"] = self.loss
 
-        hist = pd.concat([hist,param],axis=1)
-        hist.to_csv(os.path.join("Saves",self.name))
+        #hist = pd.concat([hist,param],axis=1)
+        #hist.to_csv(os.path.join("Saves",self.name))
+        FileHandling.addMeasurement("Number Of Failures",self.loss)
         self.loss = 0
+
+def getFscore(dat):
+    y_pred,y_true,y_tested_against = dat
+    y_pred = y_pred / (Config.parameters["CLASSES"][0]/15) #The whole config thing is if we are splitting the classes further
+    y_true = y_true / (Config.parameters["CLASSES"][0]/15)
+    y_true = y_true.to(torch.int).tolist()
+    y_pred = y_pred.to(torch.int).tolist()
+    y_tested_against = y_tested_against.to(torch.int).tolist()
+    recall = recall_score(y_tested_against,y_pred,average='weighted',zero_division=0)
+    precision = precision_score(y_tested_against,y_pred,average='weighted',zero_division=0)
+    f1 = 2 * (precision * recall) / (precision + recall)
+    accuracy = accuracy_score(y_tested_against,y_pred)
+    return f1,recall,precision,accuracy
 
 
 if __name__ == "__main__":

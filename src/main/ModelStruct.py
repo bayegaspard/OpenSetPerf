@@ -69,8 +69,7 @@ class AttackTrainingClassification(nn.Module):
 
         self.end = EndLayers(numClasses, type="Soft", cutoff=Config.parameters["threshold"][0])
         self.batchnum = 0
-        self.store = GPU.to_device(torch.tensor([]), device), GPU.to_device(torch.tensor([]), device), GPU.to_device(torch.tensor([]), device)
-
+        self.storeReset()
         self.COOL = nn.Linear(Config.parameters["Nodes"][0], numClasses*self.end.DOO,device=device)
         # self.model = model
         # self.batch = batch
@@ -154,17 +153,18 @@ class AttackTrainingClassification(nn.Module):
         return torch.tensor(torch.sum(preds == labels[:,0]).item() / len(preds))
         # def fit(epochs, lr, model, train_loader, val_loader, opt_func=torch.optim.SGD):
 
-    def fit(self, epochs, lr, train_loader, val_loader, opt_func):
+    def fit(self, epochs, lr, train_loader, test_loader,val_loader, opt_func):
         #print("test1.1")
         history = []
         optimizer = opt_func(self.parameters(), lr)
         self.los = helperFunctions.LossPerEpoch("TestingDuringTrainEpochs.csv")
+        FileHandling.create_params_All()
         # torch.cuda.empty_cache()
         if epochs > 0:
             for epoch in range(epochs):
                 #print("test1.2")
                 self.end.resetvals()
-                self.store = GPU.to_device(torch.tensor([]), device), GPU.to_device(torch.tensor([]), device), GPU.to_device(torch.tensor([]), device)
+                self.storeReset()
                 # Training Phase
                 self.train()
                 train_losses = []
@@ -188,6 +188,7 @@ class AttackTrainingClassification(nn.Module):
                 result = self.evaluate(val_loader)
                 #print("test1.4")
                 result['train_loss'] = torch.stack(train_losses).mean().item()
+                FileHandling.addMeasurement(f"Epoch{epoch} loss",result['train_loss'])
                 result["epoch"] = epoch
                 #print("test1.5")
                 self.epoch_end(epoch, result)
@@ -234,7 +235,10 @@ class AttackTrainingClassification(nn.Module):
 
         #This is just for datacollection.
         if self.los:
-            self.los.addloss(torch.argmax(out,dim=1),labels)
+            if self.end.type == "DOC":
+                self.los.addloss(out,labels)
+            else:
+                self.los.addloss(torch.argmax(out,dim=1),labels)
 
         out = GPU.to_device(out, device)
         acc = self.accuracy(out, labels_extended)  # Calculate accuracy
@@ -249,7 +253,10 @@ class AttackTrainingClassification(nn.Module):
         epoch_acc = torch.stack(batch_accs).mean()  # Combine accuracies
         batch_unkn = self.end.Save_score
         self.end.Save_score = []
-        epoch_unkn = torch.stack(batch_unkn).mean()  # Combine Unknowns
+        if len(batch_unkn) != 0:
+            epoch_unkn = torch.stack(batch_unkn).mean()  # Combine Unknowns
+        else:
+            epoch_unkn = torch.tensor(0)
 
         return {'val_loss': epoch_loss.item(), 'val_acc': epoch_acc.item(), "val_avgUnknown": epoch_unkn.item()}
 
@@ -335,6 +342,10 @@ class AttackTrainingClassification(nn.Module):
 
             #plots.plot_confusion_matrix(cnf_matrix, classes=class_names, normalize=True,
             #                title='Confusion matrix', knowns = Config.helper_variables["knowns_clss"])
+
+    def storeReset(self):
+        self.store = GPU.to_device(torch.tensor([]), device), GPU.to_device(torch.tensor([]), device), GPU.to_device(torch.tensor([]), device)
+    
     
         
 

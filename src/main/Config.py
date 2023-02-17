@@ -31,7 +31,7 @@ parameters = {
     "learningRate":[0.0001, "a modifier for training"],
     "threshold":[0.5,"When to declare something to be unknown"],
     "model":["Convolutional","Model type [Fully_Connected,Convolutional]"],
-    "OOD Type":["Open","type of out of distribution detection [Soft,Open,Energy,COOL,DOC]"],
+    "OOD Type":["DOC","type of out of distribution detection [Soft,Open,Energy,COOL,DOC]"],
     "Dropout":[0.01,"percent of nodes that are skipped per run, larger numbers for more complex models [0,1)"],
     "Datagrouping":["ClassChunk","Datagroup type [ClassChunk,Dendrogramlimit]"],
     "optimizer":opt_func["Adam"],
@@ -59,12 +59,13 @@ thresholds = [0.1,0.5,0.75,0.99,1.1,2,5,10]
 learning_rates = [1,0.1,0.001,0.0001,0.00001,0.000001,0.0000001,0.00000001]
 activation = ["ReLU", "Tanh", "Sigmoid","Leaky","Elu","PRElu","Softplus","Softmax"]
 groups = [[2],[2,3,6],[2,3,4,5,6],[2,3,4,5,6,7,11],[2,3,4,5,6,7,11,12,14],[2,3,4,5,6,7,8,9,11,12,14],[2,3,4,5,6,7,8,9,10,11,12,13,14],[1,2,3,4,5,6,7,8,9,10,11,12,13,14]]
+incGroups = [[10,11,12,13,14],[11,12,13,14],[12,13,14],[13,14],[14],[]]
 epochs= []
 epochs = [1,2,5,10,25,50,100,200]
 
 
-alg.remove("Soft")
-#alg.remove("Open")
+#alg.remove("Soft")
+alg.remove("Open")
 alg.remove("Energy")
 #alg.remove("COOL")
 

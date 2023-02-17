@@ -95,6 +95,9 @@ def openmax(weibull_model, categories, input_score, eu_weight, alpha=10, distanc
     ranked_list = input_score.argsort().ravel()[::-1][:alpha]
     alpha_weights = [((alpha + 1) - i) / float(alpha) for i in range(1, alpha + 1)]
     omega = np.zeros(nb_classes)
+    print(f"Omega = {omega}")
+    print(f"Ranked List = {ranked_list}")
+    print(f"Alpha Weights = {alpha_weights}")
     omega[ranked_list] = alpha_weights
 
     scores, scores_u = [], []

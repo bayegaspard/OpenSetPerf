@@ -43,12 +43,12 @@ def run_model():
     model.end.type = Config.parameters["OOD Type"][0]
     model.end.cutoff = threshold
 
-    train, test = FileHandling.checkAttempLoad(root_path)
+    train, test, val = FileHandling.checkAttempLoad(root_path)
 
 
     trainset = DataLoader(train, batch_size, num_workers=num_workers,shuffle=True,
             pin_memory=False)  # for faster processing enable pin memory to true and num_workers=4
-    validationset = DataLoader(test, batch_size, shuffle=True, num_workers=num_workers,pin_memory=False)
+    validationset = DataLoader(val, batch_size, shuffle=True, num_workers=num_workers,pin_memory=False)
     testset = DataLoader(test, batch_size, shuffle=True, num_workers=num_workers, pin_memory=False)
 
     print("length of train",len(train),"\nlength of test",len(test))
@@ -57,13 +57,25 @@ def run_model():
     #val_loader = validationset
     train_loader =  GPU.DeviceDataLoader(trainset, device)
     val_loader = GPU.DeviceDataLoader(validationset, device)
-    test_loader = testset
+    test_loader = GPU.DeviceDataLoader(testset, device)
 
     #print("Test1")
 
     history_final = []
     model.end.prepWeibull(train_loader,device,model)
-    history_final += model.fit(num_epochs, lr, train_loader, val_loader, opt_func=opt_func)
+    history_final += model.fit(num_epochs, lr, train_loader, test_loader,val_loader, opt_func=opt_func)
+
+    #Validation values
+    f1, recall, precision, accuracy = helperFunctions.getFscore(model.store)
+    FileHandling.addMeasurement("Val_F1",f1)
+    FileHandling.addMeasurement("Val_Recall",recall)
+    FileHandling.addMeasurement("Val_Precision",precision)
+    FileHandling.addMeasurement("Val_Accuracy",accuracy)
+
+
+    model.storeReset()
+    model.eval()
+    model.evaluate(test_loader)
     # epochs, lr, model, train_loader, val_loader, opt_func
 
     #print("Test2")
@@ -73,12 +85,7 @@ def run_model():
         plots.plot_losses(history_final)
         plots.plot_accuracies(history_final)
 
-    y_pred,y_true,y_tested_against = model.store
-    y_pred = y_pred / (Config.parameters["CLASSES"][0]/15) #The whole config thing is if we are splitting the classes further
-    y_true = y_true / (Config.parameters["CLASSES"][0]/15)
-    y_true = y_true.to(torch.int).tolist()
-    y_pred = y_pred.to(torch.int).tolist()
-    y_tested_against = y_tested_against.to(torch.int).tolist() #This is the values with the unknowns replaced by 15
+    
     # print("y len and pred",len(y_pred),y_pred)
     # print("y len and test", len(y_test),y_test)
 #plots.plot_confusion_matrix(y_test,y_pred)
@@ -97,9 +104,12 @@ def run_model():
 
     #print("Test4")
 
-    recall = recall_score(y_tested_against,y_pred,average='weighted',zero_division=0)
-    precision = precision_score(y_tested_against,y_pred,average='weighted',zero_division=0)
-    f1 = 2 * (precision * recall) / (precision + recall)
+    
+    f1, recall, precision, accuracy = helperFunctions.getFscore(model.store)
+    FileHandling.addMeasurement("Test_F1",f1)
+    FileHandling.addMeasurement("Test_Recall",recall)
+    FileHandling.addMeasurement("Test_Precision",precision)
+    FileHandling.addMeasurement("Test_Accuracy",accuracy)
     FileHandling.create_params_Fscore(root_path,f1)
 
     #plots.plot_confusion_matrix(cnf_matrix, classes=class_names, normalize=True,
