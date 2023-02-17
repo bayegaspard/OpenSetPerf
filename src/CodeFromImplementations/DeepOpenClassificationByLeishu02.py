@@ -48,6 +48,8 @@ def muStandardsFromDataloader(seen,Dataloader,model):
     with torch.no_grad():
         for inputs,labels in Dataloader:
             outputs, labels = renameClasses(model(inputs),labels)
+            outputs = outputs.cpu()
+            labels = labels.cpu()
             if labelArray is None:
                 outputArray = outputs.cpu().numpy()
                 labelArray = labels.cpu().numpy()
