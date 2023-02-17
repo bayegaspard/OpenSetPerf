@@ -3,7 +3,7 @@ A Practitioner's Guide to the Performance of Deep-Learning Based Open Set Recogn
 
 ### Steps to run:
 
-- Clone the repository using :
+- Clone the repository using the following commands:
 
 `git clone https://github.com/bayegaspard/OpenSetPerf.git`
 - Make sure you do that from the `dev` branch.
