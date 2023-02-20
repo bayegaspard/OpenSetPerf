@@ -93,7 +93,7 @@ def testRotate(notes=(0,0,0)):
 
 def incrementLoop(notes=(0)):
     notes = notes+1
-    if notes > len(Config.incGroups[notes]):
+    if notes > len(Config.incGroups):
         Config.parameters["LOOP"][0] = False
         return False
     Config.helper_variables["unknowns_clss"] = Config.incGroups[notes]
@@ -148,11 +148,13 @@ class LossPerEpoch():
         self.loss += locations.sum().item()
 
     def collect(self):
-        if os.path.exists(os.path.join("Saves",self.name)):
-            hist = pd.read_csv(os.path.join("Saves",self.name),index_col=0)
-        else:
-            hist = pd.DataFrame([])
-        param = pd.DataFrame(Config.parameters).iloc[0]
+        #if os.path.exists(os.path.join("Saves",self.name)):
+        #    hist = pd.read_csv(os.path.join("Saves",self.name),index_col=0)
+        #else:
+        #    hist = pd.DataFrame([])
+        #param = pd.DataFrame(Config.parameters).iloc[0]
+
+
         #current = pd.DataFrame({"Number of failures":[self.loss]})
         #current = pd.concat([param,current])
         #param["Number Of Failures"] = self.loss

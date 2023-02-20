@@ -211,7 +211,6 @@ def create_params_All(path=""):
 
 def addMeasurement(name:str,val):
     total = pd.read_csv(os.path.join("Saves","Scoresall.csv"),index_col=0)
-    test2 = total.last_valid_index()
     total.at[total.last_valid_index(),name] = val
     total.to_csv(os.path.join("Saves","Scoresall.csv"))
 
