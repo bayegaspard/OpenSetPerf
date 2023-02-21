@@ -25,7 +25,7 @@ helper_variables = {
 
     #This is the only important value in this dictionary and it lists the diffrent values to consider unkowns.
     #Mappings are at the top of Dataload.py
-    "unknowns_clss": [0,1,2,3,4,5,6,11,12,13,14],
+    "unknowns_clss": [0,1,2,3,4,5,6,11,12,13,14], #Overriden if loop=2
 
     "e": 0
 }
@@ -42,8 +42,8 @@ parameters = {
     "num_workers":[0, "Number of threads working on building batches"],
     "attemptLoad":[0, "0: do not use saves\n1:use saves"],
     "testlength":[1/4, "[0,1) percentage of training to test with"],
-    "MaxPerClass": [2000, "Maximum number of samples per class"],
-    "num_epochs":[10,"Number of times it trains on the whole trainset"],
+    "MaxPerClass": [20, "Maximum number of samples per class"],
+    "num_epochs":[3,"Number of times it trains on the whole trainset"],
     "learningRate":[0.0001, "a modifier for training"],
     "threshold":[0.5,"When to declare something to be unknown"],
     "model":["Convolutional","Model type [Fully_Connected,Convolutional]"],
@@ -77,7 +77,7 @@ thresholds = [0.1,0.5,0.75,0.99,1.1,2,5,10]
 learning_rates = [1,0.1,0.001,0.0001,0.00001,0.000001,0.0000001,0.00000001]
 activation = ["ReLU", "Tanh", "Sigmoid","Leaky","Elu","PRElu","Softplus","Softmax"]
 groups = [[2],[2,3,6],[2,3,4,5,6],[2,3,4,5,6,7,11],[2,3,4,5,6,7,11,12,14],[2,3,4,5,6,7,8,9,11,12,14],[2,3,4,5,6,7,8,9,10,11,12,13,14],[1,2,3,4,5,6,7,8,9,10,11,12,13,14]]
-incGroups = [[10,11,12,13,14],[11,12,13,14],[12,13,14],[13,14],[14],[]] #This one list is for loop 2.
+incGroups = [[10,11,12,13,14],[11,12,13,14],[12,13,14],[13,14],[14]] #This one list is for loop 2.
 epochs= []
 epochs = [1,2,5,10,25,50,100,200]
 
@@ -108,3 +108,8 @@ alg.insert(0,parameters["OOD Type"][0])
 #This is an array to eaiser loop through everything.
 loops = [learning_rates,epochs,optim,activation,groups]
 loops2 = ["learningRate","num_epochs","optimizer","Activation","Unknowns"]
+
+#Override the unknowns because model is kept
+if parameters["LOOP"][0] == 2:
+    helper_variables["unknowns_clss"] = incGroups[0]
+    parameters["Unknowns"] = f"{incGroups[0]} Unknowns"

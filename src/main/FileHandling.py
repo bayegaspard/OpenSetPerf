@@ -69,7 +69,7 @@ def checkAttempLoad(root_path):
         unknowns = Dataload.ClusterDivDataset(os.path.join(root_path,"datasets","Payload_data_CICIDS2017"), use=unknownlist, unknownData=True)
     else:
         raise ValueError("Invalid Dataloader type")
-    train, val = torch.utils.data.random_split(train,[len(train) - int(len(train) * Config.parameters["testlength"][0]),int(len(train) * Config.parameters["testlength"][0])])  # randomly takes 4000 lines to use as a testing dataset
+    train, val = torch.utils.data.random_split(train,[len(train) - int(len(train) * Config.parameters["testlength"][0]),int(len(train) * Config.parameters["testlength"][0])]) 
     
     test = torch.utils.data.ConcatDataset([val, unknowns])
     if Config.parameters["attemptLoad"][0] and os.path.exists(os.path.join(root_path,"Saves","Data.pt")):
@@ -86,6 +86,31 @@ def checkAttempLoad(root_path):
         if Config.parameters["attemptLoad"][0]:
             print("No model train and test checkpoint was found, saving datacheckpoints ...")
     return train, test, val
+
+def incrementLoopModData(changed:list):
+    if Config.parameters["Datagrouping"][0] == "ClassChunk":
+        known = Dataload.ClassDivDataset(os.path.join("datasets","Payload_data_CICIDS2017"), use=changed)
+        unknowns = Dataload.ClassDivDataset(os.path.join("datasets","Payload_data_CICIDS2017"), use=Config.helper_variables["unknowns_clss"], unknownData=True)
+    elif Config.parameters["Datagrouping"][0] == "Dendrogramlimit":
+        known = Dataload.ClusterLimitDataset(os.path.join("datasets","Payload_data_CICIDS2017"), use=changed)
+        unknowns = Dataload.ClusterLimitDataset(os.path.join("datasets","Payload_data_CICIDS2017"), use=Config.helper_variables["unknowns_clss"], unknownData=True)
+    elif Config.parameters["Datagrouping"][0] == "DendrogramChunk":
+        known = Dataload.ClusterDivDataset(os.path.join("datasets","Payload_data_CICIDS2017"), use=changed)
+        unknowns = Dataload.ClusterDivDataset(os.path.join("datasets","Payload_data_CICIDS2017"), use=Config.helper_variables["unknowns_clss"], unknownData=True)
+    else:
+        raise ValueError("Invalid Dataloader type")
+    
+    trainGroup, testGroup = torch.utils.data.random_split(known,[len(known) - int(len(known) * Config.parameters["testlength"][0]),int(len(known) * Config.parameters["testlength"][0])]) 
+
+    train = torch.utils.data.ConcatDataset([torch.load(os.path.join("","Saves","Data.pt")),trainGroup])
+    test = torch.utils.data.ConcatDataset([torch.load(os.path.join("","Saves","DataTest.pt")),testGroup])
+    val = torch.utils.data.ConcatDataset([torch.load(os.path.join("","Saves","DataVal.pt")),testGroup])
+
+
+    torch.save(train,os.path.join("Saves","Data.pt"))
+    torch.save(test,os.path.join("Saves","DataTest.pt"))
+    torch.save(val,os.path.join("Saves","DataVal.pt"))
+    return
 
 
 def deletefile(path):

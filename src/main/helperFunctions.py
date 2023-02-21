@@ -92,15 +92,21 @@ def testRotate(notes=(0,0,0)):
     return False
 
 def incrementLoop(notes=(0)):
+    Config.parameters["attemptLoad"][0] = 1
     notes = notes+1
-    if notes > len(Config.incGroups):
+    if notes >= len(Config.incGroups):
         Config.parameters["LOOP"][0] = False
         return False
     Config.helper_variables["unknowns_clss"] = Config.incGroups[notes]
     Config.parameters["Unknowns"] = f"{len(Config.incGroups[notes])} Unknowns"
     Config.helper_variables["knowns_clss"] = Config.loopOverUnknowns(Config.incGroups[notes])
     setrelabel()
+
+    #Find diffrence with this code: https://stackoverflow.com/a/3462160
+    FileHandling.incrementLoopModData(list(set(Config.incGroups[notes-1])-set(Config.incGroups[notes])))
     return notes
+
+
 
 #This puts the notes into a readable form
 #notes are how it keeps track of where in the loop it is.
