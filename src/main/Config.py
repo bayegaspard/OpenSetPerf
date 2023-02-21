@@ -39,7 +39,7 @@ parameters = {
     #"ParamName":[Value,"Description"]
     #for a parameter called "ParamName" with a value of Value
     "batch_size":[100, "Number of items per batch"],
-    "num_workers":[0, "Number of threads working on building batches"],
+    "num_workers":[10, "Number of threads working on building batches"],
     "attemptLoad":[0, "0: do not use saves\n1:use saves"],
     "testlength":[1/4, "[0,1) percentage of training to test with"],
     "MaxPerClass": [2000, "Maximum number of samples per class"],

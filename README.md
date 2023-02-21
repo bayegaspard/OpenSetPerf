@@ -3,7 +3,7 @@ A Practitioner's Guide to the Performance of Deep-Learning Based Open Set Recogn
 
 ### Steps to run:
 
-- Clone the repository using :
+- Clone the repository using the following commands:
 
 `git clone https://github.com/bayegaspard/OpenSetPerf.git`
 - Make sure you do that from the `dev` branch.
@@ -18,7 +18,7 @@ A Practitioner's Guide to the Performance of Deep-Learning Based Open Set Recogn
 ```
 pip3 install virtualenv
 virtualenv opensetperf
-source opensetper/bin/activate
+source opensetperf/bin/activate
 ```
 - Install required packages using the command below:
 `pip3 install -r requirements.txt

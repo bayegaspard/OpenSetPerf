@@ -143,14 +143,17 @@ class NoExamples(Exception):
     pass
 
 
+device = GPU.get_default_device() # selects a device, cpu or gpu
+
 class LossPerEpoch():
     def __init__(self,name):
         self.loss = 0
         self.name = name
 
     def addloss(self,predicted:torch.Tensor, target:torch.Tensor):
-        #https://discuss.pytorch.org/t/move-tensor-to-the-same-gpu-of-another-tensor/15168/7
-        locations = predicted.to(target.device)!=target
+        target = GPU.to_device(target,device)
+        predicted = GPU.to_device(predicted,device)
+        locations = predicted!=target
         self.loss += locations.sum().item()
 
     def collect(self):
