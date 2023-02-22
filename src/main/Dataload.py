@@ -7,17 +7,27 @@ import time
 import Config
 from sklearn.cluster import AgglomerativeClustering
 
+#List of conversions:
 CLASSLIST = {0: 'BENIGN', 1: 'Infiltration', 2: 'Bot', 3: 'PortScan', 4: 'DDoS', 5: 'FTP-Patator', 6: 'SSH-Patator', 7: 'DoS slowloris', 8: 'DoS Slowhttptest', 9: 'DoS Hulk', 10: 'DoS GoldenEye', 11: 'Heartbleed', 12: 'Web Attack – Brute Force', 13: 'Web Attack – XSS', 14:'Web Attack – Sql Injection'}
 LISTCLASS = {CLASSLIST[x]:x for x in range(15)}
 PROTOCOLS = {"udp":0,"tcp":1}
 CHUNKSIZE = 10000
 
 def classConvert(x):
+    """
+    Does a conversion based on the dictionaries
+    """
     return LISTCLASS[x]
 def protocalConvert(x):
+    """
+    Does a conversion based on the dictionaries
+    """
     return PROTOCOLS[x]
 
 def get_class_names(lst):
+    """
+    Goes through a list of integer classes and turns them back into string class names.
+    """
     new_class_list = []
     for i in lst:
         new_class_list.append(CLASSLIST[i])

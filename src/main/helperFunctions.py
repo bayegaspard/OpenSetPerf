@@ -9,9 +9,16 @@ from sklearn.metrics import (precision_score, recall_score, average_precision_sc
 
 
 #Translation dictionaries for algorithms that cannot have gaps in their numbers.
-relabel = {15:15}
-rerelabel = {15:15}
+#So this block maps the knowns into numbers 0 to x where x is one less than the number of knowns
+relabel = {15:15} #This one turns numbers into consecutive values
+rerelabel = {15:15} #This one inverses numbers back into their values as specified by the dataloader
 def setrelabel():
+    """
+    This function sets/resets the relabel dictionaries during loops where they could get messed up.
+
+    it takes no parameters and changes the global variables relabel and rerelabel
+    
+    """
     global relabel,rerelabel
     relabel = {15:15}
     rerelabel = {15:15}
@@ -25,7 +32,14 @@ def setrelabel():
     temp = None
 setrelabel()
 
+
 def deleteSaves():
+    """
+    This deletes all model saves to prevent curruption
+
+    Curruption is when a model has priviously been trained on data that is now in the test set
+    This is possible because we randomize the dataloaders so it is best to retrain the model.
+    """
     i = 0
     while os.path.exists(f"Saves/Epoch{i:03d}.pth"):
         os.remove(f"Saves/Epoch{i:03d}.pth")
@@ -38,6 +52,24 @@ def deleteSaves():
 
 #Handels running the loop
 def testRotate(notes=(0,0,0)):
+    """
+    testRotate() is one of the two functions that modifies the global variables in Config.py.
+    Specifically this function is called when the config LOOP is set to 1. 
+    And it will rotate the parameters in Config.py to go through all the variations of the parameters.
+    After calling testRotate() running the model with the function main.run_model() will use diffrent parameters.
+    It will automatically change the Config parameter LOOP to 0 and return False to indicate that it is done.
+
+    testRotate() takes one parameter:
+        notes - notes is a tuple containing three integers that mark the current position of the loop.
+            At the start notes should be (0,0,0) it will then increment to (0,1,0) and it will be returned.
+            At the next call of testRotate() please give it the privious output of the function to allow it to continue.
+            After all parameters have been looped, testRotate() will return False instead of a tuple.
+    
+    testRotate() returns one of two parameters:
+        notes - a tuple containing three ints that marks the current position of the loop.
+        False - a false value is returned if the loop has been entirely completed.
+            
+    """
     global relabel,rerelabel
     stage = notes[0]
     step = notes[1]
@@ -92,6 +124,21 @@ def testRotate(notes=(0,0,0)):
     return False
 
 def incrementLoop(notes=(0)):
+    """
+    incrementLoop() is one of the two functions that modifies the global variables in Config.py.
+    Specifically this function is called when the config LOOP is set to 2. 
+    And it will incrementally introduce unknowns into the training data, this is done to get data for the resiliance tesing group.
+    After calling incrementLoop() running the model with the function main.run_model() will continue to train the same model and use fewer unknowns.
+    It will automatically change the Config parameter LOOP to 0 and return False to indicate that it is done.
+
+    incrementLoop() takes one parameter:
+        notes - integer, stores the current position of the loop.
+    
+    incrementLoop() returns one of two values:
+        notes - an integer that marks the current position of the loop to be fed back trough the function.
+        False - outputs false when the loop has been entirely completed.
+    
+    """
     Config.parameters["attemptLoad"][0] = 1
     notes = notes+1
     if notes >= len(Config.incGroups):
@@ -111,6 +158,14 @@ def incrementLoop(notes=(0)):
 #This puts the notes into a readable form
 #notes are how it keeps track of where in the loop it is.
 def getcurrentlychanged(notes):
+    """
+    getcurrentlychanged() turns the notes from the function testRotate() into a readable string to tag data with.
+
+    it takes one parameter:
+        -notes, a three integer tuple.
+    it outputs a string saying what algorithm is being used with what changing parameter and the current setting of that parameter
+    """
+
     algorithm = Config.alg[notes[2]]
     currentlyChanging = Config.loops2[notes[0]]
     currentSetting = Config.loops[notes[0]][notes[1]]
@@ -118,6 +173,11 @@ def getcurrentlychanged(notes):
 
 #This bit of code will loop through the entire loop and print all of the variations.
 def looptest():
+    """
+    This is the testing code for the testRotate() function.
+    It will print out all of the currently possible variations of the parameters and the number of parameters that is.
+    No parameters or outputs
+    """
     out = pd.DataFrame(())
     out2 = pd.DataFrame(())
 
@@ -140,23 +200,46 @@ def looptest():
 
 
 class NoExamples(Exception):
+    """
+    If the Openmax algorithm is unable to find a correct example for every class (that is the model's prediction==class) openmax will attempt to concatinate a blank array.
+    This problem causes an error to be thrown but I was unable to find the type of error to catch it. So I have made this error class.
+    This error class is thrown in the Openmax algorithm if any of the classes have an empy correct predictions array.
+    
+    """
     pass
 
 
 device = GPU.get_default_device() # selects a device, cpu or gpu
 
 class LossPerEpoch():
+    """
+    This is a datacollection class. It wants to collect the sum of loss across the entirty of training.
+    To do this it collects each partial sum in the local variables using addloss() and returns the total when collect() is called.
+    
+    """
     def __init__(self,name):
         self.loss = 0
         self.name = name
 
     def addloss(self,predicted:torch.Tensor, target:torch.Tensor):
+        """
+        addloss() stores the number of times predicted==targets.
+
+        it takes two parameters:
+            -predicted: the values that the model has predicted for each class.
+            -targets: the values that are represented by each class.
+        
+        """
         target = GPU.to_device(target,device)
         predicted = GPU.to_device(predicted,device)
         locations = predicted!=target
         self.loss += locations.sum().item()
 
     def collect(self):
+        """
+        Collect() gets the data gathered by the addloss() function and resets the stored loss to zero.
+        The data is then stored in the file Saves/Scoresall.csv in the most recent line under "Number Of Failures"
+        """
         #if os.path.exists(os.path.join("Saves",self.name)):
         #    hist = pd.read_csv(os.path.join("Saves",self.name),index_col=0)
         #else:
@@ -174,6 +257,23 @@ class LossPerEpoch():
         self.loss = 0
 
 def getFscore(dat):
+    """
+    Takes the scores saved by the model as it is running and then translates those int the four main scores.
+
+    getFscore() parameter:
+        -data in the form of a three item tuple. these should all be torch Tensors.
+        -The first value is the model's prediction for a given line
+        -The second value is the true value for a given line
+        -The third value is what the model was tested agianst, this should be the same as the second value except in cases where some of the lines are unknown.
+            If some of the lines are unknown those lines should be '15' in tested_against.
+        
+    Returns:
+        a tuple containing:
+        f1 score- the harmonic mean between precision and recall.
+        recall- How many of the per-class positives did the model find.
+        precision- How many of the model's guesses were correct
+        accuracy- Number of places the labels matched over total number.
+    """
     y_pred,y_true,y_tested_against = dat
     y_pred = y_pred / (Config.parameters["CLASSES"][0]/15) #The whole config thing is if we are splitting the classes further
     y_true = y_true / (Config.parameters["CLASSES"][0]/15)

@@ -14,6 +14,9 @@ from sklearn.metrics import (precision_score, recall_score, average_precision_sc
 device = GPU.get_default_device()
 
 class ModdedParallel(nn.DataParallel):
+    """
+    If the default torch DataParallel cannot find an atribute than it tries to get it from a contained module.
+    """
     # From https://github.com/pytorch/pytorch/issues/16885#issuecomment-551779897
     def __getattr__(self, name):
         try:
@@ -24,14 +27,16 @@ class ModdedParallel(nn.DataParallel):
 
 
 class AttackTrainingClassification(nn.Module):
+    """This is the Default Model for the project"""
     def __init__(self):
         super().__init__()
 
+        #There are 15 classes
         numClasses = 15
         if Config.parameters['Datagrouping'][0] == "DendrogramChunk":
             numClasses = numClasses*32
 
-        #So many if statements.
+        #This (poorly made) menu switches between the diffrent options for activation functions.
         self.activation = nn.ReLU()
         if Config.parameters["Activation"][0] == "Sigmoid":
             self.activation = nn.Sigmoid()
@@ -54,11 +59,13 @@ class AttackTrainingClassification(nn.Module):
             self.activation = nn.Softmax(dim=1)
 
 
+        #We use two normal fully connected layers after the CNN specific layers (or substiute layers)
         self.fc1 = nn.Linear(11904, Config.parameters["Nodes"][0],device=device)
         self.fc2 = nn.Linear(Config.parameters["Nodes"][0], numClasses,device=device)
 
 
         self.addedLayers = torch.nn.Sequential()
+        #If the config says to add more layers, that is done here.
         for x in range(Config.parameters["Number of Layers"][0]):
             self.addedLayers.append(torch.nn.Linear(Config.parameters["Nodes"][0],Config.parameters["Nodes"][0],device=device))
             self.addedLayers.append(self.activation)
@@ -70,6 +77,7 @@ class AttackTrainingClassification(nn.Module):
         self.end = EndLayers(numClasses, type="Soft", cutoff=Config.parameters["threshold"][0])
         self.batchnum = 0
         self.storeReset()
+        #COOL neeeds its own outputl layer.
         self.COOL = nn.Linear(Config.parameters["Nodes"][0], numClasses*self.end.DOO,device=device)
         # self.model = model
         # self.batch = batch
@@ -82,6 +90,10 @@ class AttackTrainingClassification(nn.Module):
         
     # Specify how the data passes in the neural network
     def forward(self, x: torch.Tensor):
+        """Runs the model through all the standard layers
+        
+        also uses the Compettitive Overcomplete Output Layer alternative layer if the setting is for COOL.
+        """
         # x = to_device(x, device)
         x = x.float()
         x = x.unsqueeze(1)
@@ -105,7 +117,17 @@ class AttackTrainingClassification(nn.Module):
 
 
     def training_step(self, batch):
+        """Preforms a step for training the model but does not begin backpropigation
+        
+        Parameters:
+            Batch- a torch dataloader batch. Which is a tuple of tensors.
+
+        Returns:
+            Loss- a torch loss that signifies how far away from the expected targets the model got.
+        
+        """
         data, labels = batch
+        #Our labels have two values per line so that we can tell what the unknowns are.
         labels = labels[:,0]    #Select the data we want not the metadata
         out = self(data)  # Generate predictions
         labels = self.end.labelMod(labels)

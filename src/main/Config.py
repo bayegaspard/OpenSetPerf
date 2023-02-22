@@ -58,7 +58,9 @@ parameters = {
     "Number of Layers": [1,"Number of layers to add to the base model"],
     "Nodes": [256,"The number of nodes per added layer"],
     "Activation": ["ReLU","The type of activation function to use"],
-    "LOOP": [2,"This is a parameter that detumines if we want to loop over the algorithms."]
+    "LOOP": [2,"This is a parameter that detumines if we want to loop over the algorithms.\n "\
+    "0: no loop, 1:loop through variations of algorithms,thresholds,learning rates, groups and numbers of epochs, \n"\
+    "2: Loop while adding more unknowns into the training data (making them knowns) without resetting the model"]
 }
 
 #Dendrogram chunk uses a slightly diffrent output on the model structure. 
@@ -77,7 +79,7 @@ thresholds = [0.1,0.5,0.75,0.99,1.1,2,5,10]
 learning_rates = [1,0.1,0.001,0.0001,0.00001,0.000001,0.0000001,0.00000001]
 activation = ["ReLU", "Tanh", "Sigmoid","Leaky","Elu","PRElu","Softplus","Softmax"]
 groups = [[2],[2,3,6],[2,3,4,5,6],[2,3,4,5,6,7,11],[2,3,4,5,6,7,11,12,14],[2,3,4,5,6,7,8,9,11,12,14],[2,3,4,5,6,7,8,9,10,11,12,13,14],[1,2,3,4,5,6,7,8,9,10,11,12,13,14]]
-incGroups = [[10,11,12,13,14],[11,12,13,14],[12,13,14],[13,14],[14]] #This one list is for loop 2.
+incGroups = [[10,11,12,13,14],[11,12,13,14],[12,13,14],[13,14],[14]] #This one list is for loop 2. Note: array size should be decreasing.
 epochs= []
 epochs = [1,2,5,10,25,50,100,200]
 

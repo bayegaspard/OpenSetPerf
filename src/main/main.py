@@ -62,9 +62,12 @@ def run_model():
     train, test, val = FileHandling.checkAttempLoad(root_path)
 
     #These lines initialize the loaders for the datasets.
+    #Trainset is for training the model.
     trainset = DataLoader(train, batch_size, num_workers=num_workers,shuffle=True,
             pin_memory=True)  # for faster processing enable pin memory to true and num_workers=4
+    #Validationset is for checking if the model got things correct with the same type of data as the trainset
     validationset = DataLoader(val, batch_size, shuffle=True, num_workers=num_workers,pin_memory=True)
+    #Testset is for checking if the model got things correct with the Validationset+unknowns.
     testset = DataLoader(test, batch_size, shuffle=True, num_workers=num_workers, pin_memory=False)
 
     print("length of train",len(train),"\nlength of test",len(test))
