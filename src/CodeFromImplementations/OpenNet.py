@@ -8,6 +8,8 @@ def Algorithm_1(data_loader, model:ms.AttackTrainingClassification):
         #Getting the correct column
         Y = Y[:,0]
         Z = model(X)
+        means = class_means(Z,Y)
+        
 
 def class_means(Z:torch.Tensor,Y:torch.Tensor):
     means = []

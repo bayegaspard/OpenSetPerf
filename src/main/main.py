@@ -132,12 +132,17 @@ def run_model():
 
     
 
+
+    
+
     #Generates the values when unknowns are thrown in to the testing set.
     f1, recall, precision, accuracy = helperFunctions.getFscore(model.store)
     FileHandling.addMeasurement("Test_F1",f1)
     FileHandling.addMeasurement("Test_Recall",recall)
     FileHandling.addMeasurement("Test_Precision",precision)
     FileHandling.addMeasurement("Test_Accuracy",accuracy)
+    FileHandling.addMeasurement("Found_Unknowns",helperFunctions.getFoundUnknown(model.store))
+
     FileHandling.create_params_Fscore(root_path,f1)
 
     #More matrix stuff that we removed.

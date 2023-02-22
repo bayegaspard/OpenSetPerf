@@ -286,6 +286,14 @@ def getFscore(dat):
     accuracy = accuracy_score(y_tested_against,y_pred)
     return f1,recall,precision,accuracy
 
+def getFoundUnknown(dat):
+    y_pred,y_true,y_tested_against = dat
+    y_pred = y_pred / (Config.parameters["CLASSES"][0]/15) #The whole config thing is if we are splitting the classes further
+    y_true = y_true / (Config.parameters["CLASSES"][0]/15)
+    y_true = y_true.to(torch.int).tolist()
+    y_pred = y_pred.to(torch.int).tolist()
+    y_tested_against = y_tested_against.to(torch.int).tolist()
+    return recall_score(y_tested_against,y_pred,average=None,zero_division=0)[-1]
 
 if __name__ == "__main__":
     looptest()

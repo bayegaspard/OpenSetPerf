@@ -79,12 +79,7 @@ class AttackTrainingClassification(nn.Module):
         self.storeReset()
         #COOL neeeds its own outputl layer.
         self.COOL = nn.Linear(Config.parameters["Nodes"][0], numClasses*self.end.DOO,device=device)
-        # self.model = model
-        # self.batch = batch
-        # self.to_device = to_device
-        # self.device = device
-        # self.Y_Pred = Y_Pred
-        # self.Y_test = Y_test
+
         self.los = False
 
         
@@ -97,11 +92,11 @@ class AttackTrainingClassification(nn.Module):
         # x = to_device(x, device)
         x = x.float()
         x = x.unsqueeze(1)
-        #print(f"start: {x.shape}")
+        
         x = self.layer1(x)
-        #print(f"middle: {x.shape}")
+        
         x = self.layer2(x)
-        #print(f"end: {x.shape}")
+        
         x = self.flatten(x)
         x = self.activation(self.fc1(x))
         x = self.addedLayers(x)
@@ -110,9 +105,9 @@ class AttackTrainingClassification(nn.Module):
             x = self.fc2(x)
         else:
             x = self.COOL(x)
-        # print("in forward", F.log_softmax(x, dim=1))
+        
         return x
-        # return F.log_softmax(x, dim=1)
+        
 
 
 
@@ -148,6 +143,15 @@ class AttackTrainingClassification(nn.Module):
 
     @torch.no_grad()
     def evaluate(self, validationset):
+        """
+        Evaluates the given dataset on this model.
+        
+        parameters:
+            torch dataset to iterate through.
+        
+        returns:
+            A dictionary of all of the mean values from the run.
+        """
         self.eval()
         self.batchnum = 0
         outputs = [self.validation_step(batch) for batch in validationset]  ### reverted bac
@@ -181,6 +185,9 @@ class AttackTrainingClassification(nn.Module):
         optimizer = opt_func(self.parameters(), lr)
         self.los = helperFunctions.LossPerEpoch("TestingDuringTrainEpochs.csv")
         FileHandling.create_params_All()
+        FileHandling.addMeasurement(f"Length train",len(train_loader))
+        FileHandling.addMeasurement(f"Length validation",len(val_loader))
+        FileHandling.addMeasurement(f"Length test",len(test_loader))
         # torch.cuda.empty_cache()
         if epochs > 0:
             for epoch in range(epochs):
@@ -269,6 +276,9 @@ class AttackTrainingClassification(nn.Module):
         return {'val_loss': loss.detach(), 'val_acc': acc, "val_avgUnknown": unknowns}
 
     def validation_epoch_end(self, outputs):
+        """
+        Takes the output of each epoch and takes the mean values. Returns a dictionary of those mean values.
+        """
         batch_losses = [x['val_loss'] for x in outputs]
         epoch_loss = torch.stack(batch_losses).mean()  # Combine losses
         batch_accs = [x['val_acc'] for x in outputs]
