@@ -43,7 +43,7 @@ parameters = {
     "attemptLoad":[0, "0: do not use saves\n1:use saves"],
     "testlength":[1/4, "[0,1) percentage of training to test with"],
     "MaxPerClass": [2500, "Maximum number of samples per class"],
-    "num_epochs":[10,"Number of times it trains on the whole trainset"],
+    "num_epochs":[100,"Number of times it trains on the whole trainset"],
     "learningRate":[0.01, "a modifier for training"],
     "threshold":[0.5,"When to declare something to be unknown"],
     "model":["Convolutional","Model type [Fully_Connected,Convolutional]"],
