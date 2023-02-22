@@ -38,16 +38,16 @@ parameters = {
     #These parameters are orginized like this:
     #"ParamName":[Value,"Description"]
     #for a parameter called "ParamName" with a value of Value
-    "batch_size":[100, "Number of items per batch"],
+    "batch_size":[1000, "Number of items per batch"],
     "num_workers":[32, "Number of threads working on building batches"],
     "attemptLoad":[0, "0: do not use saves\n1:use saves"],
     "testlength":[1/4, "[0,1) percentage of training to test with"],
     "MaxPerClass": [2500, "Maximum number of samples per class"],
-    "num_epochs":[100,"Number of times it trains on the whole trainset"],
+    "num_epochs":[10,"Number of times it trains on the whole trainset"],
     "learningRate":[0.01, "a modifier for training"],
-    "threshold":[0.5,"When to declare something to be unknown"],
+    "threshold":[10,"When to declare something to be unknown"],
     "model":["Convolutional","Model type [Fully_Connected,Convolutional]"],
-    "OOD Type":["DOC","type of out of distribution detection [Soft,Open,Energy,COOL,DOC]"],
+    "OOD Type":["Open","type of out of distribution detection [Soft,Open,Energy,COOL,DOC]"],
     "Dropout":[0.01,"percent of nodes that are skipped per run, larger numbers for more complex models [0,1)"],
     "Datagrouping":["ClassChunk","Datagroup type [ClassChunk,Dendrogramlimit]"],
     "optimizer":opt_func["Adam"],
@@ -58,7 +58,7 @@ parameters = {
     "Number of Layers": [1,"Number of layers to add to the base model"],
     "Nodes": [256,"The number of nodes per added layer"],
     "Activation": ["ReLU","The type of activation function to use"],
-    "LOOP": [2,"This is a parameter that detumines if we want to loop over the algorithms.\n "\
+    "LOOP": [1,"This is a parameter that detumines if we want to loop over the algorithms.\n "\
     "0: no loop, 1:loop through variations of algorithms,thresholds,learning rates, groups and numbers of epochs, \n"\
     "2: Loop while adding more unknowns into the training data (making them knowns) without resetting the model"]
 }
@@ -84,10 +84,11 @@ epochs= []
 epochs = [1,2,5,10,25,50,100,200]
 
 #Here is where we remove some of the algorithms if we want to skip them. We could also just remove them from the list above.
-#alg.remove("Soft")
-alg.remove("Open")
+alg.remove("Soft")
+#alg.remove("Open")
 alg.remove("Energy")
-#alg.remove("COOL")
+alg.remove("COOL")
+alg.remove("DOC")
 
 
 #Optimizer has been removed from the list of things we are changing

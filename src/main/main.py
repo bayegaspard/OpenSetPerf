@@ -90,6 +90,10 @@ def run_model():
     #Model.fit is what actually runs the model. It outputs some kind of history array?
     history_final += model.fit(num_epochs, lr, train_loader, test_loader,val_loader, opt_func=opt_func)
 
+    FileHandling.addMeasurement(f"Length train",len(train))
+    FileHandling.addMeasurement(f"Length validation",len(val))
+    FileHandling.addMeasurement(f"Length test",len(test))
+
     #Validation values
     f1, recall, precision, accuracy = helperFunctions.getFscore(model.store)
     FileHandling.addMeasurement("Val_F1",f1)

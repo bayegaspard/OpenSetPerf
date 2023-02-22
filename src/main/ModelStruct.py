@@ -185,9 +185,6 @@ class AttackTrainingClassification(nn.Module):
         optimizer = opt_func(self.parameters(), lr)
         self.los = helperFunctions.LossPerEpoch("TestingDuringTrainEpochs.csv")
         FileHandling.create_params_All()
-        FileHandling.addMeasurement(f"Length train",len(train_loader))
-        FileHandling.addMeasurement(f"Length validation",len(val_loader))
-        FileHandling.addMeasurement(f"Length test",len(test_loader))
         # torch.cuda.empty_cache()
         if epochs > 0:
             for epoch in range(epochs):
