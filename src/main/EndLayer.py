@@ -195,7 +195,7 @@ class EndLayers():
                 print("Warning: OpenMax has failed to load!")
                 failed = True
             #except LookupError:
-            except:
+            except helperFunctions.NoExamples:
                 print("OpenMax failed to idenitify at least 1 class!")
                 #Note: usual reason for failure is having no correct examples for at least 1 class.
                 failed = True
@@ -209,7 +209,7 @@ class EndLayers():
             return errorreturn
             
         #print(scores_open)
-        scores = torch.tensor(np.array(scores_open))
+        scores = torch.tensor(np.array(scores_open),device=percentages.device)
         self.Save_score.append(scores.squeeze().mean())
         scores.squeeze_().unsqueeze_(0)
         return torch.cat((percentages,scores),dim=0)
