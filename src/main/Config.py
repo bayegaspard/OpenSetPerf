@@ -43,7 +43,7 @@ parameters = {
     "attemptLoad":[0, "0: do not use saves\n1:use saves"],
     "testlength":[1/4, "[0,1) percentage of training to test with"],
     "MaxPerClass": [2500, "Maximum number of samples per class"],
-    "num_epochs":[10,"Number of times it trains on the whole trainset"],
+    "num_epochs":[50,"Number of times it trains on the whole trainset"],
     "learningRate":[0.01, "a modifier for training"],
     "threshold":[10,"When to declare something to be unknown"],
     "model":["Convolutional","Model type [Fully_Connected,Convolutional]"],
@@ -84,11 +84,11 @@ epochs= []
 epochs = [1,2,5,10,25,50,100,200]
 
 #Here is where we remove some of the algorithms if we want to skip them. We could also just remove them from the list above.
-alg.remove("Soft")
+#alg.remove("Soft")
 #alg.remove("Open")
-alg.remove("Energy")
-alg.remove("COOL")
-alg.remove("DOC")
+#alg.remove("Energy")
+#alg.remove("COOL")
+#alg.remove("DOC")
 
 
 #Optimizer has been removed from the list of things we are changing
