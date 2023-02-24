@@ -151,7 +151,7 @@ class EndLayers():
             def selectKnowns(self, modelOut, labels:torch.Tensor):
                 labels = labels.clone()
                 lastval = -1
-                label = list(range(15))
+                label = list(range(Config.parameters["CLASSES"][0]))
                 newout = []
                 for val in Config.helper_variables["unknowns_clss"]:
                     label.remove(val)
@@ -288,7 +288,7 @@ class EndLayers():
 def renameClasses(modelOut:torch.Tensor):
     #Cuts out all of the unknown classes.
     lastval = -1
-    label = list(range(15))
+    label = list(range(Config.parameters["CLASSES"][0]))
     newout = []
     for val in Config.helper_variables["unknowns_clss"]:
         label.remove(val)

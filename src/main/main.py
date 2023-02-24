@@ -171,7 +171,7 @@ def run_model():
 
     #This loops through a list of "Threshold" values because they do not require retraining the model.
     if Config.parameters["LOOP"][0] == 1:
-        model.thresholdTest(val_loader)
+        model.thresholdTest(test_loader)
     
 
 def main():

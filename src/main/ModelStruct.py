@@ -32,7 +32,7 @@ class AttackTrainingClassification(nn.Module):
         super().__init__()
 
         #There are 15 classes
-        numClasses = 15
+        numClasses = Config.parameters["CLASSES"][0]
         if Config.parameters['Datagrouping'][0] == "DendrogramChunk":
             numClasses = numClasses*32
 
@@ -254,7 +254,7 @@ class AttackTrainingClassification(nn.Module):
         # print("y-test from validation",Y_test)
         # print("y-pred from validation", Y_pred)
         if out.ndim == 2:
-            unknowns = out[:, 15].mean()
+            unknowns = out[:, Config.parameters["CLASSES"][0]].mean()
             test = torch.argmax(out, dim=1)
         else:
             unknowns = torch.zeros(out.shape)
@@ -353,6 +353,7 @@ class AttackTrainingClassification(nn.Module):
             f1 = 2 * (precision * recall) / (precision + recall)
             #save the f1 score
             FileHandling.create_params_Fscore("",f1,x)
+            FileHandling.addMeasurement(f"Threshold {x} Fscore",f1)
 
             #Generate and save confusion matrix
             # if plots.name_override:
