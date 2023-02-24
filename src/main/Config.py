@@ -37,10 +37,10 @@ parameters = {
     #"ParamName":[Value,"Description"]
     #for a parameter called "ParamName" with a value of Value
     "batch_size":[1000, "Number of items per batch"],
-    "num_workers":[0, "Number of threads working on building batches"],
+    "num_workers":[32, "Number of threads working on building batches"],
     "attemptLoad":[0, "0: do not use saves\n1:use saves"],
     "testlength":[1/4, "[0,1) percentage of training to test with"],
-    "MaxPerClass": [20, "Maximum number of samples per class"],
+    "MaxPerClass": [300, "Maximum number of samples per class"],
     "num_epochs":[5,"Number of times it trains on the whole trainset"],
     "learningRate":[0.01, "a modifier for training"],
     "threshold":[10,"When to declare something to be unknown"],
@@ -86,8 +86,8 @@ alg = ["Soft","Open","Energy","COOL","DOC"]
 thresholds = [0.1,0.5,0.75,0.99,1.1,2,5,10]
 learning_rates = [1,0.1,0.001,0.0001,0.00001,0.000001,0.0000001,0.00000001]
 activation = ["ReLU", "Tanh", "Sigmoid","Leaky","Elu","PRElu","Softplus","Softmax"]
-groups = [[2],[2,3,6],[2,3,4,5,6],[2,3,4,5,6,7,11],[2,3,4,5,6,7,11,12,14],[2,3,4,5,6,7,8,9,11,12,14],[2,3,4,5,6,7,8,9,10,11,12,13,14],[1,2,3,4,5,6,7,8,9,10,11,12,13,14]]
-incGroups = [[2,3,4,5,6,7,8,9,10,11,12,13,14],[3,4,5,6,7,8,9,10,11,12,13,14],[4,5,6,7,8,9,10,11,12,13,14],[5,6,7,8,9,10,11,12,13,14],[6,7,8,9,10,11,12,13,14],[7,8,9,10,11,12,13,14],[8,9,10,11,12,13,14],[9,10,11,12,13,14],[10,11,12,13,14],[11,12,13,14],[12,13,14],[13,14],[14]] #This one list is for loop 2. Note: array size should be decreasing.
+groups = [[2],[2,3,6],[2,3,4,5,6],[2,3,4,5,6,7],[2,3,4,5,6,7,8],[2,3,4,5,6,7,8,9],[1,2,3,4,5,6,7,8,9]]
+incGroups = [[2,3,4,5,6,7,8,9],[3,4,5,6,7,8,9],[4,5,6,7,8,9],[5,6,7,8,9],[6,7,8,9],[7,8,9],[8,9],[9]] #This one list is for loop 2. Note: array size should be decreasing.
 epochs= []
 epochs = [1,2,5,10,25,50,100,200]
 
