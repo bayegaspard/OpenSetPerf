@@ -306,7 +306,13 @@ def getFoundUnknown(dat):
     y_true = y_true.to(torch.int).tolist()
     y_pred = y_pred.to(torch.int).tolist()
     y_tested_against = y_tested_against.to(torch.int).tolist()
-    return recall_score(y_tested_against,y_pred,average=None,zero_division=0)[-1]
+    recall = recall_score(y_tested_against,y_pred,average=None,zero_division=0)
+    if (recall is float):
+        return recall
+    elif (recall is None):
+        return 0
+    else:
+        return recall[-1]
 
 if __name__ == "__main__":
     looptest()
