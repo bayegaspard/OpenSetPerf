@@ -282,7 +282,10 @@ def getFscore(dat):
     y_tested_against = y_tested_against.to(torch.int).tolist()
     recall = recall_score(y_tested_against,y_pred,average='weighted',zero_division=0)
     precision = precision_score(y_tested_against,y_pred,average='weighted',zero_division=0)
-    f1 = 2 * (precision * recall) / (precision + recall)
+    if precision==0 and recall==0:
+        f1 =0
+    else:
+        f1 = 2 * (precision * recall) / (precision + recall)
     accuracy = accuracy_score(y_tested_against,y_pred)
     return f1,recall,precision,accuracy
 
@@ -309,7 +312,7 @@ def getFoundUnknown(dat):
     recall = recall_score(y_tested_against,y_pred,average=None,zero_division=0)
     if (recall is float):
         return recall
-    elif (recall is None):
+    elif (recall is None or len(recall)==0):
         return 0
     else:
         return recall[-1]

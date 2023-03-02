@@ -224,6 +224,7 @@ def main():
 
                 #Finally run the loop.
                 run_model()
+                FileHandling.addMeasurement("Currently Modifying",plots.name_override)
 
     
     #If it is loop type 2 (iterative unknowns loop):
@@ -238,6 +239,7 @@ def main():
                 plt.figure(figsize=(4,4))
                 print(f"unknowns: {Config.helper_variables['unknowns_clss']}")
                 run_model()
+                FileHandling.addMeasurement("Currently Modifying",plots.name_override)
 
 
 if __name__ == '__main__':

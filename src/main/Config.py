@@ -40,14 +40,15 @@ parameters = {
     "num_workers":[32, "Number of threads working on building batches"],
     "attemptLoad":[0, "0: do not use saves\n1:use saves"],
     "testlength":[1/4, "[0,1) percentage of training to test with"],
-    "MaxPerClass": [300, "Maximum number of samples per class"],
+    "Mix unknowns and validation": [1,"0 or 1, 0 means that the test set is purely unknowns and 1 means that the testset is the validation set plus unknowns (for testing)"],
+    "MaxPerClass": [3000, "Maximum number of samples per class"],
     "num_epochs":[5,"Number of times it trains on the whole trainset"],
     "learningRate":[0.01, "a modifier for training"],
     "threshold":[10,"When to declare something to be unknown"],
     "model":["Convolutional","Model type [Fully_Connected,Convolutional]"],
-    "OOD Type":["Energy","type of out of distribution detection [Soft,Open,Energy,COOL,DOC]"],
+    "OOD Type":["DOC","type of out of distribution detection [Soft,Open,Energy,COOL,DOC]"],
     "Dropout":[0.01,"percent of nodes that are skipped per run, larger numbers for more complex models [0,1)"],
-    "Datagrouping":["Dendrogramlimit","Datagroup type [ClassChunk,Dendrogramlimit]"],
+    "Datagrouping":["ClassChunk","Datagroup type [ClassChunk,Dendrogramlimit]"],
     "optimizer":opt_func["Adam"],
     "Unknowns":"refer to unknowns.CSV",
     "CLASSES":[15,"Number of classes, do not change"],
@@ -124,3 +125,4 @@ loops2 = ["learningRate","num_epochs","optimizer","Activation","Unknowns"]
 if parameters["LOOP"][0] == 2:
     helper_variables["unknowns_clss"] = incGroups[0]
     parameters["Unknowns"] = f"{incGroups[0]} Unknowns"
+    helper_variables["knowns_clss"] = loopOverUnknowns(helper_variables["unknowns_clss"])

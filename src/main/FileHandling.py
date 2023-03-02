@@ -71,7 +71,10 @@ def checkAttempLoad(root_path):
         raise ValueError("Invalid Dataloader type")
     train, val = torch.utils.data.random_split(train,[len(train) - int(len(train) * Config.parameters["testlength"][0]),int(len(train) * Config.parameters["testlength"][0])]) 
     
-    test = torch.utils.data.ConcatDataset([val, unknowns])
+    if (Config.parameters["Mix unknowns and validation"][0]):
+        test = torch.utils.data.ConcatDataset([val, unknowns])
+    else:
+        test = unknowns
     if Config.parameters["attemptLoad"][0] and os.path.exists(os.path.join(root_path,"Saves","Data.pt")):
         train = torch.load(os.path.join(root_path,"Saves","Data.pt"))
         test = torch.load(os.path.join(root_path,"Saves","DataTest.pt"))
@@ -236,6 +239,7 @@ def create_params_All(path=""):
 
 def addMeasurement(name:str,val):
     total = pd.read_csv(os.path.join("Saves","Scoresall.csv"),index_col=0)
+    #print(f"last valid index = {total.last_valid_index()} item name= {name}, item value={val}")
     total.at[total.last_valid_index(),name] = val
     total.to_csv(os.path.join("Saves","Scoresall.csv"))
 
