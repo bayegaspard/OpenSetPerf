@@ -151,7 +151,7 @@ class EndLayers():
             def selectKnowns(self, modelOut, labels:torch.Tensor):
                 labels = labels.clone()
                 lastval = -1
-                label = list(range(15))
+                label = list(range(Config.parameters["CLASSES"][0]))
                 newout = []
                 for val in Config.helper_variables["unknowns_clss"]:
                     label.remove(val)
@@ -212,6 +212,7 @@ class EndLayers():
         scores = torch.tensor(np.array(scores_open),device=percentages.device)
         self.Save_score.append(scores.squeeze().mean())
         scores.squeeze_().unsqueeze_(0)
+        
         return torch.cat((percentages,scores),dim=0)
     
     def energyMod(self, percentages:torch.Tensor):
@@ -288,7 +289,7 @@ class EndLayers():
 def renameClasses(modelOut:torch.Tensor):
     #Cuts out all of the unknown classes.
     lastval = -1
-    label = list(range(15))
+    label = list(range(Config.parameters["CLASSES"][0]))
     newout = []
     for val in Config.helper_variables["unknowns_clss"]:
         label.remove(val)

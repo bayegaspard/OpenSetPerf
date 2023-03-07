@@ -10,8 +10,8 @@ from sklearn.metrics import (precision_score, recall_score, average_precision_sc
 
 #Translation dictionaries for algorithms that cannot have gaps in their numbers.
 #So this block maps the knowns into numbers 0 to x where x is one less than the number of knowns
-relabel = {15:15} #This one turns numbers into consecutive values
-rerelabel = {15:15} #This one inverses numbers back into their values as specified by the dataloader
+relabel = {Config.parameters["CLASSES"][0]:Config.parameters["CLASSES"][0]} #This one turns numbers into consecutive values
+rerelabel = {Config.parameters["CLASSES"][0]:Config.parameters["CLASSES"][0]} #This one inverses numbers back into their values as specified by the dataloader
 def setrelabel():
     """
     This function sets/resets the relabel dictionaries during loops where they could get messed up.
@@ -20,10 +20,10 @@ def setrelabel():
     
     """
     global relabel,rerelabel
-    relabel = {15:15}
-    rerelabel = {15:15}
+    relabel = {Config.parameters["CLASSES"][0]:Config.parameters["CLASSES"][0]}
+    rerelabel = {Config.parameters["CLASSES"][0]:Config.parameters["CLASSES"][0]}
     temp = 0
-    for x in range(15):
+    for x in range(Config.parameters["CLASSES"][0]):
         if temp < len(Config.helper_variables["unknowns_clss"]) and x == Config.helper_variables["unknowns_clss"][temp]:
             temp = temp+1
         else:
@@ -258,7 +258,7 @@ class LossPerEpoch():
 
 def getFscore(dat):
     """
-    Takes the scores saved by the model as it is running and then translates those int the four main scores.
+    Takes the scores saved by the model as it is running and then translates those into the four main scores.
 
     getFscore() parameter:
         -data in the form of a three item tuple. these should all be torch Tensors.
@@ -275,25 +275,47 @@ def getFscore(dat):
         accuracy- Number of places the labels matched over total number.
     """
     y_pred,y_true,y_tested_against = dat
-    y_pred = y_pred / (Config.parameters["CLASSES"][0]/15) #The whole config thing is if we are splitting the classes further
-    y_true = y_true / (Config.parameters["CLASSES"][0]/15)
+    y_pred = y_pred / (Config.parameters["CLASSES"][0]/Config.parameters["CLASSES"][0]) #The whole config thing is if we are splitting the classes further
+    y_true = y_true / (Config.parameters["CLASSES"][0]/Config.parameters["CLASSES"][0])
     y_true = y_true.to(torch.int).tolist()
     y_pred = y_pred.to(torch.int).tolist()
     y_tested_against = y_tested_against.to(torch.int).tolist()
     recall = recall_score(y_tested_against,y_pred,average='weighted',zero_division=0)
     precision = precision_score(y_tested_against,y_pred,average='weighted',zero_division=0)
-    f1 = 2 * (precision * recall) / (precision + recall)
+    if precision==0 and recall==0:
+        f1 =0
+    else:
+        f1 = 2 * (precision * recall) / (precision + recall)
     accuracy = accuracy_score(y_tested_against,y_pred)
     return f1,recall,precision,accuracy
 
 def getFoundUnknown(dat):
+    """
+    Takes the scores saved by the model as it is running and then translates those into a score representing how many of the unknowns were found.
+
+    getFscore() parameter:
+        -data in the form of a three item tuple. these should all be torch Tensors.
+        -The first value is the model's prediction for a given line
+        -The second value is the true value for a given line
+        -The third value is what the model was tested agianst, this should be the same as the second value except in cases where some of the lines are unknown.
+            If some of the lines are unknown those lines should be '15' in tested_against.
+        
+    Returns:
+        recall (int)- How many of the per-class positives did the model find, specifically for unknowns.
+    """
     y_pred,y_true,y_tested_against = dat
-    y_pred = y_pred / (Config.parameters["CLASSES"][0]/15) #The whole config thing is if we are splitting the classes further
-    y_true = y_true / (Config.parameters["CLASSES"][0]/15)
+    y_pred = y_pred / (Config.parameters["CLASSES"][0]/Config.parameters["CLASSES"][0]) #The whole config thing is if we are splitting the classes further
+    y_true = y_true / (Config.parameters["CLASSES"][0]/Config.parameters["CLASSES"][0])
     y_true = y_true.to(torch.int).tolist()
     y_pred = y_pred.to(torch.int).tolist()
     y_tested_against = y_tested_against.to(torch.int).tolist()
-    return recall_score(y_tested_against,y_pred,average=None,zero_division=0)[-1]
+    recall = recall_score(y_tested_against,y_pred,average=None,zero_division=0)
+    if (recall is float):
+        return recall
+    elif (recall is None or len(recall)==0):
+        return 0
+    else:
+        return recall[-1]
 
 if __name__ == "__main__":
     looptest()

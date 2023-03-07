@@ -10,7 +10,7 @@ def loopOverUnknowns(unknownlist):
     """
     Given a list of unknowns (integers 0-14) this will create a list of knowns (the inverted list).
     """
-    knownVals = list(range(15))
+    knownVals = list(range(parameters["CLASSES"][0]))
     for un in unknownlist:
         knownVals.remove(un)
     return knownVals
@@ -25,13 +25,11 @@ helper_variables = {
 
     #This is the only important value in this dictionary and it lists the diffrent values to consider unkowns.
     #Mappings are at the top of Dataload.py
-    "unknowns_clss": [0,1,2,3,4,5,6,11,12,13,14], #Overriden if loop=2
+    "unknowns_clss": [0,1,2,3,4,5,6], #Overriden if loop=2
 
     "e": 0
 }
 
-#Add a value to the dictionary that is the inverse of the unknowns
-helper_variables["knowns_clss"] = loopOverUnknowns(helper_variables["unknowns_clss"])
 
 #Here are all of the paremeters for the model.
 parameters = {
@@ -42,12 +40,13 @@ parameters = {
     "num_workers":[32, "Number of threads working on building batches"],
     "attemptLoad":[0, "0: do not use saves\n1:use saves"],
     "testlength":[1/4, "[0,1) percentage of training to test with"],
-    "MaxPerClass": [2500, "Maximum number of samples per class"],
-    "num_epochs":[50,"Number of times it trains on the whole trainset"],
+    "Mix unknowns and validation": [1,"0 or 1, 0 means that the test set is purely unknowns and 1 means that the testset is the validation set plus unknowns (for testing)"],
+    "MaxPerClass": [3000, "Maximum number of samples per class"],
+    "num_epochs":[5,"Number of times it trains on the whole trainset"],
     "learningRate":[0.01, "a modifier for training"],
     "threshold":[10,"When to declare something to be unknown"],
     "model":["Convolutional","Model type [Fully_Connected,Convolutional]"],
-    "OOD Type":["Open","type of out of distribution detection [Soft,Open,Energy,COOL,DOC]"],
+    "OOD Type":["DOC","type of out of distribution detection [Soft,Open,Energy,COOL,DOC]"],
     "Dropout":[0.01,"percent of nodes that are skipped per run, larger numbers for more complex models [0,1)"],
     "Datagrouping":["ClassChunk","Datagroup type [ClassChunk,Dendrogramlimit]"],
     "optimizer":opt_func["Adam"],
@@ -60,13 +59,23 @@ parameters = {
     "Activation": ["ReLU","The type of activation function to use"],
     "LOOP": [1,"This is a parameter that detumines if we want to loop over the algorithms.\n "\
     "0: no loop, 1:loop through variations of algorithms,thresholds,learning rates, groups and numbers of epochs, \n"\
-    "2: Loop while adding more unknowns into the training data (making them knowns) without resetting the model"]
+    "2: Loop while adding more unknowns into the training data (making them knowns) without resetting the model"],
+    "Dataset": ["Payload_data_UNSW", "This is what dataset we are using, [Payload_data_CICIDS2017,Payload_data_UNSW]"]
 }
+
+#Set Number of classes:
+if parameters["Dataset"][0] == "Payload_data_UNSW":
+    parameters["CLASSES"][0] = 10
+
 
 #Dendrogram chunk uses a slightly diffrent output on the model structure. 
 # (Also, dendrogram chunk is not working, so don't use it. Possibly related.)
 if parameters["Datagrouping"][0] == "DendrogramChunk":
     parameters["CLASSES"][0] = parameters["CLASSES"][0] *32
+
+
+#Add a value to the dictionary that is the inverse of the unknowns
+helper_variables["knowns_clss"] = loopOverUnknowns(helper_variables["unknowns_clss"])
 
 
 #This is for saving the original number of epochs
@@ -78,8 +87,11 @@ alg = ["Soft","Open","Energy","COOL","DOC"]
 thresholds = [0.1,0.5,0.75,0.99,1.1,2,5,10]
 learning_rates = [1,0.1,0.001,0.0001,0.00001,0.000001,0.0000001,0.00000001]
 activation = ["ReLU", "Tanh", "Sigmoid","Leaky","Elu","PRElu","Softplus","Softmax"]
-groups = [[2],[2,3,6],[2,3,4,5,6],[2,3,4,5,6,7,11],[2,3,4,5,6,7,11,12,14],[2,3,4,5,6,7,8,9,11,12,14],[2,3,4,5,6,7,8,9,10,11,12,13,14],[1,2,3,4,5,6,7,8,9,10,11,12,13,14]]
-incGroups = [[2,3,4,5,6,7,8,9,10,11,12,13,14],[3,4,5,6,7,8,9,10,11,12,13,14],[4,5,6,7,8,9,10,11,12,13,14],[5,6,7,8,9,10,11,12,13,14],[6,7,8,9,10,11,12,13,14],[7,8,9,10,11,12,13,14],[8,9,10,11,12,13,14],[9,10,11,12,13,14],[10,11,12,13,14],[11,12,13,14],[12,13,14],[13,14],[14]] #This one list is for loop 2. Note: array size should be decreasing.
+groups = [[2],[2,3,6],[2,3,4,5,6],[2,3,4,5,6,7],[2,3,4,5,6,7,8],[2,3,4,5,6,7,8,9],[1,2,3,4,5,6,7,8,9]]
+if parameters["Dataset"][0] == "Payload_data_CICIDS2017":
+    incGroups = [[2,3,4,5,6,7,8,9,10,11,12,13,14],[3,4,5,6,7,8,9,10,11,12,13,14],[4,5,6,7,8,9,10,11,12,13,14],[5,6,7,8,9,10,11,12,13,14],[6,7,8,9,10,11,12,13,14],[7,8,9,10,11,12,13,14],[8,9,10,11,12,13,14],[9,10,11,12,13,14],[10,11,12,13,14],[11,12,13,14],[12,13,14],[13,14],[14]] #This one list is for loop 2. Note: array size should be decreasing.
+else:
+    incGroups = [[2,3,4,5,6,7,8,9],[3,4,5,6,7,8,9],[4,5,6,7,8,9],[5,6,7,8,9],[6,7,8,9],[7,8,9],[8,9],[9]]
 epochs= []
 epochs = [1,2,5,10,25,50,100,200]
 
@@ -116,3 +128,4 @@ loops2 = ["learningRate","num_epochs","optimizer","Activation","Unknowns"]
 if parameters["LOOP"][0] == 2:
     helper_variables["unknowns_clss"] = incGroups[0]
     parameters["Unknowns"] = f"{incGroups[0]} Unknowns"
+    helper_variables["knowns_clss"] = loopOverUnknowns(helper_variables["unknowns_clss"])

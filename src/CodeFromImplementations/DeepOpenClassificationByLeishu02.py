@@ -7,7 +7,7 @@ import Config
 def renameClasses(modelOut:torch.Tensor, labels:torch.Tensor):
     labels = labels.clone()
     lastval = -1
-    label = list(range(15))
+    label = list(range(Config.parameters["CLASSES"][0]))
     newout = []
     for val in Config.helper_variables["unknowns_clss"]:
         label.remove(val)
@@ -99,7 +99,7 @@ def runDOC(test_X_pred_true, mu_stds, seen):
              test_y_pred.append(max_class)#predicted probability is greater than threshold, accept
         else:
             #THE NEXT LINE HAS BEEN MODIFIED
-            test_y_pred.append(15)#otherwise, reject
+            test_y_pred.append(Config.parameters["CLASSES"][0])#otherwise, reject
 
     
     # In[]:

@@ -59,19 +59,22 @@ def checkAttempLoad(root_path):
     print("Reading datasets to create test and train sets")
     
     if datagroup == "ClassChunk":
-        train = Dataload.ClassDivDataset(os.path.join(root_path,"datasets","Payload_data_CICIDS2017"), use=Config.helper_variables["knowns_clss"])
-        unknowns = Dataload.ClassDivDataset(os.path.join(root_path,"datasets","Payload_data_CICIDS2017"), use=unknownlist, unknownData=True)
+        train = Dataload.ClassDivDataset(os.path.join(root_path,"datasets",Config.parameters["Dataset"][0]), use=Config.helper_variables["knowns_clss"])
+        unknowns = Dataload.ClassDivDataset(os.path.join(root_path,"datasets",Config.parameters["Dataset"][0]), use=unknownlist, unknownData=True)
     elif datagroup == "Dendrogramlimit":
-        train = Dataload.ClusterLimitDataset(os.path.join(root_path,"datasets","Payload_data_CICIDS2017"), use=Config.helper_variables["knowns_clss"])
-        unknowns = Dataload.ClusterLimitDataset(os.path.join(root_path,"datasets","Payload_data_CICIDS2017"), use=unknownlist, unknownData=True)
+        train = Dataload.ClusterLimitDataset(os.path.join(root_path,"datasets",Config.parameters["Dataset"][0]), use=Config.helper_variables["knowns_clss"])
+        unknowns = Dataload.ClusterLimitDataset(os.path.join(root_path,"datasets",Config.parameters["Dataset"][0]), use=unknownlist, unknownData=True)
     elif datagroup == "DendrogramChunk":
-        train = Dataload.ClusterDivDataset(os.path.join(root_path,"datasets","Payload_data_CICIDS2017"), use=Config.helper_variables["knowns_clss"])
-        unknowns = Dataload.ClusterDivDataset(os.path.join(root_path,"datasets","Payload_data_CICIDS2017"), use=unknownlist, unknownData=True)
+        train = Dataload.ClusterDivDataset(os.path.join(root_path,"datasets",Config.parameters["Dataset"][0]), use=Config.helper_variables["knowns_clss"])
+        unknowns = Dataload.ClusterDivDataset(os.path.join(root_path,"datasets",Config.parameters["Dataset"][0]), use=unknownlist, unknownData=True)
     else:
         raise ValueError("Invalid Dataloader type")
     train, val = torch.utils.data.random_split(train,[len(train) - int(len(train) * Config.parameters["testlength"][0]),int(len(train) * Config.parameters["testlength"][0])]) 
     
-    test = torch.utils.data.ConcatDataset([val, unknowns])
+    if (Config.parameters["Mix unknowns and validation"][0]):
+        test = torch.utils.data.ConcatDataset([val, unknowns])
+    else:
+        test = unknowns
     if Config.parameters["attemptLoad"][0] and os.path.exists(os.path.join(root_path,"Saves","Data.pt")):
         train = torch.load(os.path.join(root_path,"Saves","Data.pt"))
         test = torch.load(os.path.join(root_path,"Saves","DataTest.pt"))
@@ -89,14 +92,14 @@ def checkAttempLoad(root_path):
 
 def incrementLoopModData(changed:list):
     if Config.parameters["Datagrouping"][0] == "ClassChunk":
-        known = Dataload.ClassDivDataset(os.path.join("datasets","Payload_data_CICIDS2017"), use=changed)
-        unknowns = Dataload.ClassDivDataset(os.path.join("datasets","Payload_data_CICIDS2017"), use=Config.helper_variables["unknowns_clss"], unknownData=True)
+        known = Dataload.ClassDivDataset(os.path.join("datasets",Config.parameters["Dataset"][0]), use=changed)
+        unknowns = Dataload.ClassDivDataset(os.path.join("datasets",Config.parameters["Dataset"][0]), use=Config.helper_variables["unknowns_clss"], unknownData=True)
     elif Config.parameters["Datagrouping"][0] == "Dendrogramlimit":
-        known = Dataload.ClusterLimitDataset(os.path.join("datasets","Payload_data_CICIDS2017"), use=changed)
-        unknowns = Dataload.ClusterLimitDataset(os.path.join("datasets","Payload_data_CICIDS2017"), use=Config.helper_variables["unknowns_clss"], unknownData=True)
+        known = Dataload.ClusterLimitDataset(os.path.join("datasets",Config.parameters["Dataset"][0]), use=changed)
+        unknowns = Dataload.ClusterLimitDataset(os.path.join("datasets",Config.parameters["Dataset"][0]), use=Config.helper_variables["unknowns_clss"], unknownData=True)
     elif Config.parameters["Datagrouping"][0] == "DendrogramChunk":
-        known = Dataload.ClusterDivDataset(os.path.join("datasets","Payload_data_CICIDS2017"), use=changed)
-        unknowns = Dataload.ClusterDivDataset(os.path.join("datasets","Payload_data_CICIDS2017"), use=Config.helper_variables["unknowns_clss"], unknownData=True)
+        known = Dataload.ClusterDivDataset(os.path.join("datasets",Config.parameters["Dataset"][0]), use=changed)
+        unknowns = Dataload.ClusterDivDataset(os.path.join("datasets",Config.parameters["Dataset"][0]), use=Config.helper_variables["unknowns_clss"], unknownData=True)
     else:
         raise ValueError("Invalid Dataloader type")
     
@@ -236,6 +239,7 @@ def create_params_All(path=""):
 
 def addMeasurement(name:str,val):
     total = pd.read_csv(os.path.join("Saves","Scoresall.csv"),index_col=0)
+    #print(f"last valid index = {total.last_valid_index()} item name= {name}, item value={val}")
     total.at[total.last_valid_index(),name] = val
     total.to_csv(os.path.join("Saves","Scoresall.csv"))
 

@@ -210,7 +210,7 @@ def openmaxevaluation(scores,labels,args,dict):
 def renameClasses(modelOut:torch.Tensor, labels:torch.Tensor):
     labels = labels.clone()
     lastval = -1
-    label = list(range(15))
+    label = list(range(Config.parameters["CLASSES"][0]))
     newout = []
     #print(Config.helper_variables["unknowns_clss"])
     for val in Config.helper_variables["unknowns_clss"]:
