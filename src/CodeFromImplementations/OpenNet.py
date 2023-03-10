@@ -74,7 +74,7 @@ def intra_spread(Z:torch.Tensor,means:list,Y:torch.Tensor)->torch.Tensor:
     #For each class in the knowns
     for j in K:
         #The mask will only select items of the correct class
-        mask = Y==Config.helper_variables["knowns_clss"][j]
+        mask = (Y==Config.helper_variables["knowns_clss"][j]).cpu()
         # mask = Y==[0,1,2][j]
         distanceVector = means[j]-Z[mask]
         
@@ -100,7 +100,7 @@ def outlier_score(x:torch.Tensor,means:torch.Tensor)->torch.Tensor:
     mask = torch.zeros(Config.parameters["CLASSES"][0])
     for i in Config.helper_variables["knowns_clss"]:
         mask[i] = 1
-    mask = mask==1 #Apparently it only wants bools
+    mask = (mask==1).cpu() #Apparently it only wants bools
 
     meansTensor = torch.stack(means)
     distances = torch.add(meansTensor,x[mask],alpha=-1)
