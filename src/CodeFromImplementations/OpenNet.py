@@ -103,7 +103,7 @@ def outlier_score(x:torch.Tensor,means:torch.Tensor)->torch.Tensor:
     mask = (mask==1).cpu() #Apparently it only wants bools
 
     meansTensor = torch.stack(means)
-    distances = torch.add(meansTensor,x[mask],alpha=-1)
+    distances = torch.add(meansTensor,x.cpu()[mask],alpha=-1)
     normalDistance = torch.linalg.norm(distances,dim=1)
     return normalDistance.min()
 
