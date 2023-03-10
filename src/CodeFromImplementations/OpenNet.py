@@ -113,7 +113,7 @@ def iimod(Z, means):
     for x in Config.helper_variables["knowns_clss"]:
         mask[x] = 1
     mask = mask==1 #Apparently it only wants bools
-    Z = Z*mask
+    Z = Z.cpu()*mask
     Z2= Z[:,mask] #selects only the rows that are not unknowns. (On second thought we probibly should have made the model be able to change how many classes it can output)
     for z in range(len(Z2)):
         meansTensor = torch.stack(means)
