@@ -59,7 +59,7 @@ def class_means(Z:torch.Tensor,Y:torch.Tensor):
     for y in Config.helper_variables["knowns_clss"]:
     # for y in [0,1,2]:
         #Technically only this part is actually equation 2 but it seems to want to output a value for each class.
-        mask = Y==y
+        mask = (Y==y).cpu()
         Cj = mask.sum().item()
         sumofz = Z[mask].sum(dim=0)
         means.append(sumofz/Cj)
