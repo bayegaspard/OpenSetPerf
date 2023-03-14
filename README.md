@@ -24,6 +24,7 @@ source opensetperf/bin/activate
 `pip3 install -r requirements.txt
 `
 - Navigate up one directory `cd ..` into the root directory for the Repo.
+- You may need to create a folder in the root folder `OpenSetPerf\Saves\hyperparam`.
 - Run the model using `python3 src\main\main.py`.
 - Saves will generate in the `Saves` folder.
 
