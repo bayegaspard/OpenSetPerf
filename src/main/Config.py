@@ -132,6 +132,13 @@ alg.insert(0,parameters["OOD Type"][0])
 #This is an array to eaiser loop through everything.
 loops = [learning_rates,epochs,optim,activation,groups,batch]
 loops2 = ["learningRate","num_epochs","optimizer","Activation","Unknowns","batch_size"]
+for i in range(len(loops)):
+    if loops2[i] == "Unknowns":
+        loops[i].insert(0,helper_variables["unknowns_clss"])
+    elif loops2[i] == "optimizer":
+        loops[i].insert(0,parameters[loops2[i]])
+    else:
+        loops[i].insert(0,parameters[loops2[i]][0])
 
 #Now I am done. Just create array and fill it in to both of the loops.
 #Make sure loop is set to 1.
