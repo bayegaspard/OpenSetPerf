@@ -219,7 +219,7 @@ class EndLayers():
             self.Save_score.append(torch.zeros(0))
             return errorreturn
             
-        percentages = percentages*helperFunctions.mask
+        percentages = percentages*helperFunctions.mask.to(device=percentages.device,clone=True)
         percentages = torch.concat([percentages,torch.zeros(len(percentages))],dim=1)
         
         #print(scores_open)
@@ -229,7 +229,7 @@ class EndLayers():
         #scores.squeeze_().unsqueeze_(0)
         
         #return torch.cat((percentages,scores),dim=0)
-        return percentages
+        return percentages.to(device=percentages.device)
     
     def energyMod(self, percentages:torch.Tensor):
         return percentages
