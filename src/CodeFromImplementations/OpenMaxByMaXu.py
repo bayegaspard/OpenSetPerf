@@ -149,14 +149,13 @@ def compute_train_score_and_mavs_and_dists(train_class_num,trainloader,device,ne
     #print("scores from open",scores)
     with torch.no_grad():
         for batch_idx, (inputs, targets) in enumerate(trainloader):
-            inputs, targets = inputs.to(device), targets[1].to(device)
-
+            inputs, targets = inputs.to(device), targets[:,1].to(device)
+            
             # this must cause error for cifar
             #_, outputs = net(inputs)                   <--this was from the orignial OpenMax implementation
             outputs = net(inputs)   
 
-            #Testing
-            print(f"Confusion matrix :\n{confusion_matrix(targets,outputs.argmax(dim=1))}")
+
 
             #print("output from open",outputs)                    #<-this was a replacement
             for score, t in zip(outputs, targets):

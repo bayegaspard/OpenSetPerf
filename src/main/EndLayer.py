@@ -187,9 +187,8 @@ class EndLayers():
     def openMaxMod(self,percentages:torch.Tensor, labels:torch.Tensor):
         failed = False
 
-        from sklearn.metrics import confusion_matrix
-        #print(f"Predicted class counts = {percentages.argmax(dim=1).bincount()}, Label counts = {labels.T.sum(dim=1)}")
-        print(f"{confusion_matrix(labels,percentages.argmax(dim=1),labels=Config.helper_variables['knowns_clss'])}")
+        #from sklearn.metrics import confusion_matrix
+        #print(f"{confusion_matrix(labels,percentages.argmax(dim=1),labels=Config.helper_variables['knowns_clss'])}")
 
         try:
             import CodeFromImplementations.OpenMaxByMaXu as Open
