@@ -183,7 +183,7 @@ def openmaxevaluation(scores,labels,args,dict):
     trainloader = dict["loader"]
     device = dict["device"]
     net = dict["net"]
-    scores,labels = renameClasses(scores[0],labels[0])
+    scores,labels = renameClasses(scores,labels)
     scores = [scores]
     labels = [labels]
 

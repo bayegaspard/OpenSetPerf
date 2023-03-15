@@ -188,7 +188,7 @@ class EndLayers():
         failed = False
 
         #from sklearn.metrics import confusion_matrix
-        #print(f"{confusion_matrix(labels,percentages.argmax(dim=1),labels=Config.helper_variables['knowns_clss'])}")
+        #print(f"{confusion_matrix(labels.cpu(),percentages.argmax(dim=1).cpu(),labels=Config.helper_variables['knowns_clss'])}")
 
         try:
             import CodeFromImplementations.OpenMaxByMaXu as Open
@@ -201,7 +201,7 @@ class EndLayers():
         
         if not failed:
             try:
-                scores_open = Open.openmaxevaluation([percentages.detach()],[labels.detach()],self.args,self.weibulInfo)
+                scores_open = Open.openmaxevaluation(percentages.detach(),labels.detach(),self.args,self.weibulInfo)
             except NotImplementedError:
                 print("Warning: OpenMax has failed to load!")
                 failed = True
@@ -219,13 +219,17 @@ class EndLayers():
             self.Save_score.append(torch.zeros(0))
             return errorreturn
             
+        percentages = percentages*helperFunctions.mask
+        percentages = torch.concat([percentages,torch.zeros(len(percentages))],dim=1)
+        
         #print(scores_open)
         scores = torch.tensor(np.array(scores_open),device=percentages.device)
+        percentages[helperFunctions.mask] = scores
         self.Save_score.append(scores.squeeze().mean())
-        scores.squeeze_().unsqueeze_(0)
+        #scores.squeeze_().unsqueeze_(0)
         
         #return torch.cat((percentages,scores),dim=0)
-        return scores
+        return percentages
     
     def energyMod(self, percentages:torch.Tensor):
         return percentages
