@@ -18,6 +18,9 @@ sys.path.append(os.path.join(root_folder,"CodeFromImplementations"))
 import Config
 import helperFunctions
 
+#Temparary
+from sklearn.metrics import confusion_matrix
+
 
 import libmr
 def calc_distance(query_score, mcv, eu_weight, distance_type='eucos'):
@@ -151,6 +154,10 @@ def compute_train_score_and_mavs_and_dists(train_class_num,trainloader,device,ne
             # this must cause error for cifar
             #_, outputs = net(inputs)                   <--this was from the orignial OpenMax implementation
             outputs = net(inputs)   
+
+            #Testing
+            print(f"Confusion matrix :\n{confusion_matrix(targets,outputs.argmax(dim=1))}")
+
             #print("output from open",outputs)                    #<-this was a replacement
             for score, t in zip(outputs, targets):
                 score, t = renameClasses(score,t)   
@@ -160,9 +167,12 @@ def compute_train_score_and_mavs_and_dists(train_class_num,trainloader,device,ne
                 if torch.argmax(score) == t:
                     scores[t].append(score.unsqueeze(dim=0).unsqueeze(dim=0))
     #LINES ADDED HERE
+    a = 0
     for x in scores:
         if len(x) == 0:
+            print(f"Class{a} has no examples")
             raise helperFunctions.NoExamples()
+        a+=1
     scores = [torch.cat(x).cpu().numpy() for x in scores]  # (N_c, 1, C) * C
     mavs = np.array([np.mean(x, axis=0) for x in scores])  # (C, 1, C)
     dists = [compute_channel_distances(mcv, score) for mcv, score in zip(mavs, scores)]

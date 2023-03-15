@@ -20,6 +20,14 @@ def setrelabel():
     
     """
     global relabel,rerelabel
+
+    #This is the mask to apply to tensors to make them ignore unknown classes.
+    global mask
+    mask = torch.zeros(Config.parameters["CLASSES"][0])
+    for x in Config.helper_variables["knowns_clss"]:
+        mask[x] = 1
+    mask = mask==1 
+
     relabel = {Config.parameters["CLASSES"][0]:Config.parameters["CLASSES"][0]}
     rerelabel = {Config.parameters["CLASSES"][0]:Config.parameters["CLASSES"][0]}
     temp = 0
@@ -32,7 +40,19 @@ def setrelabel():
     temp = None
 setrelabel()
 
+def makeConsecutive(logits:torch.Tensor,labels:torch.Tensor):
+    """
+    This function renames all of the classes so that all of the known classes are consecutive. This makes them easier to work with
+    I wish I had just made the model have x outputs where x is the number of knowns instead of c outputs where c is the number of classes
+    """
+    global mask
+    loge = logits[mask]
+    newlabels = labels.clone()
+    for x in Config.helper_variables["knowns_clss"]:
+        newlabels[labels==x] = relabel[x]
+    return loge, newlabels
 
+    
 def deleteSaves():
     """
     This deletes all model saves to prevent curruption
@@ -79,9 +99,9 @@ def testRotate(notes=(0,0,0)):
     if step+1 < len(Config.loops[stage]):
         step = step+1
 
-        if stage == 2:
+        if Config.loops2[stage] == "optimizer":
             Config.parameters[Config.loops2[stage]] = Config.loops[stage][step]
-        elif stage == 4:
+        elif Config.loops2[stage] == "Unknowns":
             Config.helper_variables["unknowns_clss"] = Config.loops[stage][step]
             Config.parameters["Unknowns"] = f"{len(Config.loops[stage][step])} Unknowns"
             Config.helper_variables["knowns_clss"] = Config.loopOverUnknowns(Config.helper_variables["unknowns_clss"])
@@ -94,9 +114,9 @@ def testRotate(notes=(0,0,0)):
     #reset this stage
     step = 0
 
-    if stage == 2:
+    if Config.loops2[stage] == "optimizer":
         Config.parameters[Config.loops2[stage]] = Config.loops[stage][step]
-    elif stage == 4:
+    elif Config.loops2[stage] == "Unknowns":
         Config.helper_variables["unknowns_clss"] = Config.loops[stage][step]
         Config.parameters["Unknowns"] = f"{len(Config.loops[stage][step])} Unknowns"
         Config.helper_variables["knowns_clss"] = Config.loopOverUnknowns(Config.helper_variables["unknowns_clss"])
