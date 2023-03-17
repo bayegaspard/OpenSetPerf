@@ -220,11 +220,11 @@ class EndLayers():
             return errorreturn
             
         percentages = percentages*helperFunctions.mask.clone().to(device=percentages.device)
-        percentages = torch.concat([percentages,torch.zeros([1,len(percentages)],device=percentages.device)],dim=0)
+        percentages = torch.concat([percentages,torch.zeros([len(percentages),1],device=percentages.device)],dim=1)
         
         #print(scores_open)
         scores = torch.tensor(np.array(scores_open),device=percentages.device)
-        percentages[helperFunctions.mask] = scores
+        percentages[:,torch.concat([helperFunctions.mask,torch.zeros(1)==0])] = scores.to(dtype=torch.float32)
         self.Save_score.append(scores.squeeze().mean())
         #scores.squeeze_().unsqueeze_(0)
         
