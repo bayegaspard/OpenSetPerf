@@ -250,16 +250,25 @@ class ClassDivDataset(Dataset):
 
 
 class ClusterDivDataset(ClassDivDataset):
+    """
+    This version of the dataset is not directly used. 
+    It is focused on creating multiple subclasses for each class and giving unique idenification number to each.
+    However, the better implemented ClusterLimitDataset does inhearit some of its functionality from this version.
+    
+    """
     def __init__(self, path:str, use:list=None, unknownData=False):
         super().__init__(path,use,unknownData)
-        #path is the string path that is the main datafile
-        #use is the list of integers corrispoding with the class dictionary above that you want to load.
-        #Unknown Data is if the dataset should only give unknown labels.
+        """
+        path is the string path that is the main datafile
+        use is the list of integers corrispoding with the class dictionary above that you want to load.
+        Unknown Data is if the dataset should only give unknown labels.
         
-        #If you want to make a dataloader that only reads benign data:
-        #  train = Dataload.Dataset("Payload_data_CICIDS2017_Sorted",use=[0])
-        #"Payload_data_CICIDS2017_Sorted" is the main name for where the chunked data folder is
-        #use = [0] means that we are only using CLASSLIST[0] which is benign
+        If you want to make a dataloader that only reads benign data:
+          train = Dataload.Dataset("Payload_data_CICIDS2017_Sorted",use=[0])
+        "Payload_data_CICIDS2017_Sorted" is the main name for where the chunked data folder is
+        use = [0] means that we are only using CLASSLIST[0] which is benign
+        """
+        
 
         self.perclassgroups = None
         self.clusters = 32
@@ -282,10 +291,20 @@ class ClusterDivDataset(ClassDivDataset):
 
 
     def __getitem__(self, index) -> tuple([torch.Tensor,torch.Tensor]):
-        #For debug
-        if index==self.length:
-            print(index)
+        """
+        Gets the item at integer index. Note: you should not be calling this directly. Torch dataloaders will do that for you.
 
+        parameters:
+            index - the index of the item to retrieve.
+        
+        returns:
+            tuple containing two tensors:
+                first tensor - data, the data associated with a label
+                second tensor is two dimentional:
+                    first column - modified label, label with all unknown classes replaced with 15 for unknown.
+                    second column - true label, the actual label of the class in integer form.
+        
+        """
         #Now it needs to figure out what type of data it is using.
         chunktype = 0
         chunkNumber = 0
@@ -324,6 +343,14 @@ class ClusterDivDataset(ClassDivDataset):
         return item
     
     def checkIfSplit(self,path):
+        """
+        This checks if the data is in the correct format, if it is not in the correct format it will generate the correct format.
+        The correct format is clustered by type into chunks with a csv conainging the counts of all of the classes.
+
+        Parameters:
+            path - string containing the path to look for the dataset.
+        
+        """
         if not os.path.exists(self.path+"_Clustered"): 
             print("Generating clustered data folder.")
             os.mkdir(self.path+"_Clustered")
@@ -352,8 +379,17 @@ class ClusterDivDataset(ClassDivDataset):
             counts.to_csv(f"{path}/counts.csv",index_label=False)
 
     def seriesprocess(self,x:pd.Series,classNumber:int) -> tuple([torch.Tensor,torch.Tensor]):
-        #this separates the data from the labels with series
-
+        """
+        This separates the data from the labels with series
+        
+        parameters:
+            x - series to turn into tensors.
+        
+        returns:
+            tuple containing:
+                data - torch tensor of data values for a label
+                label - the true class of the item in integer form.
+        """
         data = x.iloc[:len(x)-1]
         data = torch.tensor(data.to_numpy())
 
@@ -389,19 +425,32 @@ class ClusterDivDataset(ClassDivDataset):
 
 
 class ClusterLimitDataset(ClusterDivDataset):
+    """
+    This version of the dataset will use agglomerative clustering to split each class into 32 subclasses.
+    It will then take Config.parameters["MaxPerClass"] sample points from each subclass to compile the dataset.
+    If a subclass does not have that number of samples it will take the maximum number of samples.
+
+    The thought behind this is that the catagories we have are broad,
+     so we want to take examples form each of the diffrent styles within these classes to train our model on.
+    """
     def __init__(self, path:str, use:list=None, unknownData=False):
+        """
+        path is the string path that is the main datafile
+        use is the list of integers corrispoding with the class dictionary above that you want to load.
+        Unknown Data is if the dataset should only give unknown labels.
+        
+        If you want to make a dataloader that only reads benign data:
+          train = Dataload.Dataset("Payload_data_CICIDS2017_Sorted",use=[0])
+        "Payload_data_CICIDS2017_Sorted" is the main name for where the chunked data folder is
+        use = [0] means that we are only using CLASSLIST[0] which is benign
+        
+        """
         self.perclassgroups = None
         self.clusters = 32
         self.minclass = 0
         super().__init__(path,use,unknownData)
-        #path is the string path that is the main datafile
-        #use is the list of integers corrispoding with the class dictionary above that you want to load.
-        #Unknown Data is if the dataset should only give unknown labels.
         
-        #If you want to make a dataloader that only reads benign data:
-        #  train = Dataload.Dataset("Payload_data_CICIDS2017_Sorted",use=[0])
-        #"Payload_data_CICIDS2017_Sorted" is the main name for where the chunked data folder is
-        #use = [0] means that we are only using CLASSLIST[0] which is benign
+        
 
         
             
@@ -413,6 +462,20 @@ class ClusterLimitDataset(ClusterDivDataset):
 
 
     def __getitem__(self, index) -> tuple([torch.Tensor,torch.Tensor]):
+        """
+        Gets the item at integer index. Note: you should not be calling this directly. Torch dataloaders will do that for you.
+
+        parameters:
+            index - the index of the item to retrieve.
+        
+        returns:
+            tuple containing two tensors:
+                first tensor - data, the data associated with a label
+                second tensor is two dimentional:
+                    first column - modified label, label with all unknown classes replaced with 15 for unknown.
+                    second column - true label, the actual label of the class in integer form.
+        
+        """
         #For debug
         if index==self.length:
             print(index)
@@ -457,7 +520,14 @@ class ClusterLimitDataset(ClusterDivDataset):
 
 
     def seriesprocess(self,x:pd.Series) -> tuple([torch.Tensor,torch.Tensor]):
-        #this separates the data from the labels with series
+        """
+        This checks if the data is in the correct format, if it is not in the correct format it will generate the correct format.
+        The correct format is clustered by type into chunks with a csv conainging the counts of all of the classes.
+
+        Parameters:
+            path - string containing the path to look for the dataset.
+        
+        """
 
         data = x.iloc[:len(x)-1]
         data = torch.tensor(data.to_numpy())
@@ -466,7 +536,7 @@ class ClusterLimitDataset(ClusterDivDataset):
         label = torch.tensor(int(label),dtype=torch.long)    #The int is because the loss function is expecting ints
         label.unsqueeze_(0)              #This is to allow it to be two dimentional
         if self.unknownData:
-            #label2 = torch.tensor(self.perclassgroups.sum().item(),dtype=torch.long).unsqueeze_(0)    #unknowns are marked as unknown
+            #unknowns are marked as unknown
             label2 = torch.tensor(Config.parameters["CLASSES"][0],dtype=torch.long).unsqueeze_(0)
         else:
             label2 = label.clone()

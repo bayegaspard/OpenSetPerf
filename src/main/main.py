@@ -4,7 +4,7 @@ from torch.utils.data import DataLoader
 from sklearn.metrics import (precision_score, recall_score, average_precision_score)
 import numpy as np
 import torch
-
+import time
 
 # user defined modules
 import GPU, FileHandling
@@ -87,6 +87,8 @@ def run_model():
     #This gives important information to the endlayer for some of the algorithms
     model.end.prepWeibull(train_loader,device,model)
 
+
+    starttime = time.time()
     #Model.fit is what actually runs the model. It outputs some kind of history array?
     history_final += model.fit(num_epochs, lr, train_loader, test_loader,val_loader, opt_func=opt_func)
 

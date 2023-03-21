@@ -4,7 +4,7 @@ import torch.nn.functional as F
 import pandas as pd
 import Config
 import helperFunctions
-
+import time
 
 #three lines from https://xxx-cook-book.gitbooks.io/python-cook-book/content/Import/import-from-parent-folder.html
 import os
@@ -29,6 +29,7 @@ class EndLayers():
 
 
     def endlayer(self, output_true:torch.Tensor, y:torch.Tensor, type=None, Train=False):
+        startTime = time.time()
         #check if a type is specified
         if type is None:
             type = self.type
@@ -114,8 +115,15 @@ class EndLayers():
             newPredictions[x] = torch.tensor(helperFunctions.rerelabel[newPredictions[x].item()])
         return newPredictions
 
+    def iiUnknown(self, tup):
+        percentages, unknowns = tup
+        mask = unknowns.greater(self.cutoff)
+        percentages = torch.cat([percentages,unknowns.unsqueeze(dim=-1)],dim=-1)
+        return percentages
+
+
     #all functions here return a mask with 1 in all valid locations and 0 in all invalid locations
-    typesOfUnknown = {"Soft":softMaxUnknown, "Open":openMaxUnknown, "Energy":energyUnknown, "Odin":odinUnknown, "COOL":normalThesholdUnknown, "SoftThresh":normalThesholdUnknown, "DOC":DOCUnknown}
+    typesOfUnknown = {"Soft":softMaxUnknown, "Open":openMaxUnknown, "Energy":energyUnknown, "Odin":odinUnknown, "COOL":normalThesholdUnknown, "SoftThresh":normalThesholdUnknown, "DOC":DOCUnknown, "iiMod": iiUnknown}
 
     #---------------------------------------------------------------------------------------------
     #This is the section for modifying the outputs for the final layer
@@ -178,7 +186,10 @@ class EndLayers():
 
     def openMaxMod(self,percentages:torch.Tensor, labels:torch.Tensor):
         failed = False
-        
+
+        #from sklearn.metrics import confusion_matrix
+        #print(f"{confusion_matrix(labels.cpu(),percentages.argmax(dim=1).cpu(),labels=Config.helper_variables['knowns_clss'])}")
+
         try:
             import CodeFromImplementations.OpenMaxByMaXu as Open
         except ImportError:
@@ -190,7 +201,7 @@ class EndLayers():
         
         if not failed:
             try:
-                scores_open = Open.openmaxevaluation([percentages.detach()],[labels.detach()],self.args,self.weibulInfo)
+                scores_open = Open.openmaxevaluation(percentages.detach(),labels.detach(),self.args,self.weibulInfo)
             except NotImplementedError:
                 print("Warning: OpenMax has failed to load!")
                 failed = True
@@ -208,12 +219,17 @@ class EndLayers():
             self.Save_score.append(torch.zeros(0))
             return errorreturn
             
+        percentages = percentages*helperFunctions.mask.clone().to(device=percentages.device)
+        percentages = torch.concat([percentages,torch.zeros([len(percentages),1],device=percentages.device)],dim=1)
+        
         #print(scores_open)
         scores = torch.tensor(np.array(scores_open),device=percentages.device)
+        percentages[:,torch.concat([helperFunctions.mask,torch.zeros(1)==0])] = scores.to(dtype=torch.float32)
         self.Save_score.append(scores.squeeze().mean())
-        scores.squeeze_().unsqueeze_(0)
+        #scores.squeeze_().unsqueeze_(0)
         
-        return torch.cat((percentages,scores),dim=0)
+        #return torch.cat((percentages,scores),dim=0)
+        return percentages.to(device=percentages.device)
     
     def energyMod(self, percentages:torch.Tensor):
         return percentages
@@ -246,11 +262,17 @@ class EndLayers():
         return percent
 
     def iiMod(self, percentages:torch.Tensor):
-        #https://arxiv.org/pdf/1802.04365.pdf
-        return percentages
+        import CodeFromImplementations.OpenNet as OpenNet
+        means = OpenNet.Algorithm_1(self.weibulInfo["loader"],self.weibulInfo["net"])
+        unknowns = []
+        for i in range(len(percentages)):
+            unknowns.append(OpenNet.outlier_score(percentages[i],means))
+        unknowns = torch.stack(unknowns)
+        percentages = OpenNet.iimod(percentages,means)
+        return percentages,unknowns
 
     #all functions here return a tensor, sometimes it has an extra column for unknowns
-    typesOfMod = {"Soft":softMaxMod, "Open":openMaxMod, "Energy":energyMod, "Odin":odinMod, "COOL":FittedLearningEval, "SoftThresh":softMaxMod, "DOC":DOCmod}
+    typesOfMod = {"Soft":softMaxMod, "Open":openMaxMod, "Energy":energyMod, "Odin":odinMod, "COOL":FittedLearningEval, "SoftThresh":softMaxMod, "DOC":DOCmod, "iiMod":iiMod}
 
     #---------------------------------------------------------------------------------------------
     #This is the section for training label modification
@@ -274,6 +296,20 @@ class EndLayers():
         except:
             return self.noChange(labelList)
 
+    #---------------------------------------------------------------------------------------------
+    #Some have specific training methods
+
+    def iiTrain(self,batch,model):
+        import CodeFromImplementations.OpenNet as OpenNet
+        OpenNet.singleBatch(batch,model)
+
+    typesOfTrainMod = {"iiMod":iiTrain}
+
+    def trainMod(self,batch,model):
+        try:
+            return self.typesOfTrainMod[self.type](self,batch,model)
+        except:
+            return
 
     #---------------------------------------------------------------------------------------------
     #This is the section for resetting each epoch

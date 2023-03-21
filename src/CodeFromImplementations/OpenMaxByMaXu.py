@@ -18,6 +18,9 @@ sys.path.append(os.path.join(root_folder,"CodeFromImplementations"))
 import Config
 import helperFunctions
 
+#Temparary
+from sklearn.metrics import confusion_matrix
+
 
 import libmr
 def calc_distance(query_score, mcv, eu_weight, distance_type='eucos'):
@@ -95,9 +98,9 @@ def openmax(weibull_model, categories, input_score, eu_weight, alpha=10, distanc
     ranked_list = input_score.argsort().ravel()[::-1][:alpha]
     alpha_weights = [((alpha + 1) - i) / float(alpha) for i in range(1, alpha + 1)]
     omega = np.zeros(nb_classes)
-    print(f"Omega = {omega}")
-    print(f"Ranked List = {ranked_list}")
-    print(f"Alpha Weights = {alpha_weights}")
+    # print(f"Omega = {omega}")
+    # print(f"Ranked List = {ranked_list}")
+    # print(f"Alpha Weights = {alpha_weights}")
     omega[ranked_list] = alpha_weights
 
     scores, scores_u = [], []
@@ -146,11 +149,14 @@ def compute_train_score_and_mavs_and_dists(train_class_num,trainloader,device,ne
     #print("scores from open",scores)
     with torch.no_grad():
         for batch_idx, (inputs, targets) in enumerate(trainloader):
-            inputs, targets = inputs.to(device), targets[1].to(device)
-
+            inputs, targets = inputs.to(device), targets[:,1].to(device)
+            
             # this must cause error for cifar
             #_, outputs = net(inputs)                   <--this was from the orignial OpenMax implementation
             outputs = net(inputs)   
+
+
+
             #print("output from open",outputs)                    #<-this was a replacement
             for score, t in zip(outputs, targets):
                 score, t = renameClasses(score,t)   
@@ -160,9 +166,12 @@ def compute_train_score_and_mavs_and_dists(train_class_num,trainloader,device,ne
                 if torch.argmax(score) == t:
                     scores[t].append(score.unsqueeze(dim=0).unsqueeze(dim=0))
     #LINES ADDED HERE
+    a = 0
     for x in scores:
         if len(x) == 0:
+            print(f"Class{a} has no examples")
             raise helperFunctions.NoExamples()
+        a+=1
     scores = [torch.cat(x).cpu().numpy() for x in scores]  # (N_c, 1, C) * C
     mavs = np.array([np.mean(x, axis=0) for x in scores])  # (C, 1, C)
     dists = [compute_channel_distances(mcv, score) for mcv, score in zip(mavs, scores)]
@@ -174,7 +183,7 @@ def openmaxevaluation(scores,labels,args,dict):
     trainloader = dict["loader"]
     device = dict["device"]
     net = dict["net"]
-    scores,labels = renameClasses(scores[0],labels[0])
+    scores,labels = renameClasses(scores,labels)
     scores = [scores]
     labels = [labels]
 
