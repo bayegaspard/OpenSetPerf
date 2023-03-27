@@ -84,12 +84,12 @@ num_epochs = parameters["num_epochs"][0]
 
 #This is to test all of the algorithms one after the other. (Loop 1 values)
 alg = ["Soft","Open","Energy","COOL","DOC"]
-batch = [5,500,1000]
-datapoints_per_class = [5,500,3000]
+batch = [10,100,1000]
+datapoints_per_class = [1000,2000,3000]
 thresholds = [0.1,1,10]
-learning_rates = [0.1,0.001,0.0001]
+learning_rates = [0.1,0.01,0.0001]
 activation = ["ReLU", "Tanh", "Sigmoid"]
-groups = [[2],[2,3,4,5,6],[1,2,3,4,5,6,7,8,9,10,11,14]]
+groups = [[2],[2,3,4,5,6],[1,2,3,4,5,6,7,8]]
 if parameters["Dataset"][0] == "Payload_data_CICIDS2017":
     incGroups = [[2,3,4,5,6,7,8,9,10,11,12,13,14],[3,4,5,6,7,8,9,10,11,12,13,14],[4,5,6,7,8,9,10,11,12,13,14],[5,6,7,8,9,10,11,12,13,14],[6,7,8,9,10,11,12,13,14],[7,8,9,10,11,12,13,14],[8,9,10,11,12,13,14],[9,10,11,12,13,14],[10,11,12,13,14],[11,12,13,14],[12,13,14],[13,14],[14]] #This one list is for loop 2. Note: array size should be decreasing.
 else:

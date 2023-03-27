@@ -241,10 +241,10 @@ if __name__ == "__main__":
 
     if __name__ == "__main__":
         data = pd.read_csv("Saves/Scoresall.csv")
-        #data.drop_duplicates(subset=["Currently Modifying"],inplace=True,keep="last")
+        data.drop_duplicates(subset=["Currently Modifying"],inplace=True,keep="last")
         data["x"] = data["Currently Modifying"].apply(findX)
         data["Type of change"] = data["x"].apply(findType)
         variations(data)
-        # for alg in data["OOD Type"].unique():
-        #     allPRF2(data,alg)
+        for alg in data["OOD Type"].unique():
+            allPRF2(data,alg)
         reformatData(data)
