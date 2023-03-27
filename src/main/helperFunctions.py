@@ -6,7 +6,7 @@ import torch
 import GPU
 import FileHandling
 from sklearn.metrics import (precision_score, recall_score, average_precision_score,accuracy_score)
-
+from sklearn.metrics import confusion_matrix
 
 #Translation dictionaries for algorithms that cannot have gaps in their numbers.
 #So this block maps the knowns into numbers 0 to x where x is one less than the number of knowns
@@ -65,6 +65,10 @@ def deleteSaves():
         os.remove(f"Saves/Epoch{i:03d}.pth")
         i = i+1
 
+
+
+def printconfmat(outputs:torch.Tensor,labels:torch.Tensor):
+    print(f"{confusion_matrix(labels,outputs.argmax(dim=1))}")
 
 
 

@@ -18,8 +18,7 @@ sys.path.append(os.path.join(root_folder,"CodeFromImplementations"))
 import Config
 import helperFunctions
 
-#Temparary
-from sklearn.metrics import confusion_matrix
+
 
 
 import libmr

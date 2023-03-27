@@ -363,7 +363,7 @@ class ClusterDivDataset(ClassDivDataset):
             for x in range(Config.parameters["CLASSES"][0]):
                 X = data.astype(int)
                 X = X[X["label"]==x]
-                X = X.sample(n=10000 if 10000<len(X) else len(X))
+                #X = X.sample(n=10000 if 10000<len(X) else len(X))
                 X2 = X.to_numpy()
 
                 # setting distance_threshold=0 ensures we compute the full tree.
