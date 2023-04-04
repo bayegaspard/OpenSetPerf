@@ -33,7 +33,7 @@ class EndLayers():
     def endlayer(self, output_true:torch.Tensor, y:torch.Tensor, type=None, Train=False):
         startTime = time.time()
         print(f"Argmax")
-        helperFunctions.printconfmat(y,output_true)
+        helperFunctions.printconfmat(output_true,y)
         #check if a type is specified
         if type is None:
             type = self.type
