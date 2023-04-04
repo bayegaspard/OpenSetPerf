@@ -5,6 +5,7 @@ import pandas as pd
 import Config
 import helperFunctions
 import time
+from sklearn.metrics import confusion_matrix
 
 #three lines from https://xxx-cook-book.gitbooks.io/python-cook-book/content/Import/import-from-parent-folder.html
 import os
@@ -32,7 +33,7 @@ class EndLayers():
     def endlayer(self, output_true:torch.Tensor, y:torch.Tensor, type=None, Train=False):
         startTime = time.time()
         print(f"Argmax")
-        helperFunctions.printconfmat(output_true.argmax(dim=1),y)
+        helperFunctions.printconfmat(y,output_true)
         #check if a type is specified
         if type is None:
             type = self.type
@@ -48,7 +49,7 @@ class EndLayers():
         output_complete = self.typesOfUnknown[type](self,output_modified)
 
         print(f"Alg")
-        helperFunctions.printconfmat(output_complete,y)
+        print(f"{confusion_matrix(y,output_complete)}")
         return output_complete
 
 
