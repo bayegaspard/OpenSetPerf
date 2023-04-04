@@ -15,6 +15,7 @@ sys.path.append(root_folder)
 
 root_path = os.getcwd()
 
+import helperFunctions
 
 class EndLayers():
 
@@ -30,6 +31,8 @@ class EndLayers():
 
     def endlayer(self, output_true:torch.Tensor, y:torch.Tensor, type=None, Train=False):
         startTime = time.time()
+        print(f"Argmax")
+        helperFunctions.printconfmat(output_true.argmax(dim=1),y)
         #check if a type is specified
         if type is None:
             type = self.type
@@ -44,7 +47,8 @@ class EndLayers():
         #This is supposted to add an extra column for unknowns
         output_complete = self.typesOfUnknown[type](self,output_modified)
 
-
+        print(f"Alg")
+        helperFunctions.printconfmat(output_complete,y)
         return output_complete
 
 
