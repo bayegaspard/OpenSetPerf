@@ -33,7 +33,7 @@ class EndLayers():
     def endlayer(self, output_true:torch.Tensor, y:torch.Tensor, type=None, Train=False):
         startTime = time.time()
         print(f"Argmax")
-        helperFunctions.printconfmat(output_true,y)
+        helperFunctions.printconfmat(output_true.cpu(),y.cpu())
         #check if a type is specified
         if type is None:
             type = self.type
@@ -49,7 +49,10 @@ class EndLayers():
         output_complete = self.typesOfUnknown[type](self,output_modified)
 
         print(f"Alg")
-        print(f"{confusion_matrix(y,output_complete)}")
+        if output_complete.ndim == 2:
+            helperFunctions.printconfmat(output_complete.cpu(),y.cpu())
+        else:
+            print(f"{confusion_matrix(y.cpu(),output_complete.cpu())}")
         return output_complete
 
 
@@ -256,8 +259,9 @@ class EndLayers():
 
     def FittedLearningEval(self, percentages:torch.Tensor):
         import CodeFromImplementations.FittedLearningByYhenon as fitted
+        per = percentages.softmax(dim=1)
         store = []
-        for x in percentages:
+        for x in per:
             store.append(fitted.infer(x,self.DOO,self.classCount))
         store = np.array(store)
         return torch.tensor(store)
