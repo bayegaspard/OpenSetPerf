@@ -31,10 +31,19 @@ class AttackTrainingClassification(nn.Module):
     def __init__(self):
         super().__init__()
 
+        fullyConnectedStart = 11904
+
         #There are 15 classes
         numClasses = Config.parameters["CLASSES"][0]
         if Config.parameters['Datagrouping'][0] == "DendrogramChunk":
             numClasses = numClasses*32
+        
+        #These are for DOC, it has a special model structure. Because of that we allow it to override what we have.
+        if Config.parameters['OOD Type'][0] == "DOC":
+            self.DOC_kernels = []
+            for x in Config.DOC_kernels:
+                self.DOC_kernels.append(nn.Conv1d(1, 32, x,device=device))
+            fullyConnectedStart= 1501*len(Config.DOC_kernels)
 
         #This (poorly made) menu switches between the diffrent options for activation functions.
         self.activation = nn.ReLU()
@@ -60,7 +69,7 @@ class AttackTrainingClassification(nn.Module):
 
 
         #We use two normal fully connected layers after the CNN specific layers (or substiute layers)
-        self.fc1 = nn.Linear(11904, Config.parameters["Nodes"][0],device=device)
+        self.fc1 = nn.Linear(fullyConnectedStart, Config.parameters["Nodes"][0],device=device)
         self.fc2 = nn.Linear(Config.parameters["Nodes"][0], numClasses,device=device)
 
 
@@ -93,10 +102,14 @@ class AttackTrainingClassification(nn.Module):
         x = x.float()
         x = x.unsqueeze(1)
         
-        x = self.layer1(x)
-        
-        x = self.layer2(x)
-        
+        if self.end.type != "DOC":
+            x = self.layer1(x)
+            x = self.layer2(x)
+        else:
+            xs = [alg(x) for alg in self.DOC_kernels]
+            xs = [a.max(dim=1)[0] for a in xs]
+            x = torch.concat(xs,dim=-1)
+
         x = self.flatten(x)
         x = self.activation(self.fc1(x))
         x = self.addedLayers(x)

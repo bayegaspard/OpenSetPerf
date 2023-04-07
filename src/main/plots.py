@@ -192,7 +192,10 @@ if __name__ == "__main__":
             return " ".join(currently.split()[1:])
 
     def findType(X):
-        return X.split()[0]
+        if pd.isna(X):
+            return "Error"
+        else:
+            return X.split()[0]
 
     def variations(data):
         fig = px.histogram(data[data["OOD Type"]=="Soft"],y="Test_F1",x="x",barmode="group")
@@ -200,19 +203,12 @@ if __name__ == "__main__":
             fig.add_bar(x=data[data["OOD Type"]==alg]["x"],y=data[data["OOD Type"]==alg]["Test_F1"],name=alg)
         fig.show()
 
-    def allPRF(data):
-        fig = px.bar(data[data["OOD Type"]=="Energy"],x="x",y="Test_F1",barmode="group",text_auto=True)
-        fig.update
-        fig.add_bar(x=data[data["OOD Type"]=="Energy"]["x"],y=data[data["OOD Type"]=="Energy"]["Test_Recall"],name="Recall")
-        # fig = px.bar(data,y="Test_F1",x="x",barmode="group",text_auto=True,facet_row="OOD Type")
-        #https://plotly.com/python/facet-plots/
-        # fig.add_bar(x=data["x"],y=data["Test_Recall"],name="Test_Recall",row="all",col="all")
+    def allPRF(data:pd.DataFrame):
+        fig = px.bar(data,y=["Test_F1","Test_Recall","Test_Precision"],x="OOD Type",barmode="group",text_auto=True,orientation="v")
+        #fig = px.bar(data,x="Test_F1",y=data["OOD Type"].unique(),barmode="group",text_auto=True,orientation="v")
+        #fig.update()
+        #fig.add_bar(x=data[data["OOD Type"]=="Energy"]["x"],y=data[data["OOD Type"]=="Energy"]["Test_Recall"],name="Recall")
         
-        # recall = go.Bar(x=data["x"],y=data["Test_Recall"],name="Test_Recall")
-        # recall.update(legendgroup="Recall",showlegend=False)
-        # fig.add_trace(recall,row='all',col="all")
-        # fig.update_traces(selector=-1,showlegend=True)
-        # fig.add_bar(x=data["Type of change"],y=data["Test_Precision"],name="Test_Precision")
         fig.show()
 
     def allPRF2(data,alg:str):
@@ -235,15 +231,22 @@ if __name__ == "__main__":
             if os.path.exists("Saves/ScoresAll.xlsx"):
                 #Gotten from https://stackoverflow.com/a/63692307
                 with pd.ExcelWriter('Saves/ScoresAll.xlsx', engine='openpyxl', mode='a') as writer: 
-                    df[["OOD Type","Test_F1","Test_Recall","Test_Precision","Dataset"]].to_excel(writer,x)
+                    df[["OOD Type","Test_F1","Test_Recall","Test_Precision","Dataset","model"]].to_excel(writer,x)
             else:
-                df[["OOD Type","Test_F1","Test_Recall","Test_Precision","Dataset"]].to_excel("Saves/ScoresAll.xlsx",x)
+                df[["OOD Type","Test_F1","Test_Recall","Test_Precision","Dataset","model"]].to_excel("Saves/ScoresAll.xlsx",x)
 
     if __name__ == "__main__":
         data = pd.read_csv("Saves/Scoresall.csv")
-        data.drop_duplicates(subset=["Currently Modifying"],inplace=True,keep="last")
+        #data.drop_duplicates(subset=["Currently Modifying"],inplace=True,keep="last")
         data["x"] = data["Currently Modifying"].apply(findX)
+        #Remove rows that dont match and print error
+        matching = data["Currently Modifying"].apply(findType) == data["OOD Type"]
+        if matching.sum()!=len(matching):
+            print(matching)
+        data = data[matching]
         data["Type of change"] = data["x"].apply(findType)
+
+        allPRF(data[data["x"]=="num_epochs 100"])
         variations(data)
         for alg in data["OOD Type"].unique():
             allPRF2(data,alg)

@@ -111,7 +111,11 @@ class ClassDivDataset(Dataset):
         if self.listOfCounts is None:
             self.listOfCounts = pd.read_csv(self.countspath, index_col=0)
             #add max per class
-            self.listOfCounts.mask(self.listOfCounts>self.maxclass,self.maxclass,inplace=True)
+            if self.maxclass is int:
+                self.listOfCounts.mask(self.listOfCounts>self.maxclass,self.maxclass,inplace=True)
+            elif self.maxclass == "File":
+                maxclass = pd.read_csv("datasets/percentages.csv", index_col=0)
+                self.listOfCounts.mask(self.listOfCounts>self.maxclass,self.maxclass,inplace=True)
             #This removes all of the unused classes
             self.listOfCounts = self.listOfCounts.loc[self.use]
         if self.length is None:
