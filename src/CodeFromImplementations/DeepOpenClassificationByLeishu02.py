@@ -9,6 +9,7 @@ def renameClasses(modelOut:torch.Tensor, labels:torch.Tensor):
     lastval = -1
     label = list(range(Config.parameters["CLASSES"][0]))
     newout = []
+    #print(Config.helper_variables["unknowns_clss"])
     for val in Config.helper_variables["unknowns_clss"]:
         label.remove(val)
         if val > lastval+1:
@@ -29,6 +30,7 @@ def renameClasses(modelOut:torch.Tensor, labels:torch.Tensor):
         labels[labels==l] = i
         i+=1
     return newout, labels
+
 
 
 

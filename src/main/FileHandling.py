@@ -71,10 +71,14 @@ def checkAttempLoad(root_path):
         raise ValueError("Invalid Dataloader type")
     train, val = torch.utils.data.random_split(train,[len(train) - int(len(train) * Config.parameters["testlength"][0]),int(len(train) * Config.parameters["testlength"][0])]) 
     
-    if (Config.parameters["Mix unknowns and validation"][0]):
-        test = torch.utils.data.ConcatDataset([val, unknowns])
+    if len(unknownlist)>0:
+        if (Config.parameters["Mix unknowns and validation"][0]):
+            test = torch.utils.data.ConcatDataset([val, unknowns])
+        else:
+            test = unknowns
     else:
-        test = unknowns
+        test=val
+    
     if Config.parameters["attemptLoad"][0] and os.path.exists(os.path.join(root_path,"Saves","Data.pt")):
         train = torch.load(os.path.join(root_path,"Saves","Data.pt"))
         test = torch.load(os.path.join(root_path,"Saves","DataTest.pt"))

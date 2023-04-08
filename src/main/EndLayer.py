@@ -5,6 +5,7 @@ import pandas as pd
 import Config
 import helperFunctions
 import time
+from sklearn.metrics import confusion_matrix
 
 #three lines from https://xxx-cook-book.gitbooks.io/python-cook-book/content/Import/import-from-parent-folder.html
 import os
@@ -15,6 +16,7 @@ sys.path.append(root_folder)
 
 root_path = os.getcwd()
 
+import helperFunctions
 
 class EndLayers():
 
@@ -30,6 +32,8 @@ class EndLayers():
 
     def endlayer(self, output_true:torch.Tensor, y:torch.Tensor, type=None, Train=False):
         startTime = time.time()
+        print(f"Argmax")
+        helperFunctions.printconfmat(output_true.cpu(),y.cpu())
         #check if a type is specified
         if type is None:
             type = self.type
@@ -44,7 +48,11 @@ class EndLayers():
         #This is supposted to add an extra column for unknowns
         output_complete = self.typesOfUnknown[type](self,output_modified)
 
-
+        print(f"Alg")
+        if output_complete.ndim == 2:
+            helperFunctions.printconfmat(output_complete.cpu(),y.cpu())
+        else:
+            print(f"{confusion_matrix(y.cpu(),output_complete.cpu())}")
         return output_complete
 
 
@@ -251,8 +259,9 @@ class EndLayers():
 
     def FittedLearningEval(self, percentages:torch.Tensor):
         import CodeFromImplementations.FittedLearningByYhenon as fitted
+        per = percentages.softmax(dim=1)
         store = []
-        for x in percentages:
+        for x in per:
             store.append(fitted.infer(x,self.DOO,self.classCount))
         store = np.array(store)
         return torch.tensor(store)

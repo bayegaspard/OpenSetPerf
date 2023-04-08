@@ -25,7 +25,7 @@ helper_variables = {
 
     #This is the only important value in this dictionary and it lists the diffrent values to consider unkowns.
     #Mappings are at the top of Dataload.py
-    "unknowns_clss": [4,5,6,7,8,9], #Overriden if loop=2
+    "unknowns_clss": [7,8,9], #Overriden if loop=2
 
     "e": 0
 }
@@ -37,25 +37,25 @@ parameters = {
     #"ParamName":[Value,"Description"]
     #for a parameter called "ParamName" with a value of Value
     "batch_size":[1000, "Number of items per batch"],
-    "num_workers":[32, "Number of threads working on building batches"],
+    "num_workers":[0, "Number of threads working on building batches"],
     "attemptLoad":[0, "0: do not use saves\n1:use saves"],
     "testlength":[1/4, "[0,1) percentage of training to test with"],
     "Mix unknowns and validation": [1,"0 or 1, 0 means that the test set is purely unknowns and 1 means that the testset is the validation set plus unknowns (for testing)"],
-    "MaxPerClass": [300, "Maximum number of samples per class"],
-    "num_epochs":[5,"Number of times it trains on the whole trainset"],
-    "learningRate":[0.001, "a modifier for training"],
-    "threshold":[10,"When to declare something to be unknown"],
+    "MaxPerClass": [2, "Maximum number of samples per class"],
+    "num_epochs":[7,"Number of times it trains on the whole trainset"],
+    "learningRate":[0.01, "a modifier for training"],
+    "threshold":[0.05,"When to declare something to be unknown"],
     "model":["Convolutional","Model type [Fully_Connected,Convolutional]"],
-    "OOD Type":["Open","type of out of distribution detection [Soft,Open,Energy,COOL,DOC]"],
+    "OOD Type":["DOC","type of out of distribution detection [Soft,Open,Energy,COOL,DOC]"],
     "Dropout":[0.01,"percent of nodes that are skipped per run, larger numbers for more complex models [0,1)"],
-    "Datagrouping":["ClassChunk","Datagroup type [ClassChunk,Dendrogramlimit]"],
+    "Datagrouping":["Dendrogramlimit","Datagroup type [ClassChunk,Dendrogramlimit]"],
     "optimizer":opt_func["Adam"],
     "Unknowns":"refer to unknowns.CSV",
     "CLASSES":[15,"Number of classes, do not change"],
     "Temperature":[1,"Energy OOD scaling parameter"],
     "Degree of Overcompleteness": [3,"Parameter for Fitted Learning"],
-    "Number of Layers": [1,"Number of layers to add to the base model"],
-    "Nodes": [256,"The number of nodes per added layer"],
+    "Number of Layers": [2,"Number of layers to add to the base model"],
+    "Nodes": [512,"The number of nodes per added layer"],
     "Activation": ["ReLU","The type of activation function to use"],
     "LOOP": [0,"This is a parameter that detumines if we want to loop over the algorithms.\n "\
     "0: no loop, 1:loop through variations of algorithms,thresholds,learning rates, groups and numbers of epochs, \n"\
@@ -83,30 +83,38 @@ num_epochs = parameters["num_epochs"][0]
 
 
 #This is to test all of the algorithms one after the other. (Loop 1 values)
-alg = ["Soft","Open","Energy","COOL","DOC","iiMod"]
-batch = [1,10,100,10000]
-thresholds = [0.1,0.5,0.75,0.99,1.1,2,5,10]
-learning_rates = [1,0.1,0.001,0.0001,0.00001,0.000001,0.0000001,0.00000001]
-activation = ["ReLU", "Tanh", "Sigmoid","Leaky","Elu","PRElu","Softplus","Softmax"]
-groups = [list(range(2,parameters["CLASSES"][0]))]
-#Little bit of code that generates incremental numbers of unknowns.
-while len(groups[0])>2:
-    new = groups[0].copy()
-    new.pop(0)
-    new.pop(0)
-    groups.insert(0,new)
-#Little bit of code that generates decrementing numbers of unknowns.
-incGroups = [list(range(2,parameters["CLASSES"][0]))]
-while len(incGroups[-1])>1:
-    new = incGroups[-1].copy()
-    new.pop(0)
-    incGroups.append(new)
-epochs= [5]
-#epochs = [1,2,5,10,25,50,100,200]
+alg = ["Soft","Open","Energy","COOL","DOC"]
+batch = [10,100,1000]
+datapoints_per_class = [1000,2000,3000]
+thresholds = [0.1,1,10]
+learning_rates = [0.1,0.01,0.0001]
+activation = ["ReLU", "Tanh", "Sigmoid"]
+groups = [[2],[2,3,4,5,6],[1,2,3,4,5,6,7,8]]
+if parameters["Dataset"][0] == "Payload_data_CICIDS2017":
+    incGroups = [[2,3,4,5,6,7,8,9,10,11,12,13,14],[3,4,5,6,7,8,9,10,11,12,13,14],[4,5,6,7,8,9,10,11,12,13,14],[5,6,7,8,9,10,11,12,13,14],[6,7,8,9,10,11,12,13,14],[7,8,9,10,11,12,13,14],[8,9,10,11,12,13,14],[9,10,11,12,13,14],[10,11,12,13,14],[11,12,13,14],[12,13,14],[13,14],[14]] #This one list is for loop 2. Note: array size should be decreasing.
+else:
+    incGroups = [[2,3,4,5,6,7,8,9],[3,4,5,6,7,8,9],[4,5,6,7,8,9],[5,6,7,8,9],[6,7,8,9],[7,8,9],[8,9],[9]]
+epochs= []
+epochs = [1,10,100]
+
+
+# groups = [list(range(2,parameters["CLASSES"][0]))]
+# #Little bit of code that generates incremental numbers of unknowns.
+# while len(groups[0])>2:
+#     new = groups[0].copy()
+#     new.pop(0)
+#     new.pop(0)
+#     groups.insert(0,new)
+# #Little bit of code that generates decrementing numbers of unknowns.
+# incGroups = [list(range(2,parameters["CLASSES"][0]))]
+# while len(incGroups[-1])>1:
+#     new = incGroups[-1].copy()
+#     new.pop(0)
+#     incGroups.append(new)
 
 #Here is where we remove some of the algorithms if we want to skip them. We could also just remove them from the list above.
 #alg.remove("Soft")
-#alg.remove("Open")
+alg.remove("Open")
 #alg.remove("Energy")
 #alg.remove("COOL")
 #alg.remove("DOC")
@@ -119,19 +127,21 @@ optim = [opt_func["Adam"]]
 
 #Adds in everything in config:
 
-#learning_rates.remove(Config.parameters["learningRate"][0])
-learning_rates.insert(0,parameters["learningRate"][0])
-#epochs.remove(Config.parameters["num_epochs"][0])
-epochs.insert(0,parameters["num_epochs"][0])
-groups.insert(0,helper_variables["unknowns_clss"])
+# #learning_rates.remove(Config.parameters["learningRate"][0])
+# learning_rates.insert(0,parameters["learningRate"][0])
+# #epochs.remove(Config.parameters["num_epochs"][0])
+# epochs.insert(0,parameters["num_epochs"][0])
+# groups.insert(0,helper_variables["unknowns_clss"])
 
-#Always starts with the configured activation type
-alg.remove(parameters["OOD Type"][0])
-alg.insert(0,parameters["OOD Type"][0])
+# #Always starts with the configured activation type
+# alg.remove(parameters["OOD Type"][0])
+# alg.insert(0,parameters["OOD Type"][0])
 
 #This is an array to eaiser loop through everything.
-loops = [learning_rates,epochs,optim,activation,groups,batch]
-loops2 = ["learningRate","num_epochs","optimizer","Activation","Unknowns","batch_size"]
+loops = [batch,datapoints_per_class,thresholds,learning_rates,epochs,optim,activation,groups]
+#loops = [batch,thresholds,datapoints_per_class]
+loops2 = ["batch_size","MaxPerClass","threshold","learningRate","num_epochs","optimizer","Activation","Unknowns"]
+#loops2 = ["batch_size","MaxPerClass","threshold"]
 for i in range(len(loops)):
     if loops2[i] == "Unknowns":
         loops[i].insert(0,helper_variables["unknowns_clss"])
@@ -139,9 +149,6 @@ for i in range(len(loops)):
         loops[i].insert(0,parameters[loops2[i]])
     else:
         loops[i].insert(0,parameters[loops2[i]][0])
-
-#Now I am done. Just create array and fill it in to both of the loops.
-#Make sure loop is set to 1.
 
 #Override the unknowns because model is kept
 if parameters["LOOP"][0] == 2:

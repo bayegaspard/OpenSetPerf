@@ -178,38 +178,76 @@ def plot_confusion_matrix(cm:np.ndarray, classes,
 # plt.show()
 
 
-# write_hist_to_file(history_final,num_epochs)
-# 0
-# 0,362108
-# 1,115007
-# 2,2543
-# 3,830
-# 4,241405
-# 5,31843
-# 6,48165
-# 7,121097
-# 8,80542
-# 9,250000
-# 10,128122
-# 11,13486
-# 12,11754
-# 13,3341
-# 14,12
+if __name__ == "__main__":
+    import plotly
+    import plotly.express as px
+    import plotly.graph_objects as go
+    from plotly.subplots import make_subplots
 
+    def findX(currently):
+        if pd.isna(currently):
+            return "Error"
+        else:
+            #Got how to split the space from https://stackoverflow.com/a/16313889
+            return " ".join(currently.split()[1:])
 
-# 0
-# 0,10
-# 1,10
-# 2,10
-# 3,10
-# 4,10
-# 5,10
-# 6,10
-# 7,10
-# 8,10
-# 9,10
-# 10,10
-# 11,10
-# 12,10
-# 13,10
-# 14,10
+    def findType(X):
+        if pd.isna(X):
+            return "Error"
+        else:
+            return X.split()[0]
+
+    def variations(data):
+        fig = px.histogram(data[data["OOD Type"]=="Soft"],y="Test_F1",x="x",barmode="group")
+        for alg in data["OOD Type"].unique():
+            fig.add_bar(x=data[data["OOD Type"]==alg]["x"],y=data[data["OOD Type"]==alg]["Test_F1"],name=alg)
+        fig.show()
+
+    def allPRF(data:pd.DataFrame):
+        fig = px.bar(data,y=["Test_F1","Test_Recall","Test_Precision"],x="OOD Type",barmode="group",text_auto=True,orientation="v")
+        #fig = px.bar(data,x="Test_F1",y=data["OOD Type"].unique(),barmode="group",text_auto=True,orientation="v")
+        #fig.update()
+        #fig.add_bar(x=data[data["OOD Type"]=="Energy"]["x"],y=data[data["OOD Type"]=="Energy"]["Test_Recall"],name="Recall")
+        
+        fig.show()
+
+    def allPRF2(data,alg:str):
+        fig = go.Figure()
+        fig.add_trace(go.Bar(name="F1",x=data[data["OOD Type"]==alg]["x"],y=data[data["OOD Type"]==alg]["Test_F1"]))
+        fig.add_trace(go.Bar(name="Recall",x=data[data["OOD Type"]==alg]["x"],y=data[data["OOD Type"]==alg]["Test_Recall"]))
+        fig.add_trace(go.Bar(name="Precision",x=data[data["OOD Type"]==alg]["x"],y=data[data["OOD Type"]==alg]["Test_Precision"]))
+        fig.update_layout(title=alg)
+        fig.show()
+
+    def reformatData(data):
+        if os.path.exists("Saves/ScoresAll.xlsx"):
+            os.remove("Saves/ScoresAll.xlsx")
+        for x in data["x"].unique():
+            df = data[data["x"]==x]
+            #print(df[["OOD Type","Test_F1","Test_Recall","Test_Precision"]])
+            x = x.replace(" ", "")
+            x = x.replace("[","")
+            x = x.replace("]","")[0:31]
+            if os.path.exists("Saves/ScoresAll.xlsx"):
+                #Gotten from https://stackoverflow.com/a/63692307
+                with pd.ExcelWriter('Saves/ScoresAll.xlsx', engine='openpyxl', mode='a') as writer: 
+                    df[["OOD Type","Test_F1","Test_Recall","Test_Precision","Dataset","model"]].to_excel(writer,x)
+            else:
+                df[["OOD Type","Test_F1","Test_Recall","Test_Precision","Dataset","model"]].to_excel("Saves/ScoresAll.xlsx",x)
+
+    if __name__ == "__main__":
+        data = pd.read_csv("Saves/Scoresall.csv")
+        #data.drop_duplicates(subset=["Currently Modifying"],inplace=True,keep="last")
+        data["x"] = data["Currently Modifying"].apply(findX)
+        #Remove rows that dont match and print error
+        matching = data["Currently Modifying"].apply(findType) == data["OOD Type"]
+        if matching.sum()!=len(matching):
+            print(matching)
+        data = data[matching]
+        data["Type of change"] = data["x"].apply(findType)
+
+        allPRF(data[data["x"]=="num_epochs 100"])
+        variations(data)
+        for alg in data["OOD Type"].unique():
+            allPRF2(data,alg)
+        reformatData(data)

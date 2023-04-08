@@ -111,7 +111,11 @@ class ClassDivDataset(Dataset):
         if self.listOfCounts is None:
             self.listOfCounts = pd.read_csv(self.countspath, index_col=0)
             #add max per class
-            self.listOfCounts.mask(self.listOfCounts>self.maxclass,self.maxclass,inplace=True)
+            if self.maxclass is int:
+                self.listOfCounts.mask(self.listOfCounts>self.maxclass,self.maxclass,inplace=True)
+            elif self.maxclass == "File":
+                maxclass = pd.read_csv("datasets/percentages.csv", index_col=0)
+                self.listOfCounts.mask(self.listOfCounts>self.maxclass,self.maxclass,inplace=True)
             #This removes all of the unused classes
             self.listOfCounts = self.listOfCounts.loc[self.use]
         if self.length is None:
@@ -363,7 +367,7 @@ class ClusterDivDataset(ClassDivDataset):
             for x in range(Config.parameters["CLASSES"][0]):
                 X = data.astype(int)
                 X = X[X["label"]==x]
-                X = X.sample(n=10000 if 10000<len(X) else len(X))
+                #X = X.sample(n=10000 if 10000<len(X) else len(X))
                 X2 = X.to_numpy()
 
                 # setting distance_threshold=0 ensures we compute the full tree.

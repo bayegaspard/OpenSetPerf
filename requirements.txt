@@ -9,3 +9,4 @@ libmr>=0.1.9
 scikit-learn>=0.24
 sklearn
 bokeh
+plotly
