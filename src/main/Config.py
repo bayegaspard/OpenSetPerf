@@ -63,6 +63,8 @@ parameters = {
     "Dataset": ["Payload_data_UNSW", "This is what dataset we are using, [Payload_data_CICIDS2017,Payload_data_UNSW]"]
 }
 
+DOC_kernels = [3,4,5]
+
 #Set Number of classes:
 if parameters["Dataset"][0] == "Payload_data_UNSW":
     parameters["CLASSES"][0] = 10
