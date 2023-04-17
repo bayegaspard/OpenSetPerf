@@ -178,7 +178,7 @@ def compute_train_score_and_mavs_and_dists(train_class_num,trainloader,device,ne
 
 
 #This was not a function before!
-def openmaxevaluation(scores,labels,args,dict):
+def openmaxevaluation(scores,labels,args,dict,weibull=None):
     trainloader = dict["loader"]
     device = dict["device"]
     net = dict["net"]
@@ -193,11 +193,18 @@ def openmaxevaluation(scores,labels,args,dict):
     scores = np.array(scores)[:, np.newaxis, :]
     labels = np.array(labels)
 
-    # Fit the weibull distribution from training data.
-    print("Fittting Weibull distribution...")
-    _, mavs, dists = compute_train_score_and_mavs_and_dists(args.train_class_num, trainloader, device, net)
-    categories = list(range(0, args.train_class_num))
-    weibull_model = fit_weibull(mavs, dists, categories, args.weibull_tail, "euclidean")
+
+    #ADDED: SAVE THE WEIBULL MODEL
+    if weibull == None:
+        # Fit the weibull distribution from training data.
+        print("Fittting Weibull distribution...")
+        _, mavs, dists = compute_train_score_and_mavs_and_dists(args.train_class_num, trainloader, device, net)
+        categories = list(range(0, args.train_class_num))
+        weibull_model = fit_weibull(mavs, dists, categories, args.weibull_tail, "euclidean")
+    else:
+        #THIS SECTION WAS ADDED
+        categories = list(range(0, args.train_class_num))
+        weibull_model = weibull
 
     pred_softmax, pred_softmax_threshold, pred_openmax = [], [], []
     score_softmax, score_openmax = [], []
@@ -212,7 +219,16 @@ def openmaxevaluation(scores,labels,args,dict):
     #end copied code
     return score_openmax
 
-
+#This was also not specifically a function before
+def weibull_fittting(args,dict):
+    trainloader = dict["loader"]
+    device = dict["device"]
+    net = dict["net"]
+    # Fit the weibull distribution from training data.
+    print("Fittting Weibull distribution...")
+    _, mavs, dists = compute_train_score_and_mavs_and_dists(args.train_class_num, trainloader, device, net)
+    categories = list(range(0, args.train_class_num))
+    return fit_weibull(mavs, dists, categories, args.weibull_tail, "euclidean")
 
 #ADDED FOR USE
 def renameClasses(modelOut:torch.Tensor, labels:torch.Tensor):

@@ -114,7 +114,11 @@ class ClassDivDataset(Dataset):
             maxclass = pd.read_csv("datasets/percentages.csv", index_col=None)
             maxclass = maxclass.iloc[Config.parameters["loopLevel"][0],:len(self.listOfCounts)]
             maxclass = ((torch.tensor(maxclass)/100)*self.totalSamples).ceil()
-            self.listOfCounts[self.listOfCounts>maxclass] = maxclass[self.listOfCounts>maxclass]
+            for x in range(len(self.listOfCounts)):
+                if self.listOfCounts.iloc[x,0] > maxclass[x].item():
+                    self.listOfCounts.iloc[x,0] = maxclass[x].item()
+            # self.listOfCounts.mask((torch.tensor(self.listOfCounts.iloc[:,0])>maxclass,1),maxclass,inplace=True)
+            # self.listOfCounts[torch.tensor(self.listOfCounts.iloc[:,0])>maxclass,0] = maxclass[torch.tensor(self.listOfCounts.iloc[:,0])>maxclass]
             #This removes all of the unused classes
             self.listOfCounts = self.listOfCounts.loc[self.use]
             print(f"Items per class: \n{self.listOfCounts}")

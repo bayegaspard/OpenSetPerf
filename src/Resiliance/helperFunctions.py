@@ -348,9 +348,24 @@ def getFoundUnknown(dat):
     else:
         return recall[-1]
 
+def shuffleCSVs():
+    import glob
+    files = glob.glob("datasets/*/*.csv")
+    notFiles = glob.glob("datasets/*/counts.csv")
+    for f in notFiles:
+        files.remove(f)
+    for path in files:
+        f = pd.read_csv(path)
+        #https://www.geeksforgeeks.org/pandas-how-to-shuffle-a-dataframe-rows/
+        f = f.sample(frac=1).reset_index(drop=True)
+        f.to_csv(path)
+
+
+
 if __name__ == "__main__":
-    looptest()
-    print(f"Torch cuda utilizaton percent: {torch.cuda.utilization()}")
+    # looptest()
+    # print(f"Torch cuda utilizaton percent: {torch.cuda.utilization()}")
+    shuffleCSVs()
 
 
 
