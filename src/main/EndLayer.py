@@ -212,7 +212,10 @@ class EndLayers():
                 if self.weibulInfo["weibull"] is None:
                     print("Getting Weibull")
                     self.weibulInfo["weibull"]=Open.weibull_fittting(self.args,self.weibulInfo)
-                elif not (self.weibulInfo["weibull"]==False):
+                if (self.weibulInfo["weibull"]==False):
+                    print("Openmax already failed")
+                    failed = True
+                else:
                     scores_open = Open.openmaxevaluation(percentages.detach(),labels.detach(),self.args,self.weibulInfo,self.weibulInfo["weibull"])
             except NotImplementedError:
                 print("Warning: OpenMax has failed to load!")
