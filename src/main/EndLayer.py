@@ -210,14 +210,17 @@ class EndLayers():
         if not failed:
             try:
                 if self.weibulInfo["weibull"] is None:
-                    Open.weibull_fittting(self.args,self.weibulInfo)
-                scores_open = Open.openmaxevaluation(percentages.detach(),labels.detach(),self.args,self.weibulInfo,self.weibulInfo["weibull"])
+                    print("Getting Weibull")
+                    self.weibulInfo["weibull"]=Open.weibull_fittting(self.args,self.weibulInfo)
+                elif not (self.weibulInfo["weibull"]==False):
+                    scores_open = Open.openmaxevaluation(percentages.detach(),labels.detach(),self.args,self.weibulInfo,self.weibulInfo["weibull"])
             except NotImplementedError:
                 print("Warning: OpenMax has failed to load!")
                 failed = True
             #except LookupError:
             except helperFunctions.NoExamples:
                 print("OpenMax failed to idenitify at least 1 class!")
+                self.weibulInfo["weibull"]=False
                 #Note: usual reason for failure is having no correct examples for at least 1 class.
                 failed = True
                 

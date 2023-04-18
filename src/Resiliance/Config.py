@@ -42,11 +42,11 @@ parameters = {
     "testlength":[1/4, "[0,1) percentage of training to test with"],
     "Mix unknowns and validation": [1,"0 or 1, 0 means that the test set is purely unknowns and 1 means that the testset is the validation set plus unknowns (for testing)"],
     "MaxSamples": [500, "Maximum number of samples"],
-    "num_epochs":[0,"Number of times it trains on the whole trainset"],
+    "num_epochs":[100,"Number of times it trains on the whole trainset"],
     "learningRate":[0.01, "a modifier for training"],
     "threshold":[0.3,"When to declare something to be unknown"],
     "model":["Convolutional","Model type [Fully_Connected,Convolutional]"],
-    "OOD Type":["COOL","type of out of distribution detection [Soft,Open,Energy,COOL,DOC]"],
+    "OOD Type":["DOC","type of out of distribution detection [Soft,Open,Energy,COOL,DOC]"],
     "Dropout":[0.01,"percent of nodes that are skipped per run, larger numbers for more complex models [0,1)"],
     "Datagrouping":["ClassChunk","Datagroup type [ClassChunk,Dendrogramlimit]"],
     "optimizer":opt_func["Adam"],
@@ -57,7 +57,7 @@ parameters = {
     "Number of Layers": [2,"Number of layers to add to the base model"],
     "Nodes": [512,"The number of nodes per added layer"],
     "Activation": ["ReLU","The type of activation function to use"],
-    "LOOP": [3,"This is a parameter that detumines if we want to loop over the algorithms.\n "\
+    "LOOP": [0,"This is a parameter that detumines if we want to loop over the algorithms.\n "\
     "0: no loop, 1:loop through variations of algorithms,thresholds,learning rates, groups and numbers of epochs, \n"\
     "2: Loop while adding more unknowns into the training data (making them knowns) without resetting the model"],
     "Dataset": ["Payload_data_CICIDS2017", "This is what dataset we are using, [Payload_data_CICIDS2017,Payload_data_UNSW]"],
