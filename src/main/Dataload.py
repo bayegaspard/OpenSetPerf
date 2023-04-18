@@ -290,6 +290,8 @@ class ClusterDivDataset(ClassDivDataset):
             maxclass = self.listOfCounts.mul(torch.stack([maxclass]*self.listOfCounts.size()[1]).T).ceil()
             self.listOfCounts[self.listOfCounts>maxclass] = maxclass[self.listOfCounts>maxclass].to(torch.long)
             #This removes all of the unused classes
+            self.listOfCounts = self.listOfCounts.numpy()
+            self.listOfCounts = pd.DataFrame(self.listOfCounts)
             self.listOfCounts = self.listOfCounts.loc[self.use]
         if self.length is None:
             self.length = self.listOfCounts.sum().sum().item()
