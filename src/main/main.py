@@ -117,9 +117,17 @@ def run_model():
     FileHandling.addMeasurement("Val_Precision",precision)
     FileHandling.addMeasurement("Val_Accuracy",accuracy)
 
+
+
+
     #Resets the stored values that are used to generate the above values.
     model.storeReset()
     #Sets the model to really be sure to be on evaluation mode and not on training mode. (Affects dropout)
+    if not Config.parameters["LOOP"][0]:
+        #More matrix stuff that we removed.
+        cnf_matrix = plots.confusionMatrix(model.store) 
+        plots.plot_confusion_matrix(cnf_matrix, classes=class_names, normalize=True,
+                    title=f'{Config.parameters["OOD Type"][0]} Validation', knowns = knownVals)
     model.eval()
 
     #model.evaluate() runs only the evaluation stage of running the model. model.fit() calls model.evaluate() after epochs
@@ -140,11 +148,6 @@ def run_model():
    
     
     
-    if not Config.parameters["LOOP"][0]:
-        #More matrix stuff that we removed.
-        cnf_matrix = plots.confusionMatrix(model.store) 
-        plots.plot_confusion_matrix(cnf_matrix, classes=class_names, normalize=True,
-                    title=f'{Config.parameters["OOD Type"][0]} Validation', knowns = knownVals)
 
 
     
