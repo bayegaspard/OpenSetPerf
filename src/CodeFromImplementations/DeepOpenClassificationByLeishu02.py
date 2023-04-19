@@ -49,7 +49,7 @@ def muStandardsFromDataloader(seen,Dataloader,model):
     labelArray = None
     with torch.no_grad():
         for inputs,labels in Dataloader:
-            outputs, labels = renameClasses(model(inputs),labels)
+            outputs, labels = renameClasses(torch.sigmoid(model(inputs)),labels)
             outputs = outputs.cpu()
             labels = labels.cpu()
             if labelArray is None:

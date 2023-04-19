@@ -92,6 +92,20 @@ def run_model():
     #Model.fit is what actually runs the model. It outputs some kind of history array?
     history_final += model.fit(num_epochs, lr, train_loader, test_loader,val_loader, opt_func=opt_func)
 
+
+    #This big block of commented code is to create confusion matricies that we thought could be misleading,
+    #   so it is commented out.
+    np.set_printoptions(precision=1)
+    class_names = Dataload.get_class_names(knownVals) #+ Dataload.get_class_names(unknownVals)
+    class_names.append("Unknown")
+    class_names = Dataload.get_class_names(range(Config.parameters["CLASSES"][0]))
+    for x in unknownVals:
+        class_names[x] = class_names[x]+"*"
+    class_names.append("*Unknowns")
+    print("class names", class_names)
+
+
+
     FileHandling.addMeasurement(f"Length train",len(train))
     FileHandling.addMeasurement(f"Length validation",len(val))
     FileHandling.addMeasurement(f"Length test",len(test))
@@ -124,19 +138,13 @@ def run_model():
     
 
    
-    #This big block of commented code is to create confusion matricies that we thought could be misleading,
-    #   so it is commented out.
-    np.set_printoptions(precision=1)
-    #class_names = Dataload.get_class_names(knownVals) #+ Dataload.get_class_names(unknownVals)
-    #class_names.append("Unknown")
-    # class_names = Dataload.get_class_names(range(15))
-    # for x in unknownVals:
-    #     class_names[x] = class_names[x]+"*"
-    # class_names.append("*Unknowns")
-    # print("class names", class_names)
-    #cnf_matrix = plots.confusionMatrix(y_true.copy(), y_pred.copy(), y_tested_against.copy()) 
-
     
+    
+    if not Config.parameters["LOOP"][0]:
+        #More matrix stuff that we removed.
+        cnf_matrix = plots.confusionMatrix(model.store) 
+        plots.plot_confusion_matrix(cnf_matrix, classes=class_names, normalize=True,
+                    title=f'{Config.parameters["OOD Type"][0]} Validation', knowns = knownVals)
 
 
     
@@ -151,14 +159,12 @@ def run_model():
 
     FileHandling.create_params_Fscore(root_path,f1)
 
-    #More matrix stuff that we removed.
-    #plots.plot_confusion_matrix(cnf_matrix, classes=class_names, normalize=True,
-    #                title='Confusion matrix', knowns = knownVals)
-
-    #This is the code to actually start showing the plots.
-    #Again, we do not want this activating while running overnight.
     if not Config.parameters["LOOP"][0]:
-        plt.show()
+        #More matrix stuff that we removed.
+        cnf_matrix = plots.confusionMatrix(model.store) 
+        plots.plot_confusion_matrix(cnf_matrix, classes=class_names, normalize=True,
+                    title=f'{Config.parameters["OOD Type"][0]} Test', knowns = knownVals)
+
 
     
     #This stores and prints the final results.
@@ -170,6 +176,50 @@ def run_model():
     print(f"F-Score : {f1*100:.2f}%")
     print(f"Precision : {precision*100:.2f}%")
     print(f"Recall : {recall*100:.2f}%")
+
+    #Use Softmax to test.
+    model.end.type = "Soft"
+    model.storeReset()
+    model.evaluate(val_loader)
+
+    #Validation values
+    f1, recall, precision, accuracy = helperFunctions.getFscore(model.store)
+    FileHandling.addMeasurement("Soft_Val_F1",f1)
+    FileHandling.addMeasurement("Soft_Val_Recall",recall)
+    FileHandling.addMeasurement("Soft_Val_Precision",precision)
+    FileHandling.addMeasurement("Soft_Val_Accuracy",accuracy)
+
+    if not Config.parameters["LOOP"][0]:
+        #More matrix stuff that we removed.
+        cnf_matrix = plots.confusionMatrix(model.store) 
+        plots.plot_confusion_matrix(cnf_matrix, classes=class_names, normalize=True,
+                    title=f'Soft Validation', knowns = knownVals)
+    model.storeReset()
+    model.evaluate(test_loader)
+
+    #Validation values
+    f1, recall, precision, accuracy = helperFunctions.getFscore(model.store)
+    FileHandling.addMeasurement("Soft_Test_F1",f1)
+    FileHandling.addMeasurement("Soft_Test_Recall",recall)
+    FileHandling.addMeasurement("Soft_Test_Precision",precision)
+    FileHandling.addMeasurement("Soft_Test_Accuracy",accuracy)
+
+    if not Config.parameters["LOOP"][0]:
+        #More matrix stuff that we removed.
+        cnf_matrix = plots.confusionMatrix(model.store) 
+        plots.plot_confusion_matrix(cnf_matrix, classes=class_names, normalize=True,
+                    title=f'Soft Test', knowns = knownVals)
+    model.storeReset()
+
+    #This selects what algorithm you are using.
+    model.end.type = Config.parameters["OOD Type"][0]
+
+
+    #This is the code to actually start showing the plots.
+    #Again, we do not want this activating while running overnight.
+    if not Config.parameters["LOOP"][0]:
+        plt.show()
+
 
     #This loops through a list of "Threshold" values because they do not require retraining the model.
     if Config.parameters["LOOP"][0] == 1:
