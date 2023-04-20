@@ -304,6 +304,7 @@ def getFscore(dat):
     y_true = y_true.to(torch.int).tolist()
     y_pred = y_pred.to(torch.int).tolist()
     y_tested_against = y_tested_against.to(torch.int).tolist()
+    # print(confusion_matrix(y_tested_against,y_pred))
     recall = recall_score(y_tested_against,y_pred,average='weighted',zero_division=0)
     precision = precision_score(y_tested_against,y_pred,average='weighted',zero_division=0)
     if precision==0 and recall==0:
@@ -344,3 +345,7 @@ def getFoundUnknown(dat):
 if __name__ == "__main__":
     looptest()
     print(f"Torch cuda utilizaton percent: {torch.cuda.utilization()}")
+
+
+
+

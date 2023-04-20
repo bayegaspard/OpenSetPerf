@@ -188,7 +188,7 @@ class EndLayers():
     
     def prepWeibull(self,trainloader,device,net):
         net.eval()
-        self.weibulInfo = {"loader":trainloader,"device":device,"net":net}
+        self.weibulInfo = {"loader":trainloader,"device":device,"net":net, "weibull":None}
         
         net.train()
 
@@ -209,13 +209,21 @@ class EndLayers():
         
         if not failed:
             try:
-                scores_open = Open.openmaxevaluation(percentages.detach(),labels.detach(),self.args,self.weibulInfo)
+                if self.weibulInfo["weibull"] is None:
+                    print("Getting Weibull")
+                    self.weibulInfo["weibull"]=Open.weibull_fittting(self.args,self.weibulInfo)
+                if (self.weibulInfo["weibull"]==False):
+                    print("Openmax already failed")
+                    failed = True
+                else:
+                    scores_open = Open.openmaxevaluation(percentages.detach(),labels.detach(),self.args,self.weibulInfo,self.weibulInfo["weibull"])
             except NotImplementedError:
                 print("Warning: OpenMax has failed to load!")
                 failed = True
             #except LookupError:
             except helperFunctions.NoExamples:
                 print("OpenMax failed to idenitify at least 1 class!")
+                self.weibulInfo["weibull"]=False
                 #Note: usual reason for failure is having no correct examples for at least 1 class.
                 failed = True
                 

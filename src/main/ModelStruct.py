@@ -90,7 +90,19 @@ class AttackTrainingClassification(nn.Module):
         self.COOL = nn.Linear(Config.parameters["Nodes"][0], numClasses*self.end.DOO,device=device)
 
         self.los = False
+        self.mode = None
 
+    def changingLayers(self, x:torch.Tensor):
+        if self.mode == None:
+            self.mode = self.end.type
+        if self.mode != "DOC":
+            x = self.layer1(x)
+            x = self.layer2(x)
+        else:
+            xs = [alg(x) for alg in self.DOC_kernels]
+            xs = [a.max(dim=1)[0] for a in xs]
+            x = torch.concat(xs,dim=-1)
+        return x
         
     # Specify how the data passes in the neural network
     def forward(self, x: torch.Tensor):
@@ -102,13 +114,7 @@ class AttackTrainingClassification(nn.Module):
         x = x.float()
         x = x.unsqueeze(1)
         
-        if self.end.type != "DOC":
-            x = self.layer1(x)
-            x = self.layer2(x)
-        else:
-            xs = [alg(x) for alg in self.DOC_kernels]
-            xs = [a.max(dim=1)[0] for a in xs]
-            x = torch.concat(xs,dim=-1)
+        x = self.changingLayers(x)
 
         x = self.flatten(x)
         x = self.activation(self.fc1(x))

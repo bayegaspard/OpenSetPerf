@@ -71,7 +71,7 @@ def plot_all_losses(history):
 # plot_losses(history_final)
 # plot_accuracies(history_final)
 
-def confusionMatrix(y_test, y_pred, y_tested):
+def confusionMatrix(dat):
     #This block of code was due to confusion between thoese of us working on it.
     #As an explanation, I was told to assume the model got something correct if it was unknown and the model predicted unknown.
     #This created misleading confusion matrixes so it was removed.
@@ -80,7 +80,15 @@ def confusionMatrix(y_test, y_pred, y_tested):
     #        y_pred[x] = y_test[x]
     #    #else:
     #    #    print(f"{y_pred[x]},{y_test[x]}")
-    return confusion_matrix(y_test, y_pred, labels=list(range(16)))
+
+    y_pred,y_true,y_tested_against = dat
+    y_pred = y_pred / (Config.parameters["CLASSES"][0]/Config.parameters["CLASSES"][0]) #The whole config thing is if we are splitting the classes further
+    y_true = y_true / (Config.parameters["CLASSES"][0]/Config.parameters["CLASSES"][0])
+    y_true = y_true.to(torch.int).tolist()
+    y_pred = y_pred.to(torch.int).tolist()
+    y_tested_against = y_tested_against.to(torch.int).tolist()
+
+    return confusion_matrix(y_tested_against, y_pred, labels=list(range(Config.parameters["CLASSES"][0]+1)))
 
 
 # def plot_confusion_matrix(y_test,y_pred):
@@ -158,8 +166,8 @@ def plot_confusion_matrix(cm:np.ndarray, classes,
         specific = pd.read_csv("Saves/fscore.csv").tail(1).to_string(header=False,index=False,).replace(" ","").replace(".","")
     else:
         specific = name_override
-    plt.savefig(f"Saves/conf/confusion_matrix{specific}.png", dpi=1600)
-    plt.savefig(f"Saves/confusion_matrix.png", dpi=1600)
+    #plt.savefig(f"Saves/conf/{title}{specific}.png", dpi=1600)
+    plt.savefig(f"Saves/{title}.png", dpi=1600)
 
 
 
