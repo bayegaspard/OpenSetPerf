@@ -230,7 +230,7 @@ class AttackTrainingClassification(nn.Module):
 
                 #print("test1.3")
                 # Validation phase
-                self.savePoint(f"Saves", epoch, Config.helper_variables["phase"])
+                self.savePoint(f"Saves/models", epoch, Config.helper_variables["phase"])
                 result = self.evaluate(val_loader)
                 #print("test1.4")
                 result['train_loss'] = torch.stack(train_losses).mean().item()
@@ -318,7 +318,7 @@ class AttackTrainingClassification(nn.Module):
     def savePoint(net, path: str, epoch=0, phase=None):
         if not os.path.exists(path):
             os.mkdir(path)
-        torch.save(net.state_dict(), path + f"/Epoch{epoch:03d}.pth")
+        torch.save(net.state_dict(), path + f"/Epoch{epoch:03d}{Config.parameters['OOD Type'][0]}.pth")
         if phase is not None:
             file = open("Saves/phase", "w")
             file.write(str(phase))
@@ -330,9 +330,9 @@ class AttackTrainingClassification(nn.Module):
         i = 999
         epochFound = 0
         while i >= 0:
-            if os.path.exists(path + f"/Epoch{i:03d}.pth"):
-                net.load_state_dict(torch.load(path + f"/Epoch{i:03d}.pth"))
-                print(f"Loaded  model /Epoch{i:03d}.pth")
+            if os.path.exists(path + f"/Epoch{i:03d}{Config.parameters['OOD Type'][0]}.pth"):
+                net.load_state_dict(torch.load(path + f"/Epoch{i:03d}{Config.parameters['OOD Type'][0]}.pth"))
+                print(f"Loaded  model /Epoch{i:03d}{Config.parameters['OOD Type'][0]}.pth")
                 epochFound = i
                 i = -1
             i = i - 1
