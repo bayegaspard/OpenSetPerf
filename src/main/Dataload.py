@@ -111,7 +111,7 @@ class ClassDivDataset(Dataset):
         if self.listOfCounts is None:
             self.listOfCounts = pd.read_csv(self.countspath, index_col=0)
             #add max per class
-            if self.maxclass is int:
+            if isinstance(self.maxclass,int):
                 self.listOfCounts.mask(self.listOfCounts>self.maxclass,self.maxclass,inplace=True)
             elif self.maxclass == "File":
                 maxclass = pd.read_csv("datasets/percentages.csv", index_col=0)
@@ -494,7 +494,7 @@ class ClusterLimitDataset(ClusterDivDataset):
         chunktype = 0
         chunkNumber = 0
         classNumber = 0
-        while index>=self.listOfCounts.iat[chunktype,chunkNumber]:
+        while index>self.listOfCounts.iat[chunktype,chunkNumber]:
 
             if self.listOfCounts.iat[chunktype,chunkNumber]>self.minclass:
                 classNumber+=1
@@ -512,7 +512,7 @@ class ClusterLimitDataset(ClusterDivDataset):
         t_start = time.time()
         #print(f"/chunk{self.usedDict[chunktype]}-type{chunkNumber:03d}.csv")
         #print(f"supposed length:{self.listOfCounts.iat[chunktype,chunkNumber]}, Index:{index}")
-        chunk = pd.read_csv(self.path+f"/chunk{self.usedDict[chunktype]}-type{chunkNumber:03d}.csv", index_col=False,chunksize=1,skiprows=index).get_chunk()
+        chunk = pd.read_csv(self.path+f"/chunk{self.usedDict[chunktype]}-type{chunkNumber:03d}.csv", index_col=False,chunksize=1,skiprows=index-1).get_chunk()
         t_total = time.time()-t_start
         if t_total>1:
             print(f"load took {t_total:.2f} seconds")

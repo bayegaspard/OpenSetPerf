@@ -97,7 +97,7 @@ class EndLayers():
         #Just store this for later
         self.Save_score.append(scores.mean())
         #once the dimentions are how we want them we test if it is above the cutoff
-        scores = scores.greater_equal(self.cutoff).to(torch.int)
+        scores = scores.less_equal(self.cutoff).to(torch.int)
         #Then we run precentages through a softmax to get a nice score
         percentages = torch.softmax(percentages,dim=1)
         #Finally we join the results as an unknown class in the output vector
