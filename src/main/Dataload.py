@@ -283,15 +283,27 @@ class ClusterDivDataset(ClassDivDataset):
     def __len__(self) -> int:
         if self.listOfCounts is None:
             self.listOfCounts = pd.read_csv(self.countspath, index_col=0)
-            maxclass = [self.maxclass]*Config.parameters["CLASSES"][0]
-            maxclass = (torch.tensor(maxclass)/100)
-            self.listOfCounts = torch.tensor(self.listOfCounts.to_numpy())
-            #test = torch.stack([maxclass]*listOfCounts.size()[1]).T
-            maxclass = self.listOfCounts.mul(torch.stack([maxclass]*self.listOfCounts.size()[1]).T).ceil()
-            self.listOfCounts[self.listOfCounts>maxclass] = maxclass[self.listOfCounts>maxclass].to(torch.long)
+            if isinstance(Config.parameters["MaxPerClass"][0],int):
+                for y in range(self.listOfCounts.shape[0]):
+                    x=0
+                    cutofflist = self.listOfCounts.iloc[y].copy()
+                    cutofflist[cutofflist>x]  = x
+                    while cutofflist.sum()<self.maxclass and x<self.maxclass:
+                        x+=1
+                        cutofflist = self.listOfCounts.iloc[y].copy()
+                        cutofflist[cutofflist>x]  = x
+                    self.listOfCounts.iloc[y] = cutofflist
+            else:
+                maxclass = [self.maxclass]*Config.parameters["CLASSES"][0]
+                maxclass = (torch.tensor(maxclass)/100)
+                self.listOfCounts = torch.tensor(self.listOfCounts.to_numpy())
+                #test = torch.stack([maxclass]*listOfCounts.size()[1]).T
+                maxclass = self.listOfCounts.mul(torch.stack([maxclass]*self.listOfCounts.size()[1]).T).ceil()
+                self.listOfCounts[self.listOfCounts>maxclass] = maxclass[self.listOfCounts>maxclass].to(torch.long)
+                
+                self.listOfCounts = self.listOfCounts.numpy()
+                self.listOfCounts = pd.DataFrame(self.listOfCounts)
             #This removes all of the unused classes
-            self.listOfCounts = self.listOfCounts.numpy()
-            self.listOfCounts = pd.DataFrame(self.listOfCounts)
             self.listOfCounts = self.listOfCounts.loc[self.use]
         if self.length is None:
             self.length = self.listOfCounts.sum().sum().item()
