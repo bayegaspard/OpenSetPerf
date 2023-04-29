@@ -200,6 +200,10 @@ class AttackTrainingClassification(nn.Module):
         #print("test1.1")
         history = []
         optimizer = opt_func(self.parameters(), lr)
+        if isinstance(Config.parameters["SchedulerStep"][0],float) and Config.parameters["SchedulerStep"][0] !=0:
+            sch = torch.optim.lr_scheduler.StepLR(optimizer, Config.parameters["SchedulerStepSize"][0], Config.parameters["SchedulerStep"][0])
+        else:
+            sch = None
         self.los = helperFunctions.LossPerEpoch("TestingDuringTrainEpochs.csv")
         FileHandling.create_params_All()
         # torch.cuda.empty_cache()
@@ -218,7 +222,7 @@ class AttackTrainingClassification(nn.Module):
                     # batch = DeviceDataLoader(batch, device)
                     loss = self.training_step(batch)
 
-                    FileHandling.write_batch_to_file(loss, num, self.end.type, "train")
+                    #FileHandling.write_batch_to_file(loss, num, self.end.type, "train")
                     train_losses.append(loss.detach())
                     self.end.trainMod(batch,self)
                     loss.backward()
@@ -226,6 +230,8 @@ class AttackTrainingClassification(nn.Module):
                     optimizer.zero_grad()
                     num += 1
 
+                if not sch is None:
+                    sch.step()
                 #print("test1.3")
                 # Validation phase
                 self.savePoint(f"Saves/models", epoch, Config.helper_variables["phase"])
@@ -286,7 +292,7 @@ class AttackTrainingClassification(nn.Module):
 
         out = GPU.to_device(out, device)
         acc = self.accuracy(out, labels_extended)  # Calculate accuracy
-        FileHandling.write_batch_to_file(loss, self.batchnum, self.end.type, "Saves")
+        #FileHandling.write_batch_to_file(loss, self.batchnum, self.end.type, "Saves")
         #print("validation accuracy: ", acc)
         return {'val_loss': loss.detach(), 'val_acc': acc, "val_avgUnknown": unknowns}
 

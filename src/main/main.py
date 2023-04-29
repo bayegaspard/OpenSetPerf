@@ -70,6 +70,16 @@ def run_model():
     #Testset is for checking if the model got things correct with the Validationset+unknowns.
     testset = DataLoader(test, batch_size, shuffle=True, num_workers=num_workers, pin_memory=False)
 
+
+    #testing
+    if len(trainset)<100000:
+        trainset = Dataload.recreateDL(trainset)
+    if len(validationset)<100000:
+        validationset = Dataload.recreateDL(validationset)
+    if len(testset)<100000:
+        testset = Dataload.recreateDL(testset)
+
+
     print("length of train",len(train),"\nlength of test",len(test))
 
     #This sets the device for each of the datasets to work with the data-parallization

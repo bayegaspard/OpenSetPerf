@@ -19,6 +19,11 @@ PROTOCOLS = {"udp":0,"tcp":1,"others":2,"ospf":3,"sctp":4,"gre":5,"swipe":6,"mob
 LISTCLASS = {CLASSLIST[x]:x for x in range(Config.parameters["CLASSES"][0])}
 CHUNKSIZE = 10000
 
+def groupDoS(x):
+    if Config.parameters["Dataset"][0] == "Payload_data_CICIDS2017":
+        x[x>=7 and x<=10] = 7
+    return x
+
 def classConvert(x):
     """
     Does a conversion based on the dictionaries
@@ -188,7 +193,7 @@ class ClassDivDataset(Dataset):
         if self.unknownData:
             label2 = torch.tensor(Config.parameters["CLASSES"][0],dtype=torch.long).unsqueeze_(0)    #unknowns are marked as unknown
         else:
-            label2 = label.clone()
+            label2 = groupDoS(label.clone())
         label = torch.cat([label2,label], dim=0)
 
 
@@ -385,7 +390,7 @@ class ClusterDivDataset(ClassDivDataset):
             for x in range(Config.parameters["CLASSES"][0]):
                 X = data.astype(int)
                 X = X[X["label"]==x]
-                #X = X.sample(n=10000 if 10000<len(X) else len(X))
+                X = X.sample(n=200 if 200<len(X) else len(X))
                 X2 = X.to_numpy()
 
                 # setting distance_threshold=0 ensures we compute the full tree.
@@ -421,7 +426,7 @@ class ClusterDivDataset(ClassDivDataset):
             #label2 = torch.tensor(self.perclassgroups.sum().item(),dtype=torch.long).unsqueeze_(0)    #unknowns are marked as unknown
             label2 = torch.tensor(Config.parameters["CLASSES"][0],dtype=torch.long).unsqueeze_(0)
         else:
-            label2 = x.iloc[len(x)-1]         #This selects the label
+            label2 = groupDoS(x.iloc[len(x)-1])         #This selects the label
             label2 = torch.tensor(int(label2),dtype=torch.long)    #The int is because the loss function is expecting ints
             label2.unsqueeze_(0)              #This is to allow it to be two dimentional
         label = torch.cat([label,label2], dim=0)
@@ -561,7 +566,7 @@ class ClusterLimitDataset(ClusterDivDataset):
             #unknowns are marked as unknown
             label2 = torch.tensor(Config.parameters["CLASSES"][0],dtype=torch.long).unsqueeze_(0)
         else:
-            label2 = label.clone()
+            label2 = groupDoS(label.clone())
         label = torch.cat([label2,label], dim=0)
 
 
@@ -570,4 +575,15 @@ class ClusterLimitDataset(ClusterDivDataset):
 
         
         
-
+from torch.utils.data import TensorDataset, DataLoader
+#Try to store all of the data in memory instead?
+def recreateDL(dl:torch.utils.data.DataLoader):
+    xList= []
+    yList= []
+    for xs,ys in dl:
+        xList.append(xs)
+        yList.append(ys)
+    xList = torch.cat(xList)
+    yList = torch.cat(yList)
+    combinedList = TensorDataset(xList,yList)
+    return DataLoader(combinedList, Config.parameters["batch_size"][0], shuffle=True, num_workers=Config.parameters["num_workers"][0],pin_memory=True)
