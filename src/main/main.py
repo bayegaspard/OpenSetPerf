@@ -132,6 +132,9 @@ def run_model():
 
     #Resets the stored values that are used to generate the above values.
     model.storeReset()
+
+    #model.evaluate() runs only the evaluation stage of running the model. model.fit() calls model.evaluate() after epochs
+    model.evaluate(test_loader)
     #Sets the model to really be sure to be on evaluation mode and not on training mode. (Affects dropout)
     if not Config.parameters["LOOP"][0]:
         #More matrix stuff that we removed.
@@ -140,8 +143,7 @@ def run_model():
                     title=f'{Config.parameters["OOD Type"][0]} Validation', knowns = knownVals)
     model.eval()
 
-    #model.evaluate() runs only the evaluation stage of running the model. model.fit() calls model.evaluate() after epochs
-    model.evaluate(test_loader)
+    
     
 
     
