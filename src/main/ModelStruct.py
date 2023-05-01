@@ -154,7 +154,7 @@ class AttackTrainingClassification(nn.Module):
 
         # out = DeviceDataLoader(out, device)
         loss = F.cross_entropy(out, labels)  # Calculate loss
-        torch.cuda.empty_cache()
+        #torch.cuda.empty_cache()
         # print("loss from training step ... ", loss)
         return loss
 
@@ -263,11 +263,13 @@ class AttackTrainingClassification(nn.Module):
         data, labels_extended = batch
         self.batchnum += 1
         labels = labels_extended[:,0]
+        labels = self.end.labelMod(labels)
         out = self(data)  # Generate predictions
-        zeross = GPU.to_device(torch.zeros(len(out),1),device)
-        loss = F.cross_entropy(torch.cat((out,zeross),dim=1), labels)  # Calculate loss
+        #zeross = GPU.to_device(torch.zeros(len(out),1),device)
         out = self.end.endlayer(out,
                                 labels)  # <----Here is where it is using Softmax TODO: make this be able to run all of the versions and save the outputs.
+        #loss = F.cross_entropy(torch.cat((out,zeross),dim=1), labels)  # Calculate loss
+        loss = F.cross_entropy(out, labels)
         # out = self.end.endlayer(out, labels, type="Open")
         # out = self.end.endlayer(out, labels, type="Energy")
 

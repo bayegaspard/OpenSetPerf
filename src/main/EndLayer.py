@@ -335,6 +335,8 @@ class EndLayers():
         self.args = None    #This is the arguements for OPENMAX
         self.Save_score = []    #This is saving the score values for threshold for testing
         self.docMu = None    #This is saving the muStandards from DOC so that they dont need to be recalculated 
+        if (not self.weibulInfo is None) and (not self.weibulInfo["weibull"] is None):
+            self.weibulInfo["weibull"] = None
 
     
 

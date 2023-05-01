@@ -31,7 +31,7 @@ name_override = False
 
 def plot_losses(history):
     losses = [x['val_loss'] for x in history]
-    print("losses", losses)
+    #print("losses", losses)
     plt.plot(losses, '-x')
     plt.xlabel('epoch')
     plt.ylabel('loss')
@@ -43,7 +43,7 @@ def plot_losses(history):
 
 def plot_accuracies(history):
     accuracies = [x['val_acc'] for x in history]
-    print("accuracy", accuracies)
+    #print("accuracy", accuracies)
     plt.plot(accuracies, '-x')
     plt.xlabel('epoch')
     plt.ylabel('accuracy')
