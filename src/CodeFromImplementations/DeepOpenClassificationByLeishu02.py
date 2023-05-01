@@ -2,34 +2,8 @@
 import numpy as np
 import torch
 import Config
+import helperFunctions
 
-#ADDED FOR USE
-def renameClasses(modelOut:torch.Tensor, labels:torch.Tensor):
-    labels = labels.clone()
-    lastval = -1
-    label = list(range(Config.parameters["CLASSES"][0]))
-    newout = []
-    #print(Config.helper_variables["unknowns_clss"])
-    for val in Config.helper_variables["unknowns_clss"]:
-        label.remove(val)
-        if val > lastval+1:
-            if modelOut.dim() == 2:
-                newout.append(modelOut[:,lastval+1:val])
-            else:
-                newout.append(modelOut[lastval+1:val])
-        lastval = val
-    if modelOut.dim() == 2:
-        newout.append(modelOut[:,lastval+1:])
-    else:
-        newout.append(modelOut[lastval+1:])
-
-    newout = torch.cat(newout, dim=-1)
-
-    i = 0
-    for l in label:
-        labels[labels==l] = i
-        i+=1
-    return newout, labels
 
 
 
@@ -49,7 +23,7 @@ def muStandardsFromDataloader(seen,Dataloader,model):
     labelArray = None
     with torch.no_grad():
         for inputs,labels in Dataloader:
-            outputs, labels = renameClasses(torch.sigmoid(model(inputs)),labels)
+            outputs, labels = helperFunctions.renameClassesLabeled(torch.sigmoid(model(inputs)),labels)
             outputs = outputs.cpu()
             labels = labels.cpu()
             if labelArray is None:

@@ -275,7 +275,7 @@ class EndLayers():
         return torch.tensor(store)
 
     def DOCmod(self, logits:torch.Tensor):
-        percent = torch.sigmoid(renameClasses(logits))
+        percent = torch.sigmoid(helperFunctions.renameClasses(logits))
         return percent
 
     def iiMod(self, percentages:torch.Tensor):
@@ -341,24 +341,3 @@ class EndLayers():
     
 
 
-def renameClasses(modelOut:torch.Tensor):
-    #Cuts out all of the unknown classes.
-    lastval = -1
-    label = list(range(Config.parameters["CLASSES"][0]))
-    newout = []
-    for val in Config.helper_variables["unknowns_clss"]:
-        label.remove(val)
-        if val > lastval+1:
-            if modelOut.dim() == 2:
-                newout.append(modelOut[:,lastval+1:val])
-            else:
-                newout.append(modelOut[lastval+1:val])
-        lastval = val
-    if modelOut.dim() == 2:
-        newout.append(modelOut[:,lastval+1:])
-    else:
-        newout.append(modelOut[lastval+1:])
-
-    newout = torch.cat(newout, dim=-1)
-
-    return newout

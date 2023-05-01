@@ -20,7 +20,7 @@ LISTCLASS = {CLASSLIST[x]:x for x in range(Config.parameters["CLASSES"][0])}
 CHUNKSIZE = 10000
 
 def groupDoS(x):
-    if Config.parameters["Dataset"][0] == "Payload_data_CICIDS2017":
+    if Config.parameters["Dataset"][0] == "Payload_data_CICIDS2017" and False:
         x[x>=7 and x<=10] = 7
     return x
 

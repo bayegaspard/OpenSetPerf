@@ -233,6 +233,57 @@ class NoExamples(Exception):
     pass
 
 
+#The two rename classes are to reorginize things so that the numbers for classes are consecutive, some of the algorithms need that.
+def renameClasses(modelOut:torch.Tensor):
+    #Cuts out all of the unknown classes.
+    lastval = -1
+    label = list(range(Config.parameters["CLASSES"][0]))
+    newout = []
+    for val in Config.helper_variables["unknowns_clss"]:
+        label.remove(val)
+        if val > lastval+1:
+            if modelOut.dim() == 2:
+                newout.append(modelOut[:,lastval+1:val])
+            else:
+                newout.append(modelOut[lastval+1:val])
+        lastval = val
+    if modelOut.dim() == 2:
+        newout.append(modelOut[:,lastval+1:])
+    else:
+        newout.append(modelOut[lastval+1:])
+
+    newout = torch.cat(newout, dim=-1)
+
+    return newout
+
+def renameClassesLabeled(modelOut:torch.Tensor, labels:torch.Tensor):
+    labels = labels.clone()
+    lastval = -1
+    label = list(range(Config.parameters["CLASSES"][0]))
+    newout = []
+    #print(Config.helper_variables["unknowns_clss"])
+    for val in Config.helper_variables["unknowns_clss"]:
+        label.remove(val)
+        if val > lastval+1:
+            if modelOut.dim() == 2:
+                newout.append(modelOut[:,lastval+1:val])
+            else:
+                newout.append(modelOut[lastval+1:val])
+        lastval = val
+    if modelOut.dim() == 2:
+        newout.append(modelOut[:,lastval+1:])
+    else:
+        newout.append(modelOut[lastval+1:])
+
+    newout = torch.cat(newout, dim=-1)
+
+    i = 0
+    for l in label:
+        labels[labels==l] = i
+        i+=1
+    return newout, labels
+
+
 device = GPU.get_default_device() # selects a device, cpu or gpu
 
 class LossPerEpoch():
