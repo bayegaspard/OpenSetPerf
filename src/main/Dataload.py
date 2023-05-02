@@ -586,4 +586,4 @@ def recreateDL(dl:torch.utils.data.DataLoader):
     xList = torch.cat(xList)
     yList = torch.cat(yList)
     combinedList = TensorDataset(xList,yList)
-    return DataLoader(combinedList, Config.parameters["batch_size"][0], shuffle=True, num_workers=Config.parameters["num_workers"][0],pin_memory=True)
+    return DataLoader(combinedList, Config.parameters["batch_size"][0], shuffle=True, num_workers=Config.parameters["num_workers"][0],pin_memory=False)
