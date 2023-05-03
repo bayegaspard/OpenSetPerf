@@ -72,11 +72,11 @@ def run_model():
 
 
     #testing
-    if len(trainset)<100000:
+    if len(trainset)<100000 and Config.parameters["LOOP"][0]==0:
         trainset = Dataload.recreateDL(trainset)
-    if len(validationset)<100000:
+    if len(validationset)<100000 and Config.parameters["LOOP"][0]==0:
         validationset = Dataload.recreateDL(validationset)
-    if len(testset)<100000:
+    if len(testset)<100000 and Config.parameters["LOOP"][0]==0:
         testset = Dataload.recreateDL(testset)
 
 
