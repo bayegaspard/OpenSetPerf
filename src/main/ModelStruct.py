@@ -113,7 +113,7 @@ class AttackTrainingClassification(nn.Module):
             print(f"model:{self.fc1.weight.device}")
             print(f"layer:{self.DOC_kernels[0].weight.device}")
             print(f"data:{x.device}")
-            xs = [alg(x.to(self.fc1.weight.device)).to(self.fc1.weight.device) for alg in self.DOC_kernels]
+            xs = [alg(x) for alg in self.DOC_kernels]
             xs = [a.max(dim=1)[0] for a in xs]
             x = torch.concat(xs,dim=-1)
         
