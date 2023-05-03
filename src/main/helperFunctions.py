@@ -307,6 +307,8 @@ class LossPerEpoch():
         """
         target = GPU.to_device(target,device)
         predicted = GPU.to_device(predicted,device)
+        if predicted.ndim == 2:
+            predicted = predicted.argmax(dim=1)
         locations = predicted!=target
         self.loss += locations.sum().item()
 

@@ -267,7 +267,7 @@ class AttackTrainingClassification(nn.Module):
         data, labels_extended = batch
         self.batchnum += 1
         labels = labels_extended[:,0]
-        labels = self.end.labelMod(labels)
+        
         out = self(data)  # Generate predictions
         #zeross = GPU.to_device(torch.zeros(len(out),1),device)
         zeross = GPU.to_device(torch.zeros(len(out),1),device)
@@ -292,7 +292,7 @@ class AttackTrainingClassification(nn.Module):
 
         #This is just for datacollection.
         if self.los:
-            if self.end.type == "DOC":
+            if self.end.type == "DOC" or self.end.type == "COOL":
                 self.los.addloss(out,labels)
             else:
                 self.los.addloss(torch.argmax(out,dim=1),labels)
