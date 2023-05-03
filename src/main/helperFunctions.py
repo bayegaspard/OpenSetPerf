@@ -275,7 +275,7 @@ def renameClassesLabeled(modelOut:torch.Tensor, labels:torch.Tensor):
     else:
         newout.append(modelOut[lastval+1:])
 
-    newout = torch.cat(newout, dim=-1)
+    newout = torch.cat(newout, dim=-1,device=device)
 
     i = 0
     for l in label:

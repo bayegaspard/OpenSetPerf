@@ -109,7 +109,8 @@ class AttackTrainingClassification(nn.Module):
             x = self.layer1(x)
             x = self.layer2(x)
         else:
-            xs = [alg(x) for alg in self.DOC_kernels]
+            #Gotten the device location from https://discuss.pytorch.org/t/dataparallel-arguments-are-located-on-different-gpus/42054/5
+            xs = [alg(x.to(self.fc1.weight.device)).to(self.fc1.weight.device) for alg in self.DOC_kernels]
             xs = [a.max(dim=1)[0] for a in xs]
             x = torch.concat(xs,dim=-1)
         
