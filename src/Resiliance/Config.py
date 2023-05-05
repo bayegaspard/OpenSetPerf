@@ -11,12 +11,15 @@ def loopOverUnknowns(unknownlist):
     Given a list of unknowns (integers 0-14) this will create a list of knowns (the inverted list).
     """
     knownVals = list(range(parameters["CLASSES"][0]))
-    for un in unknownlist:
+    notused = unknownlist + UnusedClasses
+    notused.sort()
+    for un in notused:
         knownVals.remove(un)
     return knownVals
 
 #This is the diffrent optimization functions
 opt_func = {"Adam":torch.optim.Adam,"SGD":torch.optim.SGD, "RMSprop":torch.optim.RMSprop}
+
 
 #I do not know why this is diffrent than the parameters dictionary
 helper_variables = {
@@ -46,7 +49,7 @@ parameters = {
     "learningRate":[0.01, "a modifier for training"],
     "threshold":[0.1,"When to declare something to be unknown"],
     "model":["Convolutional","Model type [Fully_Connected,Convolutional]"],
-    "OOD Type":["Open","type of out of distribution detection [Soft,Open,Energy,COOL,DOC]"],
+    "OOD Type":["Soft","type of out of distribution detection [Soft,Open,Energy,COOL,DOC]"],
     "Dropout":[0.01,"percent of nodes that are skipped per run, larger numbers for more complex models [0,1)"],
     "Datagrouping":["ClassChunk","Datagroup type [ClassChunk,Dendrogramlimit]"],
     "optimizer":opt_func["Adam"],
@@ -61,7 +64,9 @@ parameters = {
     "0: no loop, 1:loop through variations of algorithms,thresholds,learning rates, groups and numbers of epochs, \n"\
     "2: Loop while adding more unknowns into the training data (making them knowns) without resetting the model"],
     "Dataset": ["Payload_data_CICIDS2017", "This is what dataset we are using, [Payload_data_CICIDS2017,Payload_data_UNSW]"],
-    "loopLevel": [0,"What percentages the model is on"]
+    "loopLevel": [0,"What percentages the model is on"],
+    "SchedulerStepSize": [10, "This is how often the scheduler takes a step, 3 means every third epoch"],
+    "SchedulerStep": [0.8,"This is how big a step the scheduler takes, leave 0 for no step"]
 }
 
 DOC_kernels = [3,4,5]
@@ -69,6 +74,8 @@ DOC_kernels = [3,4,5]
 #Set Number of classes:
 if parameters["Dataset"][0] == "Payload_data_UNSW":
     parameters["CLASSES"][0] = 10
+UnusedClasses = []
+
 
 
 #Dendrogram chunk uses a slightly diffrent output on the model structure. 

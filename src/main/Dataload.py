@@ -20,7 +20,7 @@ LISTCLASS = {CLASSLIST[x]:x for x in range(Config.parameters["CLASSES"][0])}
 CHUNKSIZE = 10000
 
 def groupDoS(x):
-    if Config.parameters["Dataset"][0] == "Payload_data_CICIDS2017" and False:
+    if Config.parameters["Dataset"][0] == "Payload_data_CICIDS2017":
         x[x>=7 and x<=10] = 7
     return x
 
@@ -576,13 +576,17 @@ class ClusterLimitDataset(ClusterDivDataset):
         
         
 from torch.utils.data import TensorDataset, DataLoader
+import copy
 #Try to store all of the data in memory instead?
 def recreateDL(dl:torch.utils.data.DataLoader):
     xList= []
     yList= []
     for xs,ys in dl:
-        xList.append(xs)
-        yList.append(ys)
+        #https://github.com/pytorch/pytorch/issues/11201#issuecomment-486232056
+        xList.append(copy.deepcopy(xs))
+        del(xs)
+        yList.append(copy.deepcopy(ys))
+        del(ys)
     xList = torch.cat(xList)
     yList = torch.cat(yList)
     combinedList = TensorDataset(xList,yList)

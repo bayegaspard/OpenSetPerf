@@ -40,7 +40,7 @@ class AttackTrainingClassification(nn.Module):
         
         #These are for DOC, it has a special model structure. Because of that we allow it to override what we have.
         if Config.parameters['OOD Type'][0] == "DOC":
-            self.DOC_kernels = []
+            self.DOC_kernels = nn.ModuleList()
             for x in Config.DOC_kernels:
                 self.DOC_kernels.append(nn.Conv1d(1, 32, x,device=device))
             fullyConnectedStart= 1501*len(Config.DOC_kernels)
@@ -90,6 +90,7 @@ class AttackTrainingClassification(nn.Module):
         self.COOL = nn.Linear(Config.parameters["Nodes"][0], numClasses*self.end.DOO,device=device)
 
         self.los = False
+        self.mode = None
 
         
     # Specify how the data passes in the neural network
@@ -102,7 +103,9 @@ class AttackTrainingClassification(nn.Module):
         x = x.float()
         x = x.unsqueeze(1)
         
-        if self.end.type != "DOC":
+        if self.mode == None:
+            self.mode = self.end.type
+        if self.mode != "DOC":
             x = self.layer1(x)
             x = self.layer2(x)
         else:
@@ -196,6 +199,10 @@ class AttackTrainingClassification(nn.Module):
         #print("test1.1")
         history = []
         optimizer = opt_func(self.parameters(), lr)
+        if isinstance(Config.parameters["SchedulerStep"][0],float) and Config.parameters["SchedulerStep"][0] !=0:
+            sch = torch.optim.lr_scheduler.StepLR(optimizer, Config.parameters["SchedulerStepSize"][0], Config.parameters["SchedulerStep"][0])
+        else:
+            sch = None
         self.los = helperFunctions.LossPerEpoch("TestingDuringTrainEpochs.csv")
         FileHandling.create_params_All()
         # torch.cuda.empty_cache()
@@ -222,7 +229,9 @@ class AttackTrainingClassification(nn.Module):
                     optimizer.zero_grad()
                     num += 1
 
-
+                if not sch is None:
+                    sch.step()
+                
                 # Validation phase
                 result = self.evaluate(val_loader)
 

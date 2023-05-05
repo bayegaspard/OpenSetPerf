@@ -567,4 +567,19 @@ class ClusterLimitDataset(ClusterDivDataset):
 
         
         
-
+from torch.utils.data import TensorDataset, DataLoader
+import copy
+#Try to store all of the data in memory instead?
+def recreateDL(dl:torch.utils.data.DataLoader):
+    xList= []
+    yList= []
+    for xs,ys in dl:
+        #https://github.com/pytorch/pytorch/issues/11201#issuecomment-486232056
+        xList.append(copy.deepcopy(xs))
+        del(xs)
+        yList.append(copy.deepcopy(ys))
+        del(ys)
+    xList = torch.cat(xList)
+    yList = torch.cat(yList)
+    combinedList = TensorDataset(xList,yList)
+    return DataLoader(combinedList, Config.parameters["batch_size"][0], shuffle=True, num_workers=Config.parameters["num_workers"][0],pin_memory=False)

@@ -188,7 +188,7 @@ class EndLayers():
     
     def prepWeibull(self,trainloader,device,net):
         net.eval()
-        self.weibulInfo = {"loader":trainloader,"device":device,"net":net}
+        self.weibulInfo = {"loader":trainloader,"device":device,"net":net, "weibull":None}
         
         net.train()
 
@@ -209,13 +209,21 @@ class EndLayers():
         
         if not failed:
             try:
-                scores_open = Open.openmaxevaluation(percentages.detach(),labels.detach(),self.args,self.weibulInfo)
+                if self.weibulInfo["weibull"] is None:
+                    print("Getting Weibull")
+                    self.weibulInfo["weibull"]=Open.weibull_fittting(self.args,self.weibulInfo)
+                if (self.weibulInfo["weibull"]==False):
+                    print("Openmax already failed")
+                    failed = True
+                else:
+                    scores_open = Open.openmaxevaluation(percentages.detach(),labels.detach(),self.args,self.weibulInfo,self.weibulInfo["weibull"])
             except NotImplementedError:
                 print("Warning: OpenMax has failed to load!")
                 failed = True
             #except LookupError:
             except helperFunctions.NoExamples:
                 print("OpenMax failed to idenitify at least 1 class!")
+                self.weibulInfo["weibull"]=False
                 #Note: usual reason for failure is having no correct examples for at least 1 class.
                 failed = True
                 
@@ -267,7 +275,7 @@ class EndLayers():
         return torch.tensor(store)
 
     def DOCmod(self, logits:torch.Tensor):
-        percent = torch.sigmoid(renameClasses(logits))
+        percent = torch.sigmoid(helperFunctions.renameClasses(logits))
         return percent
 
     def iiMod(self, percentages:torch.Tensor):
@@ -327,30 +335,9 @@ class EndLayers():
         self.args = None    #This is the arguements for OPENMAX
         self.Save_score = []    #This is saving the score values for threshold for testing
         self.docMu = None    #This is saving the muStandards from DOC so that they dont need to be recalculated 
-        if not self.weibulInfo is None:
+        if (not self.weibulInfo is None) and (not self.weibulInfo["weibull"] is None):
             self.weibulInfo["weibull"] = None
 
     
 
 
-def renameClasses(modelOut:torch.Tensor):
-    #Cuts out all of the unknown classes.
-    lastval = -1
-    label = list(range(Config.parameters["CLASSES"][0]))
-    newout = []
-    for val in Config.helper_variables["unknowns_clss"]:
-        label.remove(val)
-        if val > lastval+1:
-            if modelOut.dim() == 2:
-                newout.append(modelOut[:,lastval+1:val])
-            else:
-                newout.append(modelOut[lastval+1:val])
-        lastval = val
-    if modelOut.dim() == 2:
-        newout.append(modelOut[:,lastval+1:])
-    else:
-        newout.append(modelOut[lastval+1:])
-
-    newout = torch.cat(newout, dim=-1)
-
-    return newout
