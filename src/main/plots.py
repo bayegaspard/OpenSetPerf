@@ -31,7 +31,7 @@ name_override = False
 
 def plot_losses(history):
     losses = [x['val_loss'] for x in history]
-    print("losses", losses)
+    #print("losses", losses)
     plt.plot(losses, '-x')
     plt.xlabel('epoch')
     plt.ylabel('loss')
@@ -43,7 +43,7 @@ def plot_losses(history):
 
 def plot_accuracies(history):
     accuracies = [x['val_acc'] for x in history]
-    print("accuracy", accuracies)
+    #print("accuracy", accuracies)
     plt.plot(accuracies, '-x')
     plt.xlabel('epoch')
     plt.ylabel('accuracy')
@@ -162,12 +162,12 @@ def plot_confusion_matrix(cm:np.ndarray, classes,
     plt.tight_layout()
     plt.ylabel('True label')
     plt.xlabel('Predicted label')
-    if not name_override:
+    if title=='Confusion matrix':
         specific = pd.read_csv("Saves/fscore.csv").tail(1).to_string(header=False,index=False,).replace(" ","").replace(".","")
     else:
-        specific = name_override
-    #plt.savefig(f"Saves/conf/{title}{specific}.png", dpi=1600)
-    plt.savefig(f"Saves/{title}.png", dpi=1600)
+        specific = title
+    plt.savefig(f"Saves/conf/confusion_matrix{specific}.png", dpi=1600)
+    plt.savefig(f"Saves/confusion_matrix.png", dpi=1600)
 
 
 

@@ -70,6 +70,16 @@ def run_model():
     #Testset is for checking if the model got things correct with the Validationset+unknowns.
     testset = DataLoader(test, batch_size, shuffle=True, num_workers=num_workers, pin_memory=False)
 
+
+    #testing
+    if len(trainset)<100000 and Config.parameters["LOOP"][0]==0:
+        trainset = Dataload.recreateDL(trainset)
+    if len(validationset)<100000 and Config.parameters["LOOP"][0]==0:
+        validationset = Dataload.recreateDL(validationset)
+    if len(testset)<100000 and Config.parameters["LOOP"][0]==0:
+        testset = Dataload.recreateDL(testset)
+
+
     print("length of train",len(train),"\nlength of test",len(test))
 
     #This sets the device for each of the datasets to work with the data-parallization
@@ -118,20 +128,22 @@ def run_model():
     FileHandling.addMeasurement("Val_Accuracy",accuracy)
 
 
-
-
-    #Resets the stored values that are used to generate the above values.
-    model.storeReset()
     #Sets the model to really be sure to be on evaluation mode and not on training mode. (Affects dropout)
     if not Config.parameters["LOOP"][0]:
         #More matrix stuff that we removed.
         cnf_matrix = plots.confusionMatrix(model.store) 
         plots.plot_confusion_matrix(cnf_matrix, classes=class_names, normalize=True,
                     title=f'{Config.parameters["OOD Type"][0]} Validation', knowns = knownVals)
-    model.eval()
+
+    #Resets the stored values that are used to generate the above values.
+    model.storeReset()
 
     #model.evaluate() runs only the evaluation stage of running the model. model.fit() calls model.evaluate() after epochs
     model.evaluate(test_loader)
+    
+    model.eval()
+
+    
     
 
     

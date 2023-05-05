@@ -1,6 +1,12 @@
 #Our Implementation of https://arxiv.org/pdf/1802.04365.pdf
 import torch
 
+#TODO
+#The network
+#is trained on a dataset containing known and unknown classes,
+
+
+
 if __name__ =="__main__":
     #three lines from https://xxx-cook-book.gitbooks.io/python-cook-book/content/Import/import-from-parent-folder.html
     import os

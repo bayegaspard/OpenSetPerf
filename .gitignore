@@ -19,3 +19,4 @@ Saves/hyperparam/*
 Saves/unknown/*
 *.json
 src/CodeFromImplementations/Ignore.py
+!datasets/percentages.csv

@@ -158,7 +158,7 @@ def compute_train_score_and_mavs_and_dists(train_class_num,trainloader,device,ne
 
             #print("output from open",outputs)                    #<-this was a replacement
             for score, t in zip(outputs, targets):
-                score, t = renameClasses(score,t)   
+                score, t = helperFunctions.renameClassesLabeled(score,t)   
                 #print ("t at time of crash",t)
                      #This line has been added so that all of the knowns are sequental
                 # print(f"torch.argmax(score) is {torch.argmax(score)}, t is {t}")
@@ -182,7 +182,7 @@ def openmaxevaluation(scores,labels,args,dict,weibull=None):
     trainloader = dict["loader"]
     device = dict["device"]
     net = dict["net"]
-    scores,labels = renameClasses(scores,labels)
+    scores,labels = helperFunctions.renameClassesLabeled(scores,labels)
     scores = [scores]
     labels = [labels]
 
@@ -230,31 +230,5 @@ def weibull_fittting(args,dict):
     categories = list(range(0, args.train_class_num))
     return fit_weibull(mavs, dists, categories, args.weibull_tail, "euclidean")
 
-#ADDED FOR USE
-def renameClasses(modelOut:torch.Tensor, labels:torch.Tensor):
-    labels = labels.clone()
-    lastval = -1
-    label = list(range(Config.parameters["CLASSES"][0]))
-    newout = []
-    #print(Config.helper_variables["unknowns_clss"])
-    for val in Config.helper_variables["unknowns_clss"]:
-        label.remove(val)
-        if val > lastval+1:
-            if modelOut.dim() == 2:
-                newout.append(modelOut[:,lastval+1:val])
-            else:
-                newout.append(modelOut[lastval+1:val])
-        lastval = val
-    if modelOut.dim() == 2:
-        newout.append(modelOut[:,lastval+1:])
-    else:
-        newout.append(modelOut[lastval+1:])
 
-    newout = torch.cat(newout, dim=-1)
-
-    i = 0
-    for l in label:
-        labels[labels==l] = i
-        i+=1
-    return newout, labels
 

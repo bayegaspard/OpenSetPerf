@@ -97,7 +97,7 @@ class EndLayers():
         #Just store this for later
         self.Save_score.append(scores.mean())
         #once the dimentions are how we want them we test if it is above the cutoff
-        scores = scores.greater_equal(self.cutoff).to(torch.int)
+        scores = scores.less_equal(self.cutoff).to(torch.int)
         #Then we run precentages through a softmax to get a nice score
         percentages = torch.softmax(percentages,dim=1)
         #Finally we join the results as an unknown class in the output vector
@@ -275,7 +275,7 @@ class EndLayers():
         return torch.tensor(store)
 
     def DOCmod(self, logits:torch.Tensor):
-        percent = torch.sigmoid(renameClasses(logits))
+        percent = torch.sigmoid(helperFunctions.renameClasses(logits))
         return percent
 
     def iiMod(self, percentages:torch.Tensor):
@@ -335,28 +335,9 @@ class EndLayers():
         self.args = None    #This is the arguements for OPENMAX
         self.Save_score = []    #This is saving the score values for threshold for testing
         self.docMu = None    #This is saving the muStandards from DOC so that they dont need to be recalculated 
+        if (not self.weibulInfo is None) and (not self.weibulInfo["weibull"] is None):
+            self.weibulInfo["weibull"] = None
 
     
 
 
-def renameClasses(modelOut:torch.Tensor):
-    #Cuts out all of the unknown classes.
-    lastval = -1
-    label = list(range(Config.parameters["CLASSES"][0]))
-    newout = []
-    for val in Config.helper_variables["unknowns_clss"]:
-        label.remove(val)
-        if val > lastval+1:
-            if modelOut.dim() == 2:
-                newout.append(modelOut[:,lastval+1:val])
-            else:
-                newout.append(modelOut[lastval+1:val])
-        lastval = val
-    if modelOut.dim() == 2:
-        newout.append(modelOut[:,lastval+1:])
-    else:
-        newout.append(modelOut[lastval+1:])
-
-    newout = torch.cat(newout, dim=-1)
-
-    return newout

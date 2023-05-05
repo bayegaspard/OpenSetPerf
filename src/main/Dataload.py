@@ -19,6 +19,11 @@ PROTOCOLS = {"udp":0,"tcp":1,"others":2,"ospf":3,"sctp":4,"gre":5,"swipe":6,"mob
 LISTCLASS = {CLASSLIST[x]:x for x in range(Config.parameters["CLASSES"][0])}
 CHUNKSIZE = 10000
 
+def groupDoS(x):
+    if Config.parameters["Dataset"][0] == "Payload_data_CICIDS2017" and False:
+        x[x>=7 and x<=10] = 7
+    return x
+
 def classConvert(x):
     """
     Does a conversion based on the dictionaries
@@ -111,7 +116,7 @@ class ClassDivDataset(Dataset):
         if self.listOfCounts is None:
             self.listOfCounts = pd.read_csv(self.countspath, index_col=0)
             #add max per class
-            if self.maxclass is int:
+            if isinstance(self.maxclass,int):
                 self.listOfCounts.mask(self.listOfCounts>self.maxclass,self.maxclass,inplace=True)
             elif self.maxclass == "File":
                 maxclass = pd.read_csv("datasets/percentages.csv", index_col=0)
@@ -188,7 +193,7 @@ class ClassDivDataset(Dataset):
         if self.unknownData:
             label2 = torch.tensor(Config.parameters["CLASSES"][0],dtype=torch.long).unsqueeze_(0)    #unknowns are marked as unknown
         else:
-            label2 = label.clone()
+            label2 = groupDoS(label.clone())
         label = torch.cat([label2,label], dim=0)
 
 
@@ -283,15 +288,27 @@ class ClusterDivDataset(ClassDivDataset):
     def __len__(self) -> int:
         if self.listOfCounts is None:
             self.listOfCounts = pd.read_csv(self.countspath, index_col=0)
-            maxclass = [self.maxclass]*Config.parameters["CLASSES"][0]
-            maxclass = (torch.tensor(maxclass)/100)
-            self.listOfCounts = torch.tensor(self.listOfCounts.to_numpy())
-            #test = torch.stack([maxclass]*listOfCounts.size()[1]).T
-            maxclass = self.listOfCounts.mul(torch.stack([maxclass]*self.listOfCounts.size()[1]).T).ceil()
-            self.listOfCounts[self.listOfCounts>maxclass] = maxclass[self.listOfCounts>maxclass].to(torch.long)
+            if isinstance(Config.parameters["MaxPerClass"][0],int):
+                for y in range(self.listOfCounts.shape[0]):
+                    x=0
+                    cutofflist = self.listOfCounts.iloc[y].copy()
+                    cutofflist[cutofflist>x]  = x
+                    while cutofflist.sum()<self.maxclass and x<self.maxclass:
+                        x+=1
+                        cutofflist = self.listOfCounts.iloc[y].copy()
+                        cutofflist[cutofflist>x]  = x
+                    self.listOfCounts.iloc[y] = cutofflist
+            else:
+                maxclass = [self.maxclass]*Config.parameters["CLASSES"][0]
+                maxclass = (torch.tensor(maxclass)/100)
+                self.listOfCounts = torch.tensor(self.listOfCounts.to_numpy())
+                #test = torch.stack([maxclass]*listOfCounts.size()[1]).T
+                maxclass = self.listOfCounts.mul(torch.stack([maxclass]*self.listOfCounts.size()[1]).T).ceil()
+                self.listOfCounts[self.listOfCounts>maxclass] = maxclass[self.listOfCounts>maxclass].to(torch.long)
+                
+                self.listOfCounts = self.listOfCounts.numpy()
+                self.listOfCounts = pd.DataFrame(self.listOfCounts)
             #This removes all of the unused classes
-            self.listOfCounts = self.listOfCounts.numpy()
-            self.listOfCounts = pd.DataFrame(self.listOfCounts)
             self.listOfCounts = self.listOfCounts.loc[self.use]
         if self.length is None:
             self.length = self.listOfCounts.sum().sum().item()
@@ -373,7 +390,7 @@ class ClusterDivDataset(ClassDivDataset):
             for x in range(Config.parameters["CLASSES"][0]):
                 X = data.astype(int)
                 X = X[X["label"]==x]
-                #X = X.sample(n=10000 if 10000<len(X) else len(X))
+                X = X.sample(n=200 if 200<len(X) else len(X))
                 X2 = X.to_numpy()
 
                 # setting distance_threshold=0 ensures we compute the full tree.
@@ -409,7 +426,7 @@ class ClusterDivDataset(ClassDivDataset):
             #label2 = torch.tensor(self.perclassgroups.sum().item(),dtype=torch.long).unsqueeze_(0)    #unknowns are marked as unknown
             label2 = torch.tensor(Config.parameters["CLASSES"][0],dtype=torch.long).unsqueeze_(0)
         else:
-            label2 = x.iloc[len(x)-1]         #This selects the label
+            label2 = groupDoS(x.iloc[len(x)-1])         #This selects the label
             label2 = torch.tensor(int(label2),dtype=torch.long)    #The int is because the loss function is expecting ints
             label2.unsqueeze_(0)              #This is to allow it to be two dimentional
         label = torch.cat([label,label2], dim=0)
@@ -494,7 +511,7 @@ class ClusterLimitDataset(ClusterDivDataset):
         chunktype = 0
         chunkNumber = 0
         classNumber = 0
-        while index>=self.listOfCounts.iat[chunktype,chunkNumber]:
+        while index>self.listOfCounts.iat[chunktype,chunkNumber]:
 
             if self.listOfCounts.iat[chunktype,chunkNumber]>self.minclass:
                 classNumber+=1
@@ -512,7 +529,7 @@ class ClusterLimitDataset(ClusterDivDataset):
         t_start = time.time()
         #print(f"/chunk{self.usedDict[chunktype]}-type{chunkNumber:03d}.csv")
         #print(f"supposed length:{self.listOfCounts.iat[chunktype,chunkNumber]}, Index:{index}")
-        chunk = pd.read_csv(self.path+f"/chunk{self.usedDict[chunktype]}-type{chunkNumber:03d}.csv", index_col=False,chunksize=1,skiprows=index).get_chunk()
+        chunk = pd.read_csv(self.path+f"/chunk{self.usedDict[chunktype]}-type{chunkNumber:03d}.csv", index_col=False,chunksize=1,skiprows=index-1).get_chunk()
         t_total = time.time()-t_start
         if t_total>1:
             print(f"load took {t_total:.2f} seconds")
@@ -549,7 +566,7 @@ class ClusterLimitDataset(ClusterDivDataset):
             #unknowns are marked as unknown
             label2 = torch.tensor(Config.parameters["CLASSES"][0],dtype=torch.long).unsqueeze_(0)
         else:
-            label2 = label.clone()
+            label2 = groupDoS(label.clone())
         label = torch.cat([label2,label], dim=0)
 
 
@@ -558,4 +575,15 @@ class ClusterLimitDataset(ClusterDivDataset):
 
         
         
-
+from torch.utils.data import TensorDataset, DataLoader
+#Try to store all of the data in memory instead?
+def recreateDL(dl:torch.utils.data.DataLoader):
+    xList= []
+    yList= []
+    for xs,ys in dl:
+        xList.append(xs)
+        yList.append(ys)
+    xList = torch.cat(xList)
+    yList = torch.cat(yList)
+    combinedList = TensorDataset(xList,yList)
+    return DataLoader(combinedList, Config.parameters["batch_size"][0], shuffle=True, num_workers=Config.parameters["num_workers"][0],pin_memory=False)

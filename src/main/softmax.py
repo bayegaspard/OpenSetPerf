@@ -8,7 +8,7 @@ import pandas as pd
 # data_url is the location of the data
 # Data is not loaded from a local file
 # Data is loaded from a prepocessed dataset
-data_url="/home/bgaspard/Desktop/softmax/updated_CIC.csv"
+data_url="Testing.csv"
 
 
 # label names (YY) in the data and their
@@ -32,7 +32,7 @@ label_map = {
 
 }
 
-num_ids_features = 1503
+num_ids_features = 1504
 num_ids_classes = 15
 ids_classes = ['BENIGN', 'Bot', 'DDoS', 'DoS GoldenEye', 'DoS Hulk', 'DoS Slowhttptest', 'DoS slowloris', 'FTP-Patator', 'Heartbleed', 'Infiltration', 'PortScan', 'SSH-Patator', 'Web Attack – Brute Force', 'Web Attack – Sql Injection', 'Web Attack – XSS']
 # Utility functions used by classifiers
@@ -46,7 +46,7 @@ def ids_load_df_from_csv():
         None
     """
 
-    df = pd.read_csv(data_url)
+    df = pd.read_csv(data_url, index_col=False)
 
     print ("load Dataframe shape", df.shape)
 
@@ -229,7 +229,7 @@ def ids_nn():
     params = OrderedDict(
         lr = [.008]
         ,batch_size = [256]
-        ,num_epochs = [10]
+        ,num_epochs = [100]
         ,step_size = [5]
         ,gamma = [0.50]
     )
@@ -287,7 +287,7 @@ def ids_nn():
     val_pred = val_pred.argmax(dim=1)
 
     # A numpy array is needed to evaluate metrics
-    y_pred = val_pred.detach().to('gpu').numpy()
+    y_pred = val_pred.detach().to('cpu').numpy()
     ids_metrics(y_val, y_pred)
 
 ids_nn()

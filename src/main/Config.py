@@ -60,7 +60,9 @@ parameters = {
     "LOOP": [1,"This is a parameter that detumines if we want to loop over the algorithms.\n "\
     "0: no loop, 1:loop through variations of algorithms,thresholds,learning rates, groups and numbers of epochs, \n"\
     "2: Loop while adding more unknowns into the training data (making them knowns) without resetting the model"],
-    "Dataset": ["Payload_data_UNSW", "This is what dataset we are using, [Payload_data_CICIDS2017,Payload_data_UNSW]"]
+    "Dataset": ["Payload_data_CICIDS2017", "This is what dataset we are using, [Payload_data_CICIDS2017,Payload_data_UNSW]"],
+    "SchedulerStepSize": [10, "This is how often the scheduler takes a step, 3 means every third epoch"],
+    "SchedulerStep": [0.8,"This is how big a step the scheduler takes, leave 0 for no step"]
 }
 
 DOC_kernels = [3,4,5]
