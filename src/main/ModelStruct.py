@@ -236,7 +236,7 @@ class AttackTrainingClassification(nn.Module):
 
                 if not sch is None:
                     sch.step()
-                #print("test1.3")
+                
                 # Validation phase
                 self.savePoint(f"Saves/models", epoch, Config.helper_variables["phase"])
                 result = self.evaluate(val_loader)
