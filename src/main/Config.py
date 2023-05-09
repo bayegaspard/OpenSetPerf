@@ -11,7 +11,9 @@ def loopOverUnknowns(unknownlist):
     Given a list of unknowns (integers 0-14) this will create a list of knowns (the inverted list).
     """
     knownVals = list(range(parameters["CLASSES"][0]))
-    for un in unknownlist:
+    notused = unknownlist + UnusedClasses
+    notused.sort()
+    for un in notused:
         knownVals.remove(un)
     return knownVals
 
@@ -70,6 +72,9 @@ DOC_kernels = [3,4,5]
 #Set Number of classes:
 if parameters["Dataset"][0] == "Payload_data_UNSW":
     parameters["CLASSES"][0] = 10
+    UnusedClasses = []
+else:
+    UnusedClasses = [8,9,10]
 
 
 #Dendrogram chunk uses a slightly diffrent output on the model structure.
