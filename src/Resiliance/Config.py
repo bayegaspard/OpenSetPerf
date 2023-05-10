@@ -47,9 +47,9 @@ parameters = {
     "MaxSamples": [1000, "Maximum number of samples"],
     "num_epochs":[0,"Number of times it trains on the whole trainset"],
     "learningRate":[0.01, "a modifier for training"],
-    "threshold":[0.1,"When to declare something to be unknown"],
+    "threshold":[0.99,"When to declare something to be unknown"],
     "model":["Convolutional","Model type [Fully_Connected,Convolutional]"],
-    "OOD Type":["Soft","type of out of distribution detection [Soft,Open,Energy,COOL,DOC]"],
+    "OOD Type":["COOL","type of out of distribution detection [Soft,Open,Energy,COOL,DOC]"],
     "Dropout":[0.01,"percent of nodes that are skipped per run, larger numbers for more complex models [0,1)"],
     "Datagrouping":["ClassChunk","Datagroup type [ClassChunk,Dendrogramlimit]"],
     "optimizer":opt_func["Adam"],
@@ -165,3 +165,6 @@ if parameters["LOOP"][0] == 2:
     helper_variables["unknowns_clss"] = incGroups[0]
     parameters["Unknowns"] = f"{incGroups[0]} Unknowns"
     helper_variables["knowns_clss"] = loopOverUnknowns(helper_variables["unknowns_clss"])
+
+
+thresholds = [0.99,0.9,0.5,0.3]

@@ -180,8 +180,10 @@ def incrementLoop(notes=(0)):
 #Resiliance loop
 def resilianceLoop():
     current = Config.parameters["loopLevel"][0]
-    if current+1<len(pd.read_csv("datasets/percentages.csv", index_col=None)):
+    file = pd.read_csv("datasets/percentages.csv", index_col=None)
+    if current+1<len(file):
         Config.parameters["loopLevel"][0] = current+1
+        Config.parameters["threshold"][0] = Config.thresholds[file["Threshold "].iloc[current+1]]
     else:
         Config.parameters["LOOP"][0] = 0
 

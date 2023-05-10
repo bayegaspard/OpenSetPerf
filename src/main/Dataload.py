@@ -299,8 +299,11 @@ class ClusterDivDataset(ClassDivDataset):
                         cutofflist[cutofflist>x]  = x
                     self.listOfCounts.iloc[y] = cutofflist
             else:
+                #This is a diffrent version of doing a MaxPerClass
+                #It revolves around the maxperclass being a percentage of the total number of samples of that class
+                #this preserves the distribution.
                 maxclass = [self.maxclass]*Config.parameters["CLASSES"][0]
-                maxclass = (torch.tensor(maxclass)/100)
+                maxclass = (torch.tensor(maxclass))
                 self.listOfCounts = torch.tensor(self.listOfCounts.to_numpy())
                 #test = torch.stack([maxclass]*listOfCounts.size()[1]).T
                 maxclass = self.listOfCounts.mul(torch.stack([maxclass]*self.listOfCounts.size()[1]).T).ceil()
