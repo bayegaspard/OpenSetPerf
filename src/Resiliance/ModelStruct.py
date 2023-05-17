@@ -196,7 +196,6 @@ class AttackTrainingClassification(nn.Module):
         # def fit(epochs, lr, model, train_loader, val_loader, opt_func=torch.optim.SGD):
 
     def fit(self, epochs, lr, train_loader, test_loader,val_loader, opt_func):
-        #print("test1.1")
         history = []
         optimizer = opt_func(self.parameters(), lr)
         if isinstance(Config.parameters["SchedulerStep"][0],float) and Config.parameters["SchedulerStep"][0] !=0:
@@ -208,7 +207,6 @@ class AttackTrainingClassification(nn.Module):
         # torch.cuda.empty_cache()
         if epochs > 0:
             for epoch in range(epochs):
-                #print("test1.2")
                 self.end.resetvals()
                 self.storeReset()
                 # Training Phase
@@ -221,7 +219,7 @@ class AttackTrainingClassification(nn.Module):
                     # batch = DeviceDataLoader(batch, device)
                     loss = self.training_step(batch)
 
-                    FileHandling.write_batch_to_file(loss, num, self.end.type, "train")
+                    #FileHandling.write_batch_to_file(loss, num, self.end.type, "train")
                     train_losses.append(loss.detach())
                     self.end.trainMod(batch,self)
                     loss.backward()
@@ -235,18 +233,16 @@ class AttackTrainingClassification(nn.Module):
                 # Validation phase
                 result = self.evaluate(val_loader)
 
-                if result['val_acc'] > 0.5:
+                if result['val_acc'] > 0.5 or epoch == epochs-1:
                     self.savePoint(epoch=epoch)
                 #print("test1.4")
                 result['train_loss'] = torch.stack(train_losses).mean().item()
                 FileHandling.addMeasurement(f"Epoch{epoch} loss",result['train_loss'])
                 result["epoch"] = epoch
-                #print("test1.5")
                 self.epoch_end(epoch, result)
                 #print("result", result)
 
                 history.append(result)
-                #print("test1.6")
                 self.los.collect()
         else:
             # Validation phase
@@ -293,7 +289,7 @@ class AttackTrainingClassification(nn.Module):
 
         out = GPU.to_device(out, device)
         acc = self.accuracy(out, labels_extended)  # Calculate accuracy
-        FileHandling.write_batch_to_file(loss, self.batchnum, self.end.type, "Saves")
+        #FileHandling.write_batch_to_file(loss, self.batchnum, self.end.type, "Saves")
         #print("validation accuracy: ", acc)
         return {'val_loss': loss.detach(), 'val_acc': acc, "val_avgUnknown": unknowns}
 

@@ -74,11 +74,11 @@ def run_model():
 
 
     #testing
-    if len(trainset)<100000 and Config.parameters["LOOP"][0]==0:
+    if len(trainset)<100000 and Config.parameters["num_epochs"][0]>0:
         trainset = Dataload.recreateDL(trainset)
-    if len(validationset)<100000 and Config.parameters["LOOP"][0]==0:
+    if len(validationset)<100000 and Config.parameters["num_epochs"][0]>0:
         validationset = Dataload.recreateDL(validationset)
-    if len(testset)<100000 and Config.parameters["LOOP"][0]==0:
+    if len(testset)<100000 and Config.parameters["num_epochs"][0]>0:
         testset = Dataload.recreateDL(testset)
 
 
@@ -188,6 +188,8 @@ def run_model():
     #This loops through a list of "Threshold" values because they do not require retraining the model.
     if Config.parameters["LOOP"][0] == 1:
         model.thresholdTest(test_loader)
+    
+    plt.close()
 
 
 def main():

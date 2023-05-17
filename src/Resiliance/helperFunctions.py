@@ -183,7 +183,7 @@ def resilianceLoop():
     file = pd.read_csv("datasets/percentages.csv", index_col=None)
     if current+1<len(file):
         Config.parameters["loopLevel"][0] = current+1
-        Config.parameters["threshold"][0] = Config.thresholds[file["Threshold "].iloc[current+1]]
+        Config.parameters["threshold"][0] = Config.thresholds[file["Threshold "].iloc[current+1]-1]
     else:
         Config.parameters["LOOP"][0] = 0
 
@@ -247,7 +247,9 @@ def renameClasses(modelOut:torch.Tensor):
     lastval = -1
     label = list(range(Config.parameters["CLASSES"][0]))
     newout = []
-    for val in Config.helper_variables["unknowns_clss"]:
+    remove = Config.helper_variables["unknowns_clss"] + Config.UnusedClasses
+    remove.sort()
+    for val in remove:
         label.remove(val)
         if val > lastval+1:
             if modelOut.dim() == 2:
@@ -269,8 +271,10 @@ def renameClassesLabeled(modelOut:torch.Tensor, labels:torch.Tensor):
     lastval = -1
     label = list(range(Config.parameters["CLASSES"][0]))
     newout = []
+    remove = Config.helper_variables["unknowns_clss"] + Config.UnusedClasses
+    remove.sort()
     #print(Config.helper_variables["unknowns_clss"])
-    for val in Config.helper_variables["unknowns_clss"]:
+    for val in remove:
         label.remove(val)
         if val > lastval+1:
             if modelOut.dim() == 2:
@@ -365,7 +369,7 @@ def getFscore(dat):
     y_true = y_true.to(torch.int).tolist()
     y_pred = y_pred.to(torch.int).tolist()
     y_tested_against = y_tested_against.to(torch.int).tolist()
-    print(confusion_matrix(y_tested_against,y_pred))
+    # print(confusion_matrix(y_tested_against,y_pred))
     recall = recall_score(y_tested_against,y_pred,average='weighted',zero_division=0)
     precision = precision_score(y_tested_against,y_pred,average='weighted',zero_division=0)
     if precision==0 and recall==0:

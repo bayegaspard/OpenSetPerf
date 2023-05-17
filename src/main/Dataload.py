@@ -393,7 +393,7 @@ class ClusterDivDataset(ClassDivDataset):
             for x in range(Config.parameters["CLASSES"][0]):
                 X = data.astype(int)
                 X = X[X["label"]==x]
-                X = X.sample(n=200 if 200<len(X) else len(X))
+                #X = X.sample(n=200 if 200<len(X) else len(X))
                 X2 = X.to_numpy()
 
                 # setting distance_threshold=0 ensures we compute the full tree.
@@ -581,7 +581,7 @@ class ClusterLimitDataset(ClusterDivDataset):
 from torch.utils.data import TensorDataset, DataLoader
 import copy
 #Try to store all of the data in memory instead?
-def recreateDL(dl:torch.utils.data.DataLoader):
+def recreateDL(dl:torch.utils.data.DataLoader,shuffle=True):
     xList= []
     yList= []
     for xs,ys in dl:
@@ -593,4 +593,4 @@ def recreateDL(dl:torch.utils.data.DataLoader):
     xList = torch.cat(xList)
     yList = torch.cat(yList)
     combinedList = TensorDataset(xList,yList)
-    return DataLoader(combinedList, Config.parameters["batch_size"][0], shuffle=True, num_workers=Config.parameters["num_workers"][0],pin_memory=False)
+    return DataLoader(combinedList, Config.parameters["batch_size"][0], shuffle=shuffle, num_workers=Config.parameters["num_workers"][0],pin_memory=False)

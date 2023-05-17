@@ -110,6 +110,8 @@ def testRotate(notes=(0,0,0)):
             Config.parameters["Unknowns"] = f"{len(Config.loops[stage][step])} Unknowns"
             Config.helper_variables["knowns_clss"] = Config.loopOverUnknowns(Config.helper_variables["unknowns_clss"])
             setrelabel()
+        elif Config.loops2[stage] == "None":
+            pass
         else:
             Config.parameters[Config.loops2[stage]][0] = Config.loops[stage][step]
 
@@ -125,6 +127,8 @@ def testRotate(notes=(0,0,0)):
         Config.parameters["Unknowns"] = f"{len(Config.loops[stage][step])} Unknowns"
         Config.helper_variables["knowns_clss"] = Config.loopOverUnknowns(Config.helper_variables["unknowns_clss"])
         setrelabel()
+    elif Config.loops2[stage] == "None":
+            pass
     else:
         Config.parameters[Config.loops2[stage]][0] = Config.loops[stage][step]
 
@@ -192,6 +196,8 @@ def getcurrentlychanged(notes):
 
     algorithm = Config.alg[notes[2]]
     currentlyChanging = Config.loops2[notes[0]]
+    if currentlyChanging == "None":
+        return f"algorithm"
     currentSetting = Config.loops[notes[0]][notes[1]]
     return str(algorithm)+" "+str(currentlyChanging)+" "+str(currentSetting)
 
@@ -239,7 +245,9 @@ def renameClasses(modelOut:torch.Tensor):
     lastval = -1
     label = list(range(Config.parameters["CLASSES"][0]))
     newout = []
-    for val in Config.helper_variables["unknowns_clss"]:
+    remove = Config.helper_variables["unknowns_clss"] + Config.UnusedClasses
+    remove.sort()
+    for val in remove:
         label.remove(val)
         if val > lastval+1:
             if modelOut.dim() == 2:
@@ -261,8 +269,10 @@ def renameClassesLabeled(modelOut:torch.Tensor, labels:torch.Tensor):
     lastval = -1
     label = list(range(Config.parameters["CLASSES"][0]))
     newout = []
+    remove = Config.helper_variables["unknowns_clss"] + Config.UnusedClasses
+    remove.sort()
     #print(Config.helper_variables["unknowns_clss"])
-    for val in Config.helper_variables["unknowns_clss"]:
+    for val in remove:
         label.remove(val)
         if val > lastval+1:
             if modelOut.dim() == 2:

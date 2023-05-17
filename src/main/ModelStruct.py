@@ -201,7 +201,6 @@ class AttackTrainingClassification(nn.Module):
         # def fit(epochs, lr, model, train_loader, val_loader, opt_func=torch.optim.SGD):
 
     def fit(self, epochs, lr, train_loader, test_loader,val_loader, opt_func):
-        #print("test1.1")
         history = []
         optimizer = opt_func(self.parameters(), lr)
         if isinstance(Config.parameters["SchedulerStep"][0],float) and Config.parameters["SchedulerStep"][0] !=0:
@@ -213,7 +212,6 @@ class AttackTrainingClassification(nn.Module):
         # torch.cuda.empty_cache()
         if epochs > 0:
             for epoch in range(epochs):
-                #print("test1.2")
                 self.end.resetvals()
                 self.storeReset()
                 # Training Phase
@@ -240,16 +238,13 @@ class AttackTrainingClassification(nn.Module):
                 # Validation phase
                 self.savePoint(f"Saves/models", epoch, Config.helper_variables["phase"])
                 result = self.evaluate(val_loader)
-                #print("test1.4")
                 result['train_loss'] = torch.stack(train_losses).mean().item()
                 FileHandling.addMeasurement(f"Epoch{epoch} loss",result['train_loss'])
                 result["epoch"] = epoch
-                #print("test1.5")
                 self.epoch_end(epoch, result)
                 #print("result", result)
 
                 history.append(result)
-                #print("test1.6")
                 self.los.collect()
         else:
             # Validation phase

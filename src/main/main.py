@@ -112,7 +112,7 @@ def run_model():
     for x in unknownVals:
         class_names[x] = class_names[x]+"*"
     class_names.append("*Unknowns")
-    print("class names", class_names)
+    #print("class names", class_names)
 
 
 
@@ -239,6 +239,8 @@ def run_model():
     #This loops through a list of "Threshold" values because they do not require retraining the model.
     if Config.parameters["LOOP"][0] == 1:
         model.thresholdTest(test_loader)
+
+    plt.close()
 
 
 def main():
