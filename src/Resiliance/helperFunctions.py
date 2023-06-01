@@ -394,11 +394,14 @@ def getFoundUnknown(dat):
         recall (int)- How many of the per-class positives did the model find, specifically for unknowns.
     """
     y_pred,y_true,y_tested_against = dat
-    y_pred = y_pred / (Config.parameters["CLASSES"][0]/Config.parameters["CLASSES"][0]) #The whole config thing is if we are splitting the classes further
-    y_true = y_true / (Config.parameters["CLASSES"][0]/Config.parameters["CLASSES"][0])
     y_true = y_true.to(torch.int).tolist()
     y_pred = y_pred.to(torch.int).tolist()
     y_tested_against = y_tested_against.to(torch.int).tolist()
+    #if there are no unknowns:
+    if not Config.parameters["CLASSES"][0] in y_tested_against:
+        return 1
+
+
     recall = recall_score(y_tested_against,y_pred,average=None,zero_division=0)
     if (recall is float):
         return recall

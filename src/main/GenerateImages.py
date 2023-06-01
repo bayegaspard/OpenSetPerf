@@ -39,14 +39,12 @@ def run_model(set,last=None,start=0):
 
     FileHandling.generateHyperparameters(root_path) # generate hyper parameters copy files if they did not exist.
 
-    #Get the configs from the copy file because we had not integrated Config.py as well when this was written.
-    batch_size,num_workers,attemptLoad,testlen,num_epochs,lr,threshold,model_type,datagroup,unknownVals = FileHandling.readCSVs(root_path)
     #This is an example of how we get the values from Config now.
     knownVals = Config.helper_variables["knowns_clss"]
 
     #This just helps translate the config strings into model types. It is mostly unnesisary.
     model_list = {"Convolutional":ModelStruct.Conv1DClassifier,"Fully_Connected":ModelStruct.FullyConnected}
-    model = model_list[model_type]() # change index to select a specific architecture.
+    model = model_list[Config.parameters["model"][0]]() # change index to select a specific architecture.
 
     if not last is None:
         model.store=last
@@ -58,7 +56,7 @@ def run_model(set,last=None,start=0):
     model.end.type = Config.parameters["OOD Type"][0]
 
     #This selects the default cutoff value
-    model.end.cutoff = threshold
+    model.end.cutoff = Config.parameters["threshold"][0]
 
     model.loadPoint("Saves/models")
 
@@ -137,26 +135,27 @@ def main():
     global fscores
     fscores = pd.DataFrame()
 
-    names= ["Softmax Closedset","Softmax Openset","Openmax Closedset","Openmax Openset","Energy Closedset","Energy Openset","COOL Closedset","COOL Openset","DOC Closedset","DOC Openset"]
+    #names= ["Softmax Closedset","Softmax Openset","Openmax Closedset","Openmax Openset","Energy Closedset","Energy Openset","COOL Closedset","COOL Openset","DOC Closedset","DOC Openset"]
+    names= ["Softmax Closedset","Softmax Openset","Openmax Openset","Energy Openset","COOL Openset","DOC Openset"]
 
     #Runs the model
     turningPoint, last = run_model(set1)
     run_model(set2,last=last,start=turningPoint)
     Config.parameters["OOD Type"][0] = "Open"
 
-    turningPoint, last = run_model(set1)
+    #turningPoint, last = run_model(set1)
     run_model(set2,last=last,start=turningPoint)
     Config.parameters["OOD Type"][0] = "Energy"
 
-    turningPoint, last = run_model(set1)
+    #turningPoint, last = run_model(set1)
     run_model(set2,last=last,start=turningPoint)
     Config.parameters["OOD Type"][0] = "COOL"
 
-    turningPoint, last = run_model(set1)
+    #turningPoint, last = run_model(set1)
     run_model(set2,last=last,start=turningPoint)
     Config.parameters["OOD Type"][0] = "DOC"
 
-    turningPoint, last = run_model(set1)
+    #turningPoint, last = run_model(set1)
     run_model(set2,last=last,start=turningPoint)
 
     fig = px.scatter(y=fscores.iloc[0])
@@ -168,6 +167,8 @@ def main():
     fig.update_yaxes(title_text='Fscore')
     fig.update_yaxes(range=[0, 1])
     fig.show()
+    fig.write_image("Saves/GeneratedImages.png")
+    
 
 
 

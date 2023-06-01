@@ -98,15 +98,10 @@ def muStandards(seen, predictions, labels):
 
     #calculate mu, std of each seen class
     mu_stds = []
-    #THIS HAS BEEN CHANGED
     for i in range(len(predictions[0])):
-        if i in seen or True: #this was modified again
-            pos_mu, pos_std = fit(seen_train_X_pred[seen_train_y==i, i])
-            mu_stds.append([pos_mu, pos_std])
-        else:
-            #I have no idea if this is what I am supposed to be doing for the unknowns 
-            mu_stds.append([0, 0])
+        pos_mu, pos_std = fit(seen_train_X_pred[seen_train_y==i, i])
+        mu_stds.append([pos_mu, pos_std])
 
-    print(mu_stds)
+    #print(mu_stds)
 
     return mu_stds

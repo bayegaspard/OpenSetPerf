@@ -31,23 +31,6 @@ def generateHyperparameters(root_path):
 
 
 
-def readCSVs(root_path):
-        param = pd.read_csv(os.path.join(root_path,"Saves","hyperparam","hyperParam.csv"))
-        batch_size = int(param["batch_size"][0])
-        num_workers = int(param["num_workers"][0])
-        attemptLoad = int(param["attemptLoad"][0])
-        testlen = float(param["testlength"][0])
-        num_epochs = int(param["num_epochs"][0])
-        lr = float(param["learningRate"][0])
-        threshold = float(param["threshold"][0])
-        datagroup = param["Datagrouping"][0]
-        model_type = param["model"][0]
-        param = pd.read_csv(os.path.join(root_path,"Saves","unknown","unknowns.csv"))
-        unknownVals = param["Unknowns"].to_list()
-        return batch_size,num_workers,attemptLoad,testlen,num_epochs,lr,threshold,model_type,datagroup,unknownVals
-
-
-
 
 # generateHyperparameters(hyperpath,unknownpath)
 
@@ -69,14 +52,13 @@ def getDatagroup():
 # def readFromFiles(path):
 def checkAttempLoad(root_path=""):
 
-    _,_,_,_,_,_,_,_,datagroup,unknownlist = readCSVs(root_path)
     # get the data and create a test set and train set
     print("Reading datasets to create test and train sets")
     
     train, unknowns = getDatagroup()
     train, val = torch.utils.data.random_split(train,[len(train) - int(len(train) * Config.parameters["testlength"][0]),int(len(train) * Config.parameters["testlength"][0])]) 
     
-    if len(unknownlist)>0:
+    if len(Config.helper_variables["unknowns_clss"])>0:
         if (Config.parameters["Mix unknowns and validation"][0]):
             test = torch.utils.data.ConcatDataset([val, unknowns])
         else:

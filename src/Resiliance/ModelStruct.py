@@ -316,7 +316,7 @@ class AttackTrainingClassification(nn.Module):
                                                                                          result['val_loss'],
                                                                                          result['val_acc']))
 
-    def savePoint(net, path="src/Resiliance", epoch=0, phase=None):
+    def savePoint(net, path="src/Resiliance/Models", epoch=0, phase=None):
         if not os.path.exists(path):
             os.mkdir(path)
         torch.save(net.state_dict(), path + f"/Epoch{epoch:03d}{Config.parameters['OOD Type'][0]}.pth")
@@ -325,7 +325,7 @@ class AttackTrainingClassification(nn.Module):
             file.write(str(phase))
             file.close()
 
-    def loadPoint(net, path="src/Resiliance"):
+    def loadPoint(net, path="src/Resiliance/Models"):
         if not os.path.exists(path):
             os.mkdir(path)
         i = 999

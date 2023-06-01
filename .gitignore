@@ -1,5 +1,6 @@
 
 *.csv
+*.pth
 /.vs
 /REU-Network Detection
 /env

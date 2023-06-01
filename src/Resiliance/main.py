@@ -38,14 +38,12 @@ def run_model():
 
     FileHandling.generateHyperparameters(root_path) # generate hyper parameters copy files if they did not exist.
 
-    #Get the configs from the copy file because we had not integrated Config.py as well when this was written.
-    batch_size,num_workers,attemptLoad,testlen,num_epochs,lr,threshold,model_type,datagroup,unknownVals = FileHandling.readCSVs(root_path)
     #This is an example of how we get the values from Config now.
     knownVals = Config.helper_variables["knowns_clss"]
 
     #This just helps translate the config strings into model types. It is mostly unnesisary.
     model_list = {"Convolutional":ModelStruct.Conv1DClassifier,"Fully_Connected":ModelStruct.FullyConnected}
-    model = model_list[model_type]() # change index to select a specific architecture.
+    model = model_list[Config.parameters["model"][0]]() # change index to select a specific architecture.
 
     #This initializes the data-parallization which hopefully splits the training time over all of the connected GPUs
     model = ModelStruct.ModdedParallel(model)
@@ -54,9 +52,7 @@ def run_model():
     model.end.type = Config.parameters["OOD Type"][0]
 
     #This selects the default cutoff value
-    model.end.cutoff = threshold
-
-    model
+    model.end.cutoff = Config.parameters["threshold"][0]
 
     #This creates the datasets assuming there are not saved datasets that it can load.
     #By default the saved datasets will be deleted to avoid train/test corruption but this can be disabled.
@@ -65,12 +61,12 @@ def run_model():
 
     #These lines initialize the loaders for the datasets.
     #Trainset is for training the model.
-    trainset = DataLoader(train, batch_size, num_workers=num_workers,shuffle=True,
+    trainset = DataLoader(train, Config.parameters["batch_size"][0], num_workers=Config.parameters["num_workers"][0],shuffle=True,
             pin_memory=True)  # for faster processing enable pin memory to true and num_workers=4
     #Validationset is for checking if the model got things correct with the same type of data as the trainset
-    validationset = DataLoader(val, batch_size, shuffle=True, num_workers=num_workers,pin_memory=True)
+    validationset = DataLoader(val, Config.parameters["batch_size"][0], shuffle=True, num_workers=Config.parameters["num_workers"][0],pin_memory=True)
     #Testset is for checking if the model got things correct with the Validationset+unknowns.
-    testset = DataLoader(test, batch_size, shuffle=True, num_workers=num_workers, pin_memory=False)
+    testset = DataLoader(test, Config.parameters["batch_size"][0], shuffle=True, num_workers=Config.parameters["num_workers"][0], pin_memory=False)
 
 
     #testing
@@ -102,7 +98,7 @@ def run_model():
 
     starttime = time.time()
     #Model.fit is what actually runs the model. It outputs some kind of history array?
-    history_final += model.fit(num_epochs, lr, train_loader, test_loader,val_loader, opt_func=opt_func)
+    history_final += model.fit(Config.parameters["num_epochs"][0], Config.parameters["learningRate"][0], train_loader, test_loader,val_loader, opt_func=opt_func)
 
     FileHandling.addMeasurement(f"Length train",len(train))
     FileHandling.addMeasurement(f"Length validation",len(val))
@@ -177,8 +173,8 @@ def run_model():
     
     #This stores and prints the final results.
     score_list = [recall,precision,f1]
-    FileHandling.write_hist_to_file(history_final,num_epochs,model.end.type)
-    FileHandling.write_scores_to_file(score_list,num_epochs,model.end.type)
+    FileHandling.write_hist_to_file(history_final,Config.parameters["num_epochs"][0],model.end.type)
+    FileHandling.write_scores_to_file(score_list,Config.parameters["num_epochs"][0],model.end.type)
     print("Type : ",model.end.type)
     print(f"Now changing : {plots.name_override}")
     print(f"F-Score : {f1*100:.2f}%")

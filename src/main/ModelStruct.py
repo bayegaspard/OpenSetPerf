@@ -227,6 +227,7 @@ class AttackTrainingClassification(nn.Module):
                     #FileHandling.write_batch_to_file(loss, num, self.end.type, "train")
                     train_losses.append(loss.detach())
                     self.end.trainMod(batch,self)
+                    print(loss)
                     loss.backward()
                     optimizer.step()
                     optimizer.zero_grad()

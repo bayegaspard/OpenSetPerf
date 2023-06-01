@@ -398,6 +398,10 @@ def getFoundUnknown(dat):
     y_pred = y_pred.to(torch.int).tolist()
     y_tested_against = y_tested_against.to(torch.int).tolist()
     recall = recall_score(y_tested_against,y_pred,average=None,zero_division=0)
+    #if there are no unknowns:
+    if not Config.parameters["CLASSES"][0] in y_tested_against:
+        return 1
+
     if (recall is float):
         return recall
     elif (recall is None or len(recall)==0):
