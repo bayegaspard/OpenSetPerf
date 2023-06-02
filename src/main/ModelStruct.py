@@ -237,6 +237,10 @@ class AttackTrainingClassification(nn.Module):
                 epoch - the epoch that this data was taken
                 train_loss - the average training loss per batch of this epoch
         """
+        if Config.parameters["attemptLoad"][0] == 1:
+            startingEpoch = self.loadPoint("Saves/models")
+        else:
+            startingEpoch = 0
         history = []
         optimizer = opt_func(self.parameters(), lr)
         if isinstance(Config.parameters["SchedulerStep"][0],float) and Config.parameters["SchedulerStep"][0] !=0:
@@ -273,22 +277,22 @@ class AttackTrainingClassification(nn.Module):
                     sch.step()
                 
                 # Validation phase
-                self.savePoint(f"Saves/models", epoch)
+                self.savePoint(f"Saves/models", epoch+startingEpoch)
                 result = self.evaluate(val_loader)
                 result['train_loss'] = torch.stack(train_losses).mean().item()
-                FileHandling.addMeasurement(f"Epoch{epoch} loss",result['train_loss'])
-                result["epoch"] = epoch
-                self.epoch_end(epoch, result)
+                FileHandling.addMeasurement(f"Epoch{epoch+startingEpoch} loss",result['train_loss'])
+                result["epoch"] = epoch+startingEpoch
+                self.epoch_end(epoch+startingEpoch, result)
                 #print("result", result)
 
                 history.append(result)
                 self.los.collect()
         else:
             # Validation phase
-            self.loadPoint("Saves")
+            epoch = self.loadPoint("Saves/models")
             result = self.evaluate(val_loader)
             result['train_loss'] = -1
-            self.epoch_end(0, result)
+            self.epoch_end(epoch, result)
             #print("result", result)
             history.append(result)
         return history
@@ -424,7 +428,7 @@ class AttackTrainingClassification(nn.Module):
         This tests the results from val_loader at various thresholds and saves it to scoresAll.csv
         """
         net.end.type = Config.parameters["OOD Type"][0]
-        net.loadPoint("Saves")
+        net.loadPoint("Saves/models")
         thresh = Config.thresholds
         for y in range(len(thresh)):
             x = thresh[y]

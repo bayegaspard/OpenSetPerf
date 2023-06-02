@@ -145,8 +145,8 @@ def refreshFiles(root_path):
     """
     deletefile(os.path.join(root_path,"Saves","hyperparam","hyperParam.csv"))
     deletefile(os.path.join(root_path,"Saves","unknown","unknowns.csv"))
-    deletefile(os.path.join(root_path,"Saves","Data.pt"))
-    deletefile(os.path.join(root_path,"Saves","DataTest.pt"))
+    # deletefile(os.path.join(root_path,"Saves","Data.pt"))
+    # deletefile(os.path.join(root_path,"Saves","DataTest.pt"))
     #os.remove(os.path.join(root_path,"src","main","test"))
     #os.mkdir(os.path.join(root_path,"src","main","test"))
 
