@@ -31,6 +31,7 @@ class AttackTrainingClassification(nn.Module):
     def __init__(self):
         super().__init__()
 
+        #This is the length of the packets in the dataset we are currently using.
         fullyConnectedStart = 11904
 
         #There are 15 classes
@@ -171,7 +172,10 @@ class AttackTrainingClassification(nn.Module):
             torch dataset to iterate through.
         
         returns:
-            A dictionary of all of the mean values from the run.
+            A dictionary of all of the mean values from the run consisting of:
+                val_loss - the loss from the validation stage
+                val_acc - the accuract from the validation  stage
+                val_avgUnknown - internal metric that is not used
         """
         self.eval()
         self.batchnum = 0
@@ -179,6 +183,18 @@ class AttackTrainingClassification(nn.Module):
         return self.validation_epoch_end(outputs)
 
     def accuracy(self, outputs:torch.Tensor, labels):
+        """
+        Finds the final accuracy of the batch and saves the predictions and true values to model.store
+
+        parameters:
+            outputs- a torch Tensor containing all of the outputs from the models forward pass.
+            labels- a torch Tensor containing all of the true and tested against values corresponding to the output results
+                labels[:,0]- should be the values that you are training the model to get
+                labels[:,1:]- should be the true values or other metadata that you want to store associated with a datapoint.
+        
+        returns:
+            A dictionary of all of the mean values from the run.
+        """
         if outputs.ndim == 2:
             preds = torch.argmax(outputs, dim=1)
         else:
@@ -201,6 +217,26 @@ class AttackTrainingClassification(nn.Module):
         # def fit(epochs, lr, model, train_loader, val_loader, opt_func=torch.optim.SGD):
 
     def fit(self, epochs, lr, train_loader, test_loader,val_loader, opt_func):
+        """
+        Trains the model on the train_loader and evaluates it off of the val_loader. Also it stores all of the results in model.store.
+        It also generates a new line of ScoresAll.csv that stores all of the data for this model. (note: if you are running two threads at once the data will be overriden)
+
+        parameters:
+            epochs- the number of epochs to run the training for
+            lr- the learning rate to start at, the schedular will change the learning rate over time and can be set in the Config
+            train_loader- the torch dataloader to train the model on
+            test_loader- Unused but this should be the data that you want to do the final test of the model on, also in the form of a torch dataloader
+            val_loader- the model is tested every epoch against this data
+            opt_func- the optimization function to use
+
+        returns:
+            history- a list of tuples, each containing:
+                val_loss - the loss from the validation stage
+                val_acc - the accuract from the validation  stage. Note: this accuracy is not used in the save.
+                val_avgUnknown - internal metric that is not used
+                epoch - the epoch that this data was taken
+                train_loss - the average training loss per batch of this epoch
+        """
         history = []
         optimizer = opt_func(self.parameters(), lr)
         if isinstance(Config.parameters["SchedulerStep"][0],float) and Config.parameters["SchedulerStep"][0] !=0:
@@ -227,7 +263,7 @@ class AttackTrainingClassification(nn.Module):
                     #FileHandling.write_batch_to_file(loss, num, self.end.type, "train")
                     train_losses.append(loss.detach())
                     self.end.trainMod(batch,self)
-                    print(loss)
+                    #print(loss)
                     loss.backward()
                     optimizer.step()
                     optimizer.zero_grad()
@@ -258,7 +294,19 @@ class AttackTrainingClassification(nn.Module):
         return history
 
     def validation_step(self, batch):
-        #self.eval()
+        """
+        Takes a batch from the validation loader and evaluates it using the endlayer.
+
+        parameters:
+            batch- a single batch from a torch dataloader
+        
+        returns:
+            dictionary of:
+                val_loss - the loss from the validation stage
+                val_acc - the accuract from the validation  stage. Note: this accuracy is not used in the save.
+                val_avgUnknown - internal metric that is not used
+        """
+        self.eval()
         #self.savePoint("test", phase=Config.helper_variables["phase"])
         data, labels_extended = batch
         self.batchnum += 1
@@ -302,6 +350,12 @@ class AttackTrainingClassification(nn.Module):
     def validation_epoch_end(self, outputs):
         """
         Takes the output of each epoch and takes the mean values. Returns a dictionary of those mean values.
+
+        returns:
+            dictionary of:
+                val_loss - the loss from the validation stage
+                val_acc - the accuract from the validation  stage
+                val_avgUnknown - internal metric that is not used
         """
         batch_losses = [x['val_loss'] for x in outputs]
         epoch_loss = torch.stack(batch_losses).mean()  # Combine losses
@@ -317,25 +371,41 @@ class AttackTrainingClassification(nn.Module):
         return {'val_loss': epoch_loss.item(), 'val_acc': epoch_acc.item(), "val_avgUnknown": epoch_unkn.item()}
 
     def epoch_end(self, epoch, result):
+        """
+        prints the results using the epoch 
+        """
         print("Epoch [{}], train_loss: {:.4f}, val_loss: {:.4f}, val_acc: {:.4f}".format(epoch,
                                                                                          result['train_loss'],
                                                                                          result['val_loss'],
                                                                                          result['val_acc']))
 
-    def savePoint(net, path: str, epoch=0, phase=None):
+    def savePoint(net, path: str, epoch=0):
+        """
+        Saves the model
+
+        parameters:
+            path- path to the folder to store the model in.
+            epoch- the number of epochs the model has trained.
+
+        """
         if not os.path.exists(path):
             os.mkdir(path)
         torch.save(net.state_dict(), path + f"/Epoch{epoch:03d}{Config.parameters['OOD Type'][0]}.pth")
-        if phase is not None:
-            file = open("Saves/phase", "w")
-            file.write(str(phase))
-            file.close()
 
     def loadPoint(net, path: str):
+        """
+        Loads the most trained model from the path. Note: will break if trying to load a model with different configs.
+
+        parameters:
+            path- path to the folder where the models are stored.
+
+        returns:
+            epochFound - the number of epochs the model that was found has run for.
+        """
         if not os.path.exists(path):
             os.mkdir(path)
         i = 999
-        epochFound = 0
+        epochFound = -1
         while i >= 0:
             if os.path.exists(path + f"/Epoch{i:03d}{Config.parameters['OOD Type'][0]}.pth"):
                 net.load_state_dict(torch.load(path + f"/Epoch{i:03d}{Config.parameters['OOD Type'][0]}.pth"))
@@ -343,18 +413,16 @@ class AttackTrainingClassification(nn.Module):
                 epochFound = i
                 i = -1
             i = i - 1
-        if i != -2:
+        if epochFound == -1:
             print("No model to load found.")
-        elif os.path.exists("Saves/phase"):
-            file = open("Saves/phase", "r")
-            phase = file.read()
-            file.close()
-            return int(phase), epochFound
-        return -1, -1
+        return epochFound
 
     
     #This loops through all the thresholds without resetting the model.
     def thresholdTest(net,val_loader):
+        """
+        This tests the results from val_loader at various thresholds and saves it to scoresAll.csv
+        """
         net.end.type = Config.parameters["OOD Type"][0]
         net.loadPoint("Saves")
         thresh = Config.thresholds
@@ -401,6 +469,9 @@ class AttackTrainingClassification(nn.Module):
             #                title='Confusion matrix', knowns = Config.helper_variables["knowns_clss"])
 
     def storeReset(self):
+        """
+        Resets the storage for the model.
+        """
         self.store = GPU.to_device(torch.tensor([]), device), GPU.to_device(torch.tensor([]), device), GPU.to_device(torch.tensor([]), device)
     
     

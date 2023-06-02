@@ -1,14 +1,11 @@
-import torch.nn as nn
 import matplotlib.pyplot as plt
 from torch.utils.data import DataLoader
-from sklearn.metrics import (precision_score, recall_score, average_precision_score)
 import numpy as np
 import torch
 import time
 
 # user defined modules
 import GPU, FileHandling
-from EndLayer import EndLayers
 import plots
 import Dataload
 import ModelStruct

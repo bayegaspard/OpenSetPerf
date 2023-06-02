@@ -3,7 +3,7 @@ import pandas as pd
 import os
 
 #This config file is mainly used as global variables for the rest of the program.
-#It should only be modified by the two loop commands in helperfunctions
+#It should only be modified by the loop commands in helperfunctions
 
 
 def loopOverUnknowns(unknownlist):
@@ -57,7 +57,7 @@ parameters = {
     "learningRate":[0.01, "a modifier for training"],
     "threshold":[0.5,"When to declare something to be unknown"],
     "model":["Convolutional","Model type [Fully_Connected,Convolutional]"],
-    "OOD Type":["iiLoss","type of out of distribution detection [Soft,Open,Energy,COOL,DOC]"],
+    "OOD Type":["Soft","type of out of distribution detection [Soft,Open,Energy,COOL,DOC]"],
     "Dropout":[0.01,"percent of nodes that are skipped per run, larger numbers for more complex models [0,1)"],
     "Datagrouping":["Dendrogramlimit","Datagroup type [ClassChunk,Dendrogramlimit]"],
     "optimizer":opt_func["Adam"],
@@ -198,4 +198,7 @@ def algorithmSpecificSettings(alg="None"):
     #     case "iiLoss":
     #         parameters["threshold"][0] = 0.8
     
-
+#Getting version number
+#https://gist.github.com/sg-s/2ddd0fe91f6037ffb1bce28be0e74d4e
+f = open("build_number.txt","r")
+parameters["Version"] = [f.read,"The version number"]
