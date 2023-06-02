@@ -273,7 +273,7 @@ class AttackTrainingClassification(nn.Module):
                     sch.step()
                 
                 # Validation phase
-                self.savePoint(f"Saves/models", epoch, Config.helper_variables["phase"])
+                self.savePoint(f"Saves/models", epoch)
                 result = self.evaluate(val_loader)
                 result['train_loss'] = torch.stack(train_losses).mean().item()
                 FileHandling.addMeasurement(f"Epoch{epoch} loss",result['train_loss'])

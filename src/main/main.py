@@ -26,7 +26,7 @@ device = GPU.get_default_device() # selects a device, cpu or gpu
 def run_model():
     """
     run_model() takes no parameters and runs the model according to the current model configurations in Config.py
-    run_model() does not return anything.
+    run_model() does not return anything but outputs are saved in Saves/
     
     """
     #This refreshes all of the copies of the Config files, the copies can be used to find the current config if something breaks.
