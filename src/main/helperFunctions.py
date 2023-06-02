@@ -241,6 +241,16 @@ class NoExamples(Exception):
 
 #The two rename classes are to reorginize things so that the numbers for classes are consecutive, some of the algorithms need that.
 def renameClasses(modelOut:torch.Tensor):
+    """
+    This removes all of the unknown classes outputs because some algorithms cannot deal with gaps.
+    Note: this is not creating new torch Tensors so the new array can modify the old array. (not a deep copy)
+
+    parameters:
+        modelOut - the output logits of the layer of the model before endlayer.
+    
+    returns:
+        modelOut without any columns associated with unknown scores.
+    """
     #Cuts out all of the unknown classes.
     lastval = -1
     label = list(range(Config.parameters["CLASSES"][0]))
@@ -265,6 +275,17 @@ def renameClasses(modelOut:torch.Tensor):
     return newout
 
 def renameClassesLabeled(modelOut:torch.Tensor, labels:torch.Tensor):
+    """
+    This removes all of the unknown classes outputs because some algorithms cannot deal with gaps.
+    This version also renumbers all of the labels to match the new values.
+    Note: this is not creating new torch Tensors so the new array can modify the old array. (not a deep copy)
+    
+    parameters:
+        modelOut - the output logits of the layer of the model before endlayer.
+    
+    returns:
+        modelOut without any columns associated with unknown scores.
+    """
     labels = labels.clone()
     lastval = -1
     label = list(range(Config.parameters["CLASSES"][0]))
@@ -409,6 +430,9 @@ def getFoundUnknown(dat):
     else:
         return recall[-1]
 def shuffleCSVs():
+    """
+    Shuffles the positions of data in all dataset CSVs just to make sure that we are getting random data
+    """
     import glob
     files = glob.glob("datasets/*/*.csv")
     notFiles = glob.glob("datasets/*/counts.csv")

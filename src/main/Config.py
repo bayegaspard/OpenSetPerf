@@ -47,7 +47,7 @@ parameters = {
     #These parameters are orginized like this:
     #"ParamName":[Value,"Description"]
     #for a parameter called "ParamName" with a value of Value
-    "batch_size":[10, "Number of items per batch"],
+    "batch_size":[1000, "Number of items per batch"],
     "num_workers":[0, "Number of threads working on building batches"],
     "attemptLoad":[0, "0: do not use saves\n1:use saves"],
     "testlength":[1/4, "[0,1) percentage of training to test with"],
@@ -201,4 +201,4 @@ def algorithmSpecificSettings(alg="None"):
 #Getting version number
 #https://gist.github.com/sg-s/2ddd0fe91f6037ffb1bce28be0e74d4e
 f = open("build_number.txt","r")
-parameters["Version"] = [f.read,"The version number"]
+parameters["Version"] = [f.read(),"The version number"]
