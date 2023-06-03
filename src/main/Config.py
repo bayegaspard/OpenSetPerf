@@ -53,22 +53,22 @@ parameters = {
     "testlength":[1/4, "[0,1) percentage of training to test with"],
     "Mix unknowns and validation": [1,"0 or 1, 0 means that the test set is purely unknowns and 1 means that the testset is the validation set plus unknowns (for testing)"],
     "MaxPerClass": [300, "Maximum number of samples per class\n if Datagrouping is Dendrogram Limit and this value is a float it interprets it as the maximum percentage of the class instead."],
-    "num_epochs":[100,"Number of times it trains on the whole trainset"],
+    "num_epochs":[200,"Number of times it trains on the whole trainset"],
     "learningRate":[0.01, "a modifier for training"],
     "threshold":[0.5,"When to declare something to be unknown"],
     "model":["Convolutional","Model type [Fully_Connected,Convolutional]"],
     "OOD Type":["Soft","type of out of distribution detection [Soft,Open,Energy,COOL,DOC]"],
-    "Dropout":[0.01,"percent of nodes that are skipped per run, larger numbers for more complex models [0,1)"],
+    "Dropout":[0.03,"percent of nodes that are skipped per run, larger numbers for more complex models [0,1)"],
     "Datagrouping":["Dendrogramlimit","Datagroup type [ClassChunk,Dendrogramlimit]"],
     "optimizer":opt_func["Adam"],
     "Unknowns":"refer to unknowns.CSV",
     "CLASSES":[15,"Number of classes, do not change"],
     "Temperature":[1,"Energy OOD scaling parameter"],
     "Degree of Overcompleteness": [3,"Parameter for Fitted Learning"],
-    "Number of Layers": [2,"Number of layers to add to the base model"],
+    "Number of Layers": [3,"Number of layers to add to the base model"],
     "Nodes": [512,"The number of nodes per added layer"],
     "Activation": ["Leaky","The type of activation function to use"],
-    "LOOP": [1,"This is a parameter that determines if we want to loop over the algorithms.\n "\
+    "LOOP": [0,"This is a parameter that determines if we want to loop over the algorithms.\n "\
     "0: no loop, 1:loop through variations of algorithms,thresholds,learning rates, groups and numbers of epochs, \n"\
     "2: Loop while adding more unknowns into the training data (making them knowns) without resetting the model"],
     "Dataset": ["Payload_data_UNSW", "This is what dataset we are using, [Payload_data_CICIDS2017,Payload_data_UNSW]"],
@@ -202,3 +202,6 @@ def algorithmSpecificSettings(alg="None"):
 #https://gist.github.com/sg-s/2ddd0fe91f6037ffb1bce28be0e74d4e
 f = open("build_number.txt","r")
 parameters["Version"] = [f.read(),"The version number"]
+if __name__ == "__main__":
+    import main
+    main.main()
