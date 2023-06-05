@@ -40,7 +40,7 @@ class AttackTrainingClassification(nn.Module):
         
         #These are for DOC, it has a special model structure. Because of that we allow it to override what we have.
         if Config.parameters['OOD Type'][0] == "DOC":
-            self.DOC_kernels = []
+            self.DOC_kernels = nn.ModuleList()
             for x in Config.DOC_kernels:
                 self.DOC_kernels.append(nn.Conv1d(1, 32, x,device=device))
             fullyConnectedStart= 1501*len(Config.DOC_kernels)
@@ -90,6 +90,7 @@ class AttackTrainingClassification(nn.Module):
         self.COOL = nn.Linear(Config.parameters["Nodes"][0], numClasses*self.end.DOO,device=device)
 
         self.los = False
+        self.mode = None
 
         
     # Specify how the data passes in the neural network
@@ -102,7 +103,9 @@ class AttackTrainingClassification(nn.Module):
         x = x.float()
         x = x.unsqueeze(1)
         
-        if self.end.type != "DOC":
+        if self.mode == None:
+            self.mode = self.end.type
+        if self.mode != "DOC":
             x = self.layer1(x)
             x = self.layer2(x)
         else:
@@ -193,15 +196,17 @@ class AttackTrainingClassification(nn.Module):
         # def fit(epochs, lr, model, train_loader, val_loader, opt_func=torch.optim.SGD):
 
     def fit(self, epochs, lr, train_loader, test_loader,val_loader, opt_func):
-        #print("test1.1")
         history = []
         optimizer = opt_func(self.parameters(), lr)
+        if isinstance(Config.parameters["SchedulerStep"][0],float) and Config.parameters["SchedulerStep"][0] !=0:
+            sch = torch.optim.lr_scheduler.StepLR(optimizer, Config.parameters["SchedulerStepSize"][0], Config.parameters["SchedulerStep"][0])
+        else:
+            sch = None
         self.los = helperFunctions.LossPerEpoch("TestingDuringTrainEpochs.csv")
         FileHandling.create_params_All()
         # torch.cuda.empty_cache()
         if epochs > 0:
             for epoch in range(epochs):
-                #print("test1.2")
                 self.end.resetvals()
                 self.storeReset()
                 # Training Phase
@@ -214,7 +219,7 @@ class AttackTrainingClassification(nn.Module):
                     # batch = DeviceDataLoader(batch, device)
                     loss = self.training_step(batch)
 
-                    FileHandling.write_batch_to_file(loss, num, self.end.type, "train")
+                    #FileHandling.write_batch_to_file(loss, num, self.end.type, "train")
                     train_losses.append(loss.detach())
                     self.end.trainMod(batch,self)
                     loss.backward()
@@ -222,22 +227,22 @@ class AttackTrainingClassification(nn.Module):
                     optimizer.zero_grad()
                     num += 1
 
-
+                if not sch is None:
+                    sch.step()
+                
                 # Validation phase
                 result = self.evaluate(val_loader)
 
-                if result['val_acc'] > 0.5:
+                if result['val_acc'] > 0.5 or epoch == epochs-1:
                     self.savePoint(epoch=epoch)
                 #print("test1.4")
                 result['train_loss'] = torch.stack(train_losses).mean().item()
                 FileHandling.addMeasurement(f"Epoch{epoch} loss",result['train_loss'])
                 result["epoch"] = epoch
-                #print("test1.5")
                 self.epoch_end(epoch, result)
                 #print("result", result)
 
                 history.append(result)
-                #print("test1.6")
                 self.los.collect()
         else:
             # Validation phase
@@ -284,7 +289,7 @@ class AttackTrainingClassification(nn.Module):
 
         out = GPU.to_device(out, device)
         acc = self.accuracy(out, labels_extended)  # Calculate accuracy
-        FileHandling.write_batch_to_file(loss, self.batchnum, self.end.type, "Saves")
+        #FileHandling.write_batch_to_file(loss, self.batchnum, self.end.type, "Saves")
         #print("validation accuracy: ", acc)
         return {'val_loss': loss.detach(), 'val_acc': acc, "val_avgUnknown": unknowns}
 
@@ -311,7 +316,7 @@ class AttackTrainingClassification(nn.Module):
                                                                                          result['val_loss'],
                                                                                          result['val_acc']))
 
-    def savePoint(net, path="src/Resiliance", epoch=0, phase=None):
+    def savePoint(net, path="src/Resiliance/Models", epoch=0, phase=None):
         if not os.path.exists(path):
             os.mkdir(path)
         torch.save(net.state_dict(), path + f"/Epoch{epoch:03d}{Config.parameters['OOD Type'][0]}.pth")
@@ -320,7 +325,7 @@ class AttackTrainingClassification(nn.Module):
             file.write(str(phase))
             file.close()
 
-    def loadPoint(net, path="src/Resiliance"):
+    def loadPoint(net, path="src/Resiliance/Models"):
         if not os.path.exists(path):
             os.mkdir(path)
         i = 999

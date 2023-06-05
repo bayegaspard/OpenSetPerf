@@ -110,6 +110,8 @@ def testRotate(notes=(0,0,0)):
             Config.parameters["Unknowns"] = f"{len(Config.loops[stage][step])} Unknowns"
             Config.helper_variables["knowns_clss"] = Config.loopOverUnknowns(Config.helper_variables["unknowns_clss"])
             setrelabel()
+        elif Config.loops2[stage] == "None":
+            pass
         else:
             Config.parameters[Config.loops2[stage]][0] = Config.loops[stage][step]
 
@@ -125,6 +127,8 @@ def testRotate(notes=(0,0,0)):
         Config.parameters["Unknowns"] = f"{len(Config.loops[stage][step])} Unknowns"
         Config.helper_variables["knowns_clss"] = Config.loopOverUnknowns(Config.helper_variables["unknowns_clss"])
         setrelabel()
+    elif Config.loops2[stage] == "None":
+            pass
     else:
         Config.parameters[Config.loops2[stage]][0] = Config.loops[stage][step]
 
@@ -192,6 +196,8 @@ def getcurrentlychanged(notes):
 
     algorithm = Config.alg[notes[2]]
     currentlyChanging = Config.loops2[notes[0]]
+    if currentlyChanging == "None":
+        return f"algorithm"
     currentSetting = Config.loops[notes[0]][notes[1]]
     return str(algorithm)+" "+str(currentlyChanging)+" "+str(currentSetting)
 
@@ -235,11 +241,23 @@ class NoExamples(Exception):
 
 #The two rename classes are to reorginize things so that the numbers for classes are consecutive, some of the algorithms need that.
 def renameClasses(modelOut:torch.Tensor):
+    """
+    This removes all of the unknown classes outputs because some algorithms cannot deal with gaps.
+    Note: this is not creating new torch Tensors so the new array can modify the old array. (not a deep copy)
+
+    parameters:
+        modelOut - the output logits of the layer of the model before endlayer.
+    
+    returns:
+        modelOut without any columns associated with unknown scores.
+    """
     #Cuts out all of the unknown classes.
     lastval = -1
     label = list(range(Config.parameters["CLASSES"][0]))
     newout = []
-    for val in Config.helper_variables["unknowns_clss"]:
+    remove = Config.helper_variables["unknowns_clss"] + Config.UnusedClasses
+    remove.sort()
+    for val in remove:
         label.remove(val)
         if val > lastval+1:
             if modelOut.dim() == 2:
@@ -257,12 +275,25 @@ def renameClasses(modelOut:torch.Tensor):
     return newout
 
 def renameClassesLabeled(modelOut:torch.Tensor, labels:torch.Tensor):
+    """
+    This removes all of the unknown classes outputs because some algorithms cannot deal with gaps.
+    This version also renumbers all of the labels to match the new values.
+    Note: this is not creating new torch Tensors so the new array can modify the old array. (not a deep copy)
+    
+    parameters:
+        modelOut - the output logits of the layer of the model before endlayer.
+    
+    returns:
+        modelOut without any columns associated with unknown scores.
+    """
     labels = labels.clone()
     lastval = -1
     label = list(range(Config.parameters["CLASSES"][0]))
     newout = []
+    remove = Config.helper_variables["unknowns_clss"] + Config.UnusedClasses
+    remove.sort()
     #print(Config.helper_variables["unknowns_clss"])
-    for val in Config.helper_variables["unknowns_clss"]:
+    for val in remove:
         label.remove(val)
         if val > lastval+1:
             if modelOut.dim() == 2:
@@ -388,12 +419,31 @@ def getFoundUnknown(dat):
     y_pred = y_pred.to(torch.int).tolist()
     y_tested_against = y_tested_against.to(torch.int).tolist()
     recall = recall_score(y_tested_against,y_pred,average=None,zero_division=0)
+    #if there are no unknowns:
+    if not Config.parameters["CLASSES"][0] in y_tested_against:
+        return 1
+
     if (recall is float):
         return recall
     elif (recall is None or len(recall)==0):
         return 0
     else:
         return recall[-1]
+def shuffleCSVs():
+    """
+    Shuffles the positions of data in all dataset CSVs just to make sure that we are getting random data
+    """
+    import glob
+    files = glob.glob("datasets/*/*.csv")
+    notFiles = glob.glob("datasets/*/counts.csv")
+    for f in notFiles:
+        files.remove(f)
+    for path in files:
+        f = pd.read_csv(path)
+        #https://www.geeksforgeeks.org/pandas-how-to-shuffle-a-dataframe-rows/
+        f = f.sample(frac=1).reset_index(drop=True)
+        f.to_csv(path)
+
 
 if __name__ == "__main__":
     looptest()

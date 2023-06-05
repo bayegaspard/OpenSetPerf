@@ -51,24 +51,29 @@ def readCSVs(root_path):
 
 # generateHyperparameters(hyperpath,unknownpath)
 
+def getDatagroup():
+    groupType = Config.parameters["Datagrouping"][0]
+    if groupType == "ClassChunk":
+        train = Dataload.ClassDivDataset(os.path.join("datasets",Config.parameters["Dataset"][0]), use=Config.helper_variables["knowns_clss"])
+        unknowns = Dataload.ClassDivDataset(os.path.join("datasets",Config.parameters["Dataset"][0]), use=Config.helper_variables["unknowns_clss"], unknownData=True)
+    elif groupType == "Dendrogramlimit":
+        train = Dataload.ClusterLimitDataset(os.path.join("datasets",Config.parameters["Dataset"][0]), use=Config.helper_variables["knowns_clss"])
+        unknowns = Dataload.ClusterLimitDataset(os.path.join("datasets",Config.parameters["Dataset"][0]), use=Config.helper_variables["unknowns_clss"], unknownData=True)
+    elif groupType == "DendrogramChunk":
+        train = Dataload.ClusterDivDataset(os.path.join("datasets",Config.parameters["Dataset"][0]), use=Config.helper_variables["knowns_clss"])
+        unknowns = Dataload.ClusterDivDataset(os.path.join("datasets",Config.parameters["Dataset"][0]), use=Config.helper_variables["unknowns_clss"], unknownData=True)
+    else:
+        raise ValueError("Invalid Dataloader type")
+    return train,unknowns
+
 # def readFromFiles(path):
-def checkAttempLoad(root_path):
+def checkAttempLoad(root_path=""):
 
     _,_,_,_,_,_,_,_,datagroup,unknownlist = readCSVs(root_path)
     # get the data and create a test set and train set
     print("Reading datasets to create test and train sets")
     
-    if datagroup == "ClassChunk":
-        train = Dataload.ClassDivDataset(os.path.join(root_path,"datasets",Config.parameters["Dataset"][0]), use=Config.helper_variables["knowns_clss"])
-        unknowns = Dataload.ClassDivDataset(os.path.join(root_path,"datasets",Config.parameters["Dataset"][0]), use=unknownlist, unknownData=True)
-    elif datagroup == "Dendrogramlimit":
-        train = Dataload.ClusterLimitDataset(os.path.join(root_path,"datasets",Config.parameters["Dataset"][0]), use=Config.helper_variables["knowns_clss"])
-        unknowns = Dataload.ClusterLimitDataset(os.path.join(root_path,"datasets",Config.parameters["Dataset"][0]), use=unknownlist, unknownData=True)
-    elif datagroup == "DendrogramChunk":
-        train = Dataload.ClusterDivDataset(os.path.join(root_path,"datasets",Config.parameters["Dataset"][0]), use=Config.helper_variables["knowns_clss"])
-        unknowns = Dataload.ClusterDivDataset(os.path.join(root_path,"datasets",Config.parameters["Dataset"][0]), use=unknownlist, unknownData=True)
-    else:
-        raise ValueError("Invalid Dataloader type")
+    train, unknowns = getDatagroup()
     train, val = torch.utils.data.random_split(train,[len(train) - int(len(train) * Config.parameters["testlength"][0]),int(len(train) * Config.parameters["testlength"][0])]) 
     
     if len(unknownlist)>0:

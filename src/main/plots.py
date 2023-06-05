@@ -72,15 +72,6 @@ def plot_all_losses(history):
 # plot_accuracies(history_final)
 
 def confusionMatrix(dat):
-    #This block of code was due to confusion between thoese of us working on it.
-    #As an explanation, I was told to assume the model got something correct if it was unknown and the model predicted unknown.
-    #This created misleading confusion matrixes so it was removed.
-    #for x in range(len(y_pred)):
-    #    if y_pred[x] == 15 and y_tested[x] == 15:
-    #        y_pred[x] = y_test[x]
-    #    #else:
-    #    #    print(f"{y_pred[x]},{y_test[x]}")
-
     y_pred,y_true,y_tested_against = dat
     y_pred = y_pred / (Config.parameters["CLASSES"][0]/Config.parameters["CLASSES"][0]) #The whole config thing is if we are splitting the classes further
     y_true = y_true / (Config.parameters["CLASSES"][0]/Config.parameters["CLASSES"][0])
@@ -171,21 +162,7 @@ def plot_confusion_matrix(cm:np.ndarray, classes,
 
 
 
-# Compute confusion matrix
-# cnf_matrix = confusion_matrix(y_test, y_pred)
-# np.set_printoptions(precision=2)
-
-# Plot non-normalized confusion matrix
-# plt.figure()
-
-# Plot normalized confusion matri
-#
-# class_names = Dataload.get_class_names([0,1,4,5,6,7,8,9,10,11,12])
-# plot_confusion_matrix(cnf_matrix, classes=class_names, normalize=True,
-#                       title='Normalized confusion matrix')
-# plt.show()
-
-
+#Everything below here is for generating specific graphs and excell files that we wanted at one point.
 if __name__ == "__main__":
     import plotly
     import plotly.express as px
@@ -193,6 +170,12 @@ if __name__ == "__main__":
     from plotly.subplots import make_subplots
 
     def findX(currently):
+        """
+        This function finds any text after the first space.
+
+        This was made because the loop function states its current position in the form of: f"{Algorithm} {Config field being changed} {current value}"
+        So this function just returns: f"{Config field being changed} {current value}"
+        """
         if pd.isna(currently):
             return "Error"
         else:
@@ -200,18 +183,30 @@ if __name__ == "__main__":
             return " ".join(currently.split()[1:])
 
     def findType(X):
+        """
+        This function finds the first word in the input.
+
+        This was made to split the text format from: f"{Config field being changed} {current value}"
+        into: f"{Config field being changed}" so that we could sort graphs by what parameter is being changed.
+        """
         if pd.isna(X):
             return "Error"
         else:
             return X.split()[0]
 
     def variations(data):
+        """
+        This creates and shows a bar graph of the F1 scores for each algorithm 
+        """
         fig = px.histogram(data[data["OOD Type"]=="Soft"],y="Test_F1",x="x",barmode="group")
         for alg in data["OOD Type"].unique():
             fig.add_bar(x=data[data["OOD Type"]==alg]["x"],y=data[data["OOD Type"]==alg]["Test_F1"],name=alg)
         fig.show()
 
     def allPRF(data:pd.DataFrame):
+        """
+        not working
+        """
         fig = px.bar(data,y=["Test_F1","Test_Recall","Test_Precision"],x="OOD Type",barmode="group",text_auto=True,orientation="v")
         #fig = px.bar(data,x="Test_F1",y=data["OOD Type"].unique(),barmode="group",text_auto=True,orientation="v")
         #fig.update()
@@ -220,6 +215,9 @@ if __name__ == "__main__":
         fig.show()
 
     def allPRF2(data,alg:str):
+        """
+        not working
+        """
         fig = go.Figure()
         fig.add_trace(go.Bar(name="F1",x=data[data["OOD Type"]==alg]["x"],y=data[data["OOD Type"]==alg]["Test_F1"]))
         fig.add_trace(go.Bar(name="Recall",x=data[data["OOD Type"]==alg]["x"],y=data[data["OOD Type"]==alg]["Test_Recall"]))
@@ -228,6 +226,9 @@ if __name__ == "__main__":
         fig.show()
 
     def reformatData(data):
+        """
+        rewrites data into an excell sheet.
+        """
         if os.path.exists("Saves/ScoresAll.xlsx"):
             os.remove("Saves/ScoresAll.xlsx")
         for x in data["x"].unique():

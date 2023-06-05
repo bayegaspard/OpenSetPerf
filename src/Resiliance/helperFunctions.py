@@ -180,8 +180,10 @@ def incrementLoop(notes=(0)):
 #Resiliance loop
 def resilianceLoop():
     current = Config.parameters["loopLevel"][0]
-    if current+1<len(pd.read_csv("datasets/percentages.csv", index_col=None)):
+    file = pd.read_csv("datasets/percentages.csv", index_col=None)
+    if current+1<len(file):
         Config.parameters["loopLevel"][0] = current+1
+        Config.parameters["threshold"][0] = Config.thresholds[file["Threshold "].iloc[current+1]-1]
     else:
         Config.parameters["LOOP"][0] = 0
 
@@ -239,6 +241,61 @@ class NoExamples(Exception):
     pass
 
 
+#The two rename classes are to reorginize things so that the numbers for classes are consecutive, some of the algorithms need that.
+def renameClasses(modelOut:torch.Tensor):
+    #Cuts out all of the unknown classes.
+    lastval = -1
+    label = list(range(Config.parameters["CLASSES"][0]))
+    newout = []
+    remove = Config.helper_variables["unknowns_clss"] + Config.UnusedClasses
+    remove.sort()
+    for val in remove:
+        label.remove(val)
+        if val > lastval+1:
+            if modelOut.dim() == 2:
+                newout.append(modelOut[:,lastval+1:val])
+            else:
+                newout.append(modelOut[lastval+1:val])
+        lastval = val
+    if modelOut.dim() == 2:
+        newout.append(modelOut[:,lastval+1:])
+    else:
+        newout.append(modelOut[lastval+1:])
+
+    newout = torch.cat(newout, dim=-1)
+
+    return newout
+
+def renameClassesLabeled(modelOut:torch.Tensor, labels:torch.Tensor):
+    labels = labels.clone()
+    lastval = -1
+    label = list(range(Config.parameters["CLASSES"][0]))
+    newout = []
+    remove = Config.helper_variables["unknowns_clss"] + Config.UnusedClasses
+    remove.sort()
+    #print(Config.helper_variables["unknowns_clss"])
+    for val in remove:
+        label.remove(val)
+        if val > lastval+1:
+            if modelOut.dim() == 2:
+                newout.append(modelOut[:,lastval+1:val])
+            else:
+                newout.append(modelOut[lastval+1:val])
+        lastval = val
+    if modelOut.dim() == 2:
+        newout.append(modelOut[:,lastval+1:])
+    else:
+        newout.append(modelOut[lastval+1:])
+
+    newout = torch.cat(newout, dim=-1)
+
+    i = 0
+    for l in label:
+        labels[labels==l] = i
+        i+=1
+    return newout, labels
+
+
 device = GPU.get_default_device() # selects a device, cpu or gpu
 
 class LossPerEpoch():
@@ -262,6 +319,8 @@ class LossPerEpoch():
         """
         target = GPU.to_device(target,device)
         predicted = GPU.to_device(predicted,device)
+        if predicted.ndim == 2:
+            predicted = predicted.argmax(dim=1)
         locations = predicted!=target
         self.loss += locations.sum().item()
 
@@ -310,7 +369,7 @@ def getFscore(dat):
     y_true = y_true.to(torch.int).tolist()
     y_pred = y_pred.to(torch.int).tolist()
     y_tested_against = y_tested_against.to(torch.int).tolist()
-    print(confusion_matrix(y_tested_against,y_pred))
+    # print(confusion_matrix(y_tested_against,y_pred))
     recall = recall_score(y_tested_against,y_pred,average='weighted',zero_division=0)
     precision = precision_score(y_tested_against,y_pred,average='weighted',zero_division=0)
     if precision==0 and recall==0:
@@ -335,11 +394,14 @@ def getFoundUnknown(dat):
         recall (int)- How many of the per-class positives did the model find, specifically for unknowns.
     """
     y_pred,y_true,y_tested_against = dat
-    y_pred = y_pred / (Config.parameters["CLASSES"][0]/Config.parameters["CLASSES"][0]) #The whole config thing is if we are splitting the classes further
-    y_true = y_true / (Config.parameters["CLASSES"][0]/Config.parameters["CLASSES"][0])
     y_true = y_true.to(torch.int).tolist()
     y_pred = y_pred.to(torch.int).tolist()
     y_tested_against = y_tested_against.to(torch.int).tolist()
+    #if there are no unknowns:
+    if not Config.parameters["CLASSES"][0] in y_tested_against:
+        return 1
+
+
     recall = recall_score(y_tested_against,y_pred,average=None,zero_division=0)
     if (recall is float):
         return recall

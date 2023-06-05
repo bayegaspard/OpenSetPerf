@@ -3,7 +3,7 @@ import pandas as pd
 import os
 
 #This config file is mainly used as global variables for the rest of the program.
-#It should only be modified by the two loop commands in helperfunctions
+#It should only be modified by the loop commands in helperfunctions
 
 
 def loopOverUnknowns(unknownlist):
@@ -11,12 +11,23 @@ def loopOverUnknowns(unknownlist):
     Given a list of unknowns (integers 0-14) this will create a list of knowns (the inverted list).
     """
     knownVals = list(range(parameters["CLASSES"][0]))
-    for un in unknownlist:
-        knownVals.remove(un)
+    notused = unknownlist + UnusedClasses
+    notused.sort()
+    for un in notused:
+        if un in knownVals:
+            knownVals.remove(un)
+    
+    if len(helper_variables["unknowns_clss"]) > parameters["CLASSES"][0] -3:
+        print("Too many unknowns, some algorithms might not work")
+    if len(knownVals)<2:
+        print("Too few knowns, things might break")
+    parameters["Unknowns"] = f"{len(helper_variables['unknowns_clss'])} Unknowns"
+    
     return knownVals
 
 #This is the diffrent optimization functions
 opt_func = {"Adam":torch.optim.Adam,"SGD":torch.optim.SGD, "RMSprop":torch.optim.RMSprop}
+
 
 #I do not know why this is diffrent than the parameters dictionary
 helper_variables = {
@@ -25,7 +36,7 @@ helper_variables = {
 
     #This is the only important value in this dictionary and it lists the diffrent values to consider unkowns.
     #Mappings are at the top of Dataload.py
-    "unknowns_clss": [7,8,9], #Overriden if loop=2
+    "unknowns_clss": [2,4,7], #Overriden if loop=2
 
     "e": 0
 }
@@ -37,16 +48,16 @@ parameters = {
     #"ParamName":[Value,"Description"]
     #for a parameter called "ParamName" with a value of Value
     "batch_size":[1000, "Number of items per batch"],
-    "num_workers":[14, "Number of threads working on building batches"],
+    "num_workers":[0, "Number of threads working on building batches"],
     "attemptLoad":[0, "0: do not use saves\n1:use saves"],
     "testlength":[1/4, "[0,1) percentage of training to test with"],
     "Mix unknowns and validation": [1,"0 or 1, 0 means that the test set is purely unknowns and 1 means that the testset is the validation set plus unknowns (for testing)"],
-    "MaxPerClass": [1000, "Maximum number of samples per class"],
-    "num_epochs":[7,"Number of times it trains on the whole trainset"],
+    "MaxPerClass": [300, "Maximum number of samples per class\n if Datagrouping is Dendrogram Limit and this value is a float it interprets it as the maximum percentage of the class instead."],
+    "num_epochs":[100,"Number of times it trains on the whole trainset"],
     "learningRate":[0.01, "a modifier for training"],
-    "threshold":[0.05,"When to declare something to be unknown"],
+    "threshold":[0.5,"When to declare something to be unknown"],
     "model":["Convolutional","Model type [Fully_Connected,Convolutional]"],
-    "OOD Type":["Open","type of out of distribution detection [Soft,Open,Energy,COOL,DOC]"],
+    "OOD Type":["Soft","type of out of distribution detection [Soft,Open,Energy,COOL,DOC]"],
     "Dropout":[0.01,"percent of nodes that are skipped per run, larger numbers for more complex models [0,1)"],
     "Datagrouping":["Dendrogramlimit","Datagroup type [ClassChunk,Dendrogramlimit]"],
     "optimizer":opt_func["Adam"],
@@ -56,11 +67,11 @@ parameters = {
     "Degree of Overcompleteness": [3,"Parameter for Fitted Learning"],
     "Number of Layers": [2,"Number of layers to add to the base model"],
     "Nodes": [512,"The number of nodes per added layer"],
-    "Activation": ["ReLU","The type of activation function to use"],
-    "LOOP": [1,"This is a parameter that detumines if we want to loop over the algorithms.\n "\
+    "Activation": ["Leaky","The type of activation function to use"],
+    "LOOP": [1,"This is a parameter that determines if we want to loop over the algorithms.\n "\
     "0: no loop, 1:loop through variations of algorithms,thresholds,learning rates, groups and numbers of epochs, \n"\
     "2: Loop while adding more unknowns into the training data (making them knowns) without resetting the model"],
-    "Dataset": ["Payload_data_CICIDS2017", "This is what dataset we are using, [Payload_data_CICIDS2017,Payload_data_UNSW]"],
+    "Dataset": ["Payload_data_UNSW", "This is what dataset we are using, [Payload_data_CICIDS2017,Payload_data_UNSW]"],
     "SchedulerStepSize": [10, "This is how often the scheduler takes a step, 3 means every third epoch"],
     "SchedulerStep": [0.8,"This is how big a step the scheduler takes, leave 0 for no step"]
 }
@@ -70,6 +81,9 @@ DOC_kernels = [3,4,5]
 #Set Number of classes:
 if parameters["Dataset"][0] == "Payload_data_UNSW":
     parameters["CLASSES"][0] = 10
+    UnusedClasses = []
+else:
+    UnusedClasses = [8,9,10]
 
 
 #Dendrogram chunk uses a slightly diffrent output on the model structure.
@@ -118,11 +132,11 @@ epochs = [1,10,100]
 #     incGroups.append(new)
 
 #Here is where we remove some of the algorithms if we want to skip them. We could also just remove them from the list above.
-alg.remove("Soft")
+#alg.remove("Soft")
 #alg.remove("Open")
-alg.remove("Energy")
-alg.remove("COOL")
-alg.remove("DOC")
+#alg.remove("Energy")
+#alg.remove("COOL")
+#alg.remove("DOC")
 
 
 #Optimizer has been removed from the list of things we are changing
@@ -144,14 +158,16 @@ optim = [opt_func["Adam"]]
 
 #This is an array to eaiser loop through everything.
 loops = [batch,datapoints_per_class,thresholds,learning_rates,epochs,optim,activation,groups]
-#loops = [batch,thresholds,datapoints_per_class]
+loops = [[]]
 loops2 = ["batch_size","MaxPerClass","threshold","learningRate","num_epochs","optimizer","Activation","Unknowns"]
-#loops2 = ["batch_size","MaxPerClass","threshold"]
+loops2 = ["None"]
 for i in range(len(loops)):
     if loops2[i] == "Unknowns":
         loops[i].insert(0,helper_variables["unknowns_clss"])
     elif loops2[i] == "optimizer":
         loops[i].insert(0,parameters[loops2[i]])
+    elif loops2[i] == "None":
+        pass
     else:
         loops[i].insert(0,parameters[loops2[i]][0])
 
@@ -160,3 +176,29 @@ if parameters["LOOP"][0] == 2:
     helper_variables["unknowns_clss"] = incGroups[0]
     parameters["Unknowns"] = f"{incGroups[0]} Unknowns"
     helper_variables["knowns_clss"] = loopOverUnknowns(helper_variables["unknowns_clss"])
+
+
+
+def algorithmSpecificSettings(alg="None"):
+    if alg == "None":
+        alg = parameters["OOD Type"][0]
+    
+    
+    # match alg:
+    #     case "Soft":
+    #         pass
+    #     case "Open":
+    #         parameters["threshold"][0] = 0.8
+    #     case "Energy":
+    #         parameters["threshold"][0] = 15
+    #     case "COOL":
+    #         parameters["threshold"][0] = 0.8
+    #     case "DOC":
+    #         parameters["threshold"][0] = 0.8
+    #     case "iiLoss":
+    #         parameters["threshold"][0] = 0.8
+    
+#Getting version number
+#https://gist.github.com/sg-s/2ddd0fe91f6037ffb1bce28be0e74d4e
+f = open("build_number.txt","r")
+parameters["Version"] = [f.read(),"The version number"]

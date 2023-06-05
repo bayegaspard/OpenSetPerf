@@ -20,7 +20,7 @@ LISTCLASS = {CLASSLIST[x]:x for x in range(Config.parameters["CLASSES"][0])}
 CHUNKSIZE = 10000
 
 def groupDoS(x):
-    if Config.parameters["Dataset"][0] == "Payload_data_CICIDS2017" and False:
+    if False and Config.parameters["Dataset"][0] == "Payload_data_CICIDS2017":
         x[x>=7 and x<=10] = 7
     return x
 
@@ -299,8 +299,11 @@ class ClusterDivDataset(ClassDivDataset):
                         cutofflist[cutofflist>x]  = x
                     self.listOfCounts.iloc[y] = cutofflist
             else:
+                #This is a diffrent version of doing a MaxPerClass
+                #It revolves around the maxperclass being a percentage of the total number of samples of that class
+                #this preserves the distribution.
                 maxclass = [self.maxclass]*Config.parameters["CLASSES"][0]
-                maxclass = (torch.tensor(maxclass)/100)
+                maxclass = (torch.tensor(maxclass))
                 self.listOfCounts = torch.tensor(self.listOfCounts.to_numpy())
                 #test = torch.stack([maxclass]*listOfCounts.size()[1]).T
                 maxclass = self.listOfCounts.mul(torch.stack([maxclass]*self.listOfCounts.size()[1]).T).ceil()
@@ -390,7 +393,7 @@ class ClusterDivDataset(ClassDivDataset):
             for x in range(Config.parameters["CLASSES"][0]):
                 X = data.astype(int)
                 X = X[X["label"]==x]
-                X = X.sample(n=200 if 200<len(X) else len(X))
+                #X = X.sample(n=200 if 200<len(X) else len(X))
                 X2 = X.to_numpy()
 
                 # setting distance_threshold=0 ensures we compute the full tree.
@@ -576,14 +579,18 @@ class ClusterLimitDataset(ClusterDivDataset):
         
         
 from torch.utils.data import TensorDataset, DataLoader
+import copy
 #Try to store all of the data in memory instead?
-def recreateDL(dl:torch.utils.data.DataLoader):
+def recreateDL(dl:torch.utils.data.DataLoader,shuffle=True):
     xList= []
     yList= []
     for xs,ys in dl:
-        xList.append(xs)
-        yList.append(ys)
+        #https://github.com/pytorch/pytorch/issues/11201#issuecomment-486232056
+        xList.append(copy.deepcopy(xs))
+        del(xs)
+        yList.append(copy.deepcopy(ys))
+        del(ys)
     xList = torch.cat(xList)
     yList = torch.cat(yList)
     combinedList = TensorDataset(xList,yList)
-    return DataLoader(combinedList, Config.parameters["batch_size"][0], shuffle=True, num_workers=Config.parameters["num_workers"][0],pin_memory=False)
+    return DataLoader(combinedList, Config.parameters["batch_size"][0], shuffle=shuffle, num_workers=Config.parameters["num_workers"][0],pin_memory=False)

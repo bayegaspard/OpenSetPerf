@@ -32,8 +32,9 @@ class EndLayers():
 
     def endlayer(self, output_true:torch.Tensor, y:torch.Tensor, type=None, Train=False):
         startTime = time.time()
-        print(f"Argmax")
-        helperFunctions.printconfmat(output_true.cpu(),y.cpu())
+        if 1==2:
+            print(f"Argmax")
+            helperFunctions.printconfmat(output_true.cpu(),y.cpu())
         #check if a type is specified
         if type is None:
             type = self.type
@@ -48,11 +49,12 @@ class EndLayers():
         #This is supposted to add an extra column for unknowns
         output_complete = self.typesOfUnknown[type](self,output_modified)
 
-        print(f"Alg")
-        if output_complete.ndim == 2:
-            helperFunctions.printconfmat(output_complete.cpu(),y.cpu())
-        else:
-            print(f"{confusion_matrix(y.cpu(),output_complete.cpu())}")
+        if False:
+            print(f"Alg")
+            if output_complete.ndim == 2:
+                helperFunctions.printconfmat(output_complete.cpu(),y.cpu())
+            else:
+                print(f"{confusion_matrix(y.cpu(),output_complete.cpu())}")
         return output_complete
 
 
@@ -131,7 +133,7 @@ class EndLayers():
 
 
     #all functions here return a mask with 1 in all valid locations and 0 in all invalid locations
-    typesOfUnknown = {"Soft":softMaxUnknown, "Open":openMaxUnknown, "Energy":energyUnknown, "Odin":odinUnknown, "COOL":normalThesholdUnknown, "SoftThresh":normalThesholdUnknown, "DOC":DOCUnknown, "iiMod": iiUnknown}
+    typesOfUnknown = {"Soft":softMaxUnknown, "Open":openMaxUnknown, "Energy":energyUnknown, "Odin":odinUnknown, "COOL":normalThesholdUnknown, "SoftThresh":normalThesholdUnknown, "DOC":DOCUnknown, "iiLoss": iiUnknown}
 
     #---------------------------------------------------------------------------------------------
     #This is the section for modifying the outputs for the final layer
@@ -148,7 +150,7 @@ class EndLayers():
         if temp is None:
             temp = float(param["Temperature"][0])
         if classes is None:
-            classes = int(param["CLASSES"][0])-len(unknowns)
+            classes = len(Config.helper_variables["knowns_clss"])
 
         class argsc():
             def __init__(self):
@@ -278,7 +280,7 @@ class EndLayers():
         percent = torch.sigmoid(helperFunctions.renameClasses(logits))
         return percent
 
-    def iiMod(self, percentages:torch.Tensor):
+    def iiLoss(self, percentages:torch.Tensor):
         import CodeFromImplementations.OpenNet as OpenNet
         means = OpenNet.Algorithm_1(self.weibulInfo["loader"],self.weibulInfo["net"])
         unknowns = []
@@ -289,7 +291,7 @@ class EndLayers():
         return percentages,unknowns
 
     #all functions here return a tensor, sometimes it has an extra column for unknowns
-    typesOfMod = {"Soft":softMaxMod, "Open":openMaxMod, "Energy":energyMod, "Odin":odinMod, "COOL":FittedLearningEval, "SoftThresh":softMaxMod, "DOC":DOCmod, "iiMod":iiMod}
+    typesOfMod = {"Soft":softMaxMod, "Open":openMaxMod, "Energy":energyMod, "Odin":odinMod, "COOL":FittedLearningEval, "SoftThresh":softMaxMod, "DOC":DOCmod, "iiLoss":iiLoss}
 
     #---------------------------------------------------------------------------------------------
     #This is the section for training label modification
@@ -320,7 +322,7 @@ class EndLayers():
         import CodeFromImplementations.OpenNet as OpenNet
         OpenNet.singleBatch(batch,model)
 
-    typesOfTrainMod = {"iiMod":iiTrain}
+    typesOfTrainMod = {"iiLoss":iiTrain}
 
     def trainMod(self,batch,model):
         try:

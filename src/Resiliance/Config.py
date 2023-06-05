@@ -11,12 +11,23 @@ def loopOverUnknowns(unknownlist):
     Given a list of unknowns (integers 0-14) this will create a list of knowns (the inverted list).
     """
     knownVals = list(range(parameters["CLASSES"][0]))
-    for un in unknownlist:
-        knownVals.remove(un)
+    notused = unknownlist + UnusedClasses
+    notused.sort()
+    for un in notused:
+        if un in knownVals:
+            knownVals.remove(un)
+    
+    if len(helper_variables["unknowns_clss"]) > parameters["CLASSES"][0] -3:
+        print("Too many unknowns, some algorithms might not work")
+    if len(knownVals)<2:
+        print("Too few knowns, things might break")
+    parameters["Unknowns"] = f"{len(helper_variables['unknowns_clss'])} Unknowns"
+    
     return knownVals
 
 #This is the diffrent optimization functions
 opt_func = {"Adam":torch.optim.Adam,"SGD":torch.optim.SGD, "RMSprop":torch.optim.RMSprop}
+
 
 #I do not know why this is diffrent than the parameters dictionary
 helper_variables = {
@@ -41,27 +52,29 @@ parameters = {
     "attemptLoad":[0, "0: do not use saves\n1:use saves"],
     "testlength":[1/4, "[0,1) percentage of training to test with"],
     "Mix unknowns and validation": [1,"0 or 1, 0 means that the test set is purely unknowns and 1 means that the testset is the validation set plus unknowns (for testing)"],
-    "MaxSamples": [1000, "Maximum number of samples"],
-    "num_epochs":[0,"Number of times it trains on the whole trainset"],
+    "MaxSamples": [6000, "Maximum number of samples"],
+    "num_epochs":[100,"Number of times it trains on the whole trainset"],
     "learningRate":[0.01, "a modifier for training"],
-    "threshold":[0.1,"When to declare something to be unknown"],
+    "threshold":[15,"When to declare something to be unknown"],
     "model":["Convolutional","Model type [Fully_Connected,Convolutional]"],
-    "OOD Type":["Open","type of out of distribution detection [Soft,Open,Energy,COOL,DOC]"],
-    "Dropout":[0.01,"percent of nodes that are skipped per run, larger numbers for more complex models [0,1)"],
-    "Datagrouping":["ClassChunk","Datagroup type [ClassChunk,Dendrogramlimit]"],
+    "OOD Type":["DOC","type of out of distribution detection [Soft,Open,Energy,COOL,DOC]"],
+    "Dropout":[0,"percent of nodes that are skipped per run, larger numbers for more complex models [0,1)"],
+    "Datagrouping":["Dendrogramlimit","Datagroup type [ClassChunk,Dendrogramlimit]"],
     "optimizer":opt_func["Adam"],
     "Unknowns":"refer to unknowns.CSV",
     "CLASSES":[15,"Number of classes, do not change"],
     "Temperature":[1,"Energy OOD scaling parameter"],
     "Degree of Overcompleteness": [3,"Parameter for Fitted Learning"],
-    "Number of Layers": [2,"Number of layers to add to the base model"],
-    "Nodes": [512,"The number of nodes per added layer"],
-    "Activation": ["ReLU","The type of activation function to use"],
-    "LOOP": [3,"This is a parameter that detumines if we want to loop over the algorithms.\n "\
+    "Number of Layers": [0,"Number of layers to add to the base model"],
+    "Nodes": [1024,"The number of nodes per added layer"],
+    "Activation": ["Leaky","The type of activation function to use"],
+    "LOOP": [0,"This is a parameter that determines if we want to loop over the algorithms.\n "\
     "0: no loop, 1:loop through variations of algorithms,thresholds,learning rates, groups and numbers of epochs, \n"\
     "2: Loop while adding more unknowns into the training data (making them knowns) without resetting the model"],
     "Dataset": ["Payload_data_CICIDS2017", "This is what dataset we are using, [Payload_data_CICIDS2017,Payload_data_UNSW]"],
-    "loopLevel": [0,"What percentages the model is on"]
+    "loopLevel": [0,"What percentages the model is on"],
+    "SchedulerStepSize": [10, "This is how often the scheduler takes a step, 3 means every third epoch"],
+    "SchedulerStep": [0.8,"This is how big a step the scheduler takes, leave 0 for no step"]
 }
 
 DOC_kernels = [3,4,5]
@@ -69,6 +82,8 @@ DOC_kernels = [3,4,5]
 #Set Number of classes:
 if parameters["Dataset"][0] == "Payload_data_UNSW":
     parameters["CLASSES"][0] = 10
+UnusedClasses = []
+
 
 
 #Dendrogram chunk uses a slightly diffrent output on the model structure. 
@@ -158,3 +173,6 @@ if parameters["LOOP"][0] == 2:
     helper_variables["unknowns_clss"] = incGroups[0]
     parameters["Unknowns"] = f"{incGroups[0]} Unknowns"
     helper_variables["knowns_clss"] = loopOverUnknowns(helper_variables["unknowns_clss"])
+
+
+thresholds = [0.99,0.9,0.5,0.3]
