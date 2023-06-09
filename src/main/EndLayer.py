@@ -133,7 +133,7 @@ class EndLayers():
 
 
     #all functions here return a mask with 1 in all valid locations and 0 in all invalid locations
-    typesOfUnknown = {"Soft":softMaxUnknown, "Open":openMaxUnknown, "Energy":energyUnknown, "Odin":odinUnknown, "COOL":normalThesholdUnknown, "SoftThresh":normalThesholdUnknown, "DOC":DOCUnknown, "iiLoss": iiUnknown}
+    typesOfUnknown = {"Soft":softMaxUnknown, "Open":openMaxUnknown, "Energy":energyUnknown, "Odin":odinUnknown, "COOL":normalThesholdUnknown, "SoftThresh":normalThesholdUnknown, "DOC":DOCUnknown, "iiMod": iiUnknown}
 
     #---------------------------------------------------------------------------------------------
     #This is the section for modifying the outputs for the final layer
@@ -291,7 +291,7 @@ class EndLayers():
         return percentages,unknowns
 
     #all functions here return a tensor, sometimes it has an extra column for unknowns
-    typesOfMod = {"Soft":softMaxMod, "Open":openMaxMod, "Energy":energyMod, "Odin":odinMod, "COOL":FittedLearningEval, "SoftThresh":softMaxMod, "DOC":DOCmod, "iiLoss":iiLoss}
+    typesOfMod = {"Soft":softMaxMod, "Open":openMaxMod, "Energy":energyMod, "Odin":odinMod, "COOL":FittedLearningEval, "SoftThresh":softMaxMod, "DOC":DOCmod, "iiMod":iiLoss}
 
     #---------------------------------------------------------------------------------------------
     #This is the section for training label modification
@@ -322,7 +322,7 @@ class EndLayers():
         import CodeFromImplementations.OpenNet as OpenNet
         OpenNet.singleBatch(batch,model)
 
-    typesOfTrainMod = {"iiLoss":iiTrain}
+    typesOfTrainMod = {"iiMod":iiTrain}
 
     def trainMod(self,batch,model):
         try:

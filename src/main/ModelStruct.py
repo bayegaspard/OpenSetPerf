@@ -131,91 +131,6 @@ class AttackTrainingClassification(nn.Module):
         return x
         
 
-
-
-    def training_step(self, batch):
-        """Preforms a step for training the model but does not begin backpropigation
-        
-        Parameters:
-            Batch- a torch dataloader batch. Which is a tuple of tensors.
-
-        Returns:
-            Loss- a torch loss that signifies how far away from the expected targets the model got.
-        
-        """
-        data, labels = batch
-        #Our labels have two values per line so that we can tell what the unknowns are.
-        labels = labels[:,0]    #Select the data we want not the metadata
-        out = self(data)  # Generate predictions
-        labels = self.end.labelMod(labels)
-
-        
-        #Not sure if this is nessiary. 
-        if self.end == "DOC":
-            out = nn.Sigmoid()(out)
-        
-        
-
-
-        # out = DeviceDataLoader(out, device)
-        loss = F.cross_entropy(out, labels)  # Calculate loss
-        #torch.cuda.empty_cache()
-        # print("loss from training step ... ", loss)
-        return loss
-
-    @torch.no_grad()
-    def evaluate(self, validationset):
-        """
-        Evaluates the given dataset on this model.
-        
-        parameters:
-            torch dataset to iterate through.
-        
-        returns:
-            A dictionary of all of the mean values from the run consisting of:
-                val_loss - the loss from the validation stage
-                val_acc - the accuract from the validation  stage
-                val_avgUnknown - internal metric that is not used
-        """
-        self.eval()
-        self.batchnum = 0
-        outputs = [self.validation_step(batch) for batch in validationset]  ### reverted bac
-        return self.validation_epoch_end(outputs)
-
-    def accuracy(self, outputs:torch.Tensor, labels):
-        """
-        Finds the final accuracy of the batch and saves the predictions and true values to model.store
-
-        parameters:
-            outputs- a torch Tensor containing all of the outputs from the models forward pass.
-            labels- a torch Tensor containing all of the true and tested against values corresponding to the output results
-                labels[:,0]- should be the values that you are training the model to get
-                labels[:,1:]- should be the true values or other metadata that you want to store associated with a datapoint.
-        
-        returns:
-            A dictionary of all of the mean values from the run.
-        """
-        if outputs.ndim == 2:
-            preds = torch.argmax(outputs, dim=1)
-        else:
-            #DOC already applies an argmax equivalent so we do not apply one here.
-            preds = outputs
-        # print("preds from accuracy", preds)
-        # print("labels from accuracy", labels)
-        # Y_Pred.append(preds.tolist()[:])
-        # Y_test.append(labels.tolist()[:])
-        # preds = torch.tensor(preds)
-
-        #Find out if something failed, if it did get no accuracy
-        if outputs.max() == 0:
-            return torch.tensor(0.0)
-
-
-        #First is the guess, second is the actual class and third is the class to consider correct.
-        self.store = torch.cat((self.store[0], preds)), torch.cat((self.store[1], labels[:,1])),torch.cat((self.store[2], labels[:,0]))
-        return torch.tensor(torch.sum(preds == labels[:,0]).item() / len(preds))
-        # def fit(epochs, lr, model, train_loader, val_loader, opt_func=torch.optim.SGD):
-
     def fit(self, epochs, lr, train_loader, test_loader,val_loader, opt_func):
         """
         Trains the model on the train_loader and evaluates it off of the val_loader. Also it stores all of the results in model.store.
@@ -297,6 +212,37 @@ class AttackTrainingClassification(nn.Module):
             history.append(result)
         return history
 
+
+    def training_step(self, batch):
+        """Preforms a step for training the model but does not begin backpropigation
+        
+        Parameters:
+            Batch- a torch dataloader batch. Which is a tuple of tensors.
+
+        Returns:
+            Loss- a torch loss that signifies how far away from the expected targets the model got.
+        
+        """
+        data, labels = batch
+        #Our labels have two values per line so that we can tell what the unknowns are.
+        labels = labels[:,0]    #Select the data we want not the metadata
+        out = self(data)  # Generate predictions
+        labels = self.end.labelMod(labels)
+
+        
+        #Not sure if this is nessiary. 
+        if self.end == "DOC":
+            out = nn.Sigmoid()(out)
+        
+        
+        
+
+        # out = DeviceDataLoader(out, device)
+        loss = F.cross_entropy(out, labels)  # Calculate loss
+        #torch.cuda.empty_cache()
+        # print("loss from training step ... ", loss)
+        return loss
+
     def validation_step(self, batch):
         """
         Takes a batch from the validation loader and evaluates it using the endlayer.
@@ -350,6 +296,62 @@ class AttackTrainingClassification(nn.Module):
         #FileHandling.write_batch_to_file(loss, self.batchnum, self.end.type, "Saves")
         #print("validation accuracy: ", acc)
         return {'val_loss': loss.detach(), 'val_acc': acc, "val_avgUnknown": unknowns}
+
+
+    @torch.no_grad()
+    def evaluate(self, validationset):
+        """
+        Evaluates the given dataset on this model.
+        
+        parameters:
+            torch dataset to iterate through.
+        
+        returns:
+            A dictionary of all of the mean values from the run consisting of:
+                val_loss - the loss from the validation stage
+                val_acc - the accuract from the validation  stage
+                val_avgUnknown - internal metric that is not used
+        """
+        self.eval()
+        self.batchnum = 0
+        outputs = [self.validation_step(batch) for batch in validationset]  ### reverted bac
+        return self.validation_epoch_end(outputs)
+
+    def accuracy(self, outputs:torch.Tensor, labels):
+        """
+        Finds the final accuracy of the batch and saves the predictions and true values to model.store
+
+        parameters:
+            outputs- a torch Tensor containing all of the outputs from the models forward pass.
+            labels- a torch Tensor containing all of the true and tested against values corresponding to the output results
+                labels[:,0]- should be the values that you are training the model to get
+                labels[:,1:]- should be the true values or other metadata that you want to store associated with a datapoint.
+        
+        returns:
+            A dictionary of all of the mean values from the run.
+        """
+        if outputs.ndim == 2:
+            preds = torch.argmax(outputs, dim=1)
+        else:
+            #DOC already applies an argmax equivalent so we do not apply one here.
+            preds = outputs
+        # print("preds from accuracy", preds)
+        # print("labels from accuracy", labels)
+        # Y_Pred.append(preds.tolist()[:])
+        # Y_test.append(labels.tolist()[:])
+        # preds = torch.tensor(preds)
+
+        #Find out if something failed, if it did get no accuracy
+        if outputs.max() == 0:
+            return torch.tensor(0.0)
+
+
+        #First is the guess, second is the actual class and third is the class to consider correct.
+        self.store = torch.cat((self.store[0], preds)), torch.cat((self.store[1], labels[:,1])),torch.cat((self.store[2], labels[:,0]))
+        return torch.tensor(torch.sum(preds == labels[:,0]).item() / len(preds))
+        # def fit(epochs, lr, model, train_loader, val_loader, opt_func=torch.optim.SGD):
+
+
 
     def validation_epoch_end(self, outputs):
         """

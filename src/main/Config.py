@@ -57,8 +57,8 @@ parameters = {
     "learningRate":[0.01, "a modifier for training"],
     "threshold":[0.5,"When to declare something to be unknown"],
     "model":["Convolutional","Model type [Fully_Connected,Convolutional]"],
-    "OOD Type":["Soft","type of out of distribution detection [Soft,Open,Energy,COOL,DOC]"],
     "Dropout":[0.03,"percent of nodes that are skipped per run, larger numbers for more complex models [0,1)"],
+    "OOD Type":["Open","type of out of distribution detection [Soft,Open,Energy,COOL,DOC,iiMod]"],
     "Datagrouping":["Dendrogramlimit","Datagroup type [ClassChunk,Dendrogramlimit]"],
     "optimizer":opt_func["Adam"],
     "Unknowns":"refer to unknowns.CSV",
@@ -84,7 +84,7 @@ if parameters["Dataset"][0] == "Payload_data_UNSW":
     UnusedClasses = []
 else:
     UnusedClasses = [8,9,10]
-
+UnusedClasses = []
 
 #Dendrogram chunk uses a slightly diffrent output on the model structure.
 # (Also, dendrogram chunk is not working, so don't use it. Possibly related.)
@@ -101,7 +101,7 @@ num_epochs = parameters["num_epochs"][0]
 
 
 #This is to test all of the algorithms one after the other. (Loop 1 values)
-alg = ["Soft","Open","Energy","COOL","DOC"]
+alg = ["Soft","Open","Energy","COOL","DOC","iiMod"]
 batch = [10,100,1000]
 datapoints_per_class = [1000,2000,3000]
 thresholds = [0.1,1,10]

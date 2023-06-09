@@ -421,7 +421,7 @@ def getFoundUnknown(dat):
     recall = recall_score(y_tested_against,y_pred,average=None,zero_division=0)
     #if there are no unknowns:
     if not Config.parameters["CLASSES"][0] in y_tested_against:
-        return 1
+        return 0
 
     if (recall is float):
         return recall
