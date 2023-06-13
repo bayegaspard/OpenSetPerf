@@ -107,7 +107,7 @@ datapoints_per_class = [1000,2000,3000]
 thresholds = [0.1,1,10]
 learning_rates = [0.1,0.01,0.0001]
 activation = ["ReLU", "Tanh", "Sigmoid"]
-groups = [[2],[2,3,4,5,6],[1,2,3,4,5,6,7,8]]
+groups = [[2],[2,3],[2,3,4],[2,3,4,5],[2,3,4,5,6],[2,3,4,5,6,7],[1,2,3,4,5,6,7],[1,2,3,4,5,6,7,8]]
 if parameters["Dataset"][0] == "Payload_data_CICIDS2017":
     incGroups = [[2,3,4,5,6,7,8,9,10,11,12,13,14],[3,4,5,6,7,8,9,10,11,12,13,14],[4,5,6,7,8,9,10,11,12,13,14],[5,6,7,8,9,10,11,12,13,14],[6,7,8,9,10,11,12,13,14],[7,8,9,10,11,12,13,14],[8,9,10,11,12,13,14],[9,10,11,12,13,14],[10,11,12,13,14],[11,12,13,14],[12,13,14],[13,14],[14]] 
 #This one list is for loop 2. Note: array size should be decreasing.
@@ -158,9 +158,9 @@ optim = [opt_func["Adam"]]
 
 #This is an array to eaiser loop through everything.
 loops = [batch,datapoints_per_class,thresholds,learning_rates,epochs,optim,activation,groups]
-loops = [[]]
+loops = [groups]
 loops2 = ["batch_size","MaxPerClass","threshold","learningRate","num_epochs","optimizer","Activation","Unknowns"]
-loops2 = ["None"]
+loops2 = ["Unknown"]
 for i in range(len(loops)):
     if loops2[i] == "Unknowns":
         loops[i].insert(0,helper_variables["unknowns_clss"])

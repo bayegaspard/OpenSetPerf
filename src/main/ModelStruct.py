@@ -154,6 +154,7 @@ class AttackTrainingClassification(nn.Module):
         """
         if Config.parameters["attemptLoad"][0] == 1:
             startingEpoch = self.loadPoint("Saves/models")
+            #If it cannot find a model to load because of some error, the epoch number starts at -1 to avoid overwriting a possilby working model
         else:
             startingEpoch = 0
         history = []
@@ -191,8 +192,11 @@ class AttackTrainingClassification(nn.Module):
                 if not sch is None:
                     sch.step()
                 
+
+                if epoch > epochs-5:
+                    self.savePoint(f"Saves/models", epoch+startingEpoch)
+
                 # Validation phase
-                self.savePoint(f"Saves/models", epoch+startingEpoch)
                 result = self.evaluate(val_loader)
                 result['train_loss'] = torch.stack(train_losses).mean().item()
                 FileHandling.addMeasurement(f"Epoch{epoch+startingEpoch} loss",result['train_loss'])
