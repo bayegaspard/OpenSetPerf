@@ -36,7 +36,7 @@ helper_variables = {
 
     #This is the only important value in this dictionary and it lists the diffrent values to consider unkowns.
     #Mappings are at the top of Dataload.py
-    "unknowns_clss": [2,4,7], #Overriden if loop=2
+    "unknowns_clss": [7,8,9], #Overriden if loop=2
 
     "e": 0
 }
@@ -47,31 +47,31 @@ parameters = {
     #These parameters are orginized like this:
     #"ParamName":[Value,"Description"]
     #for a parameter called "ParamName" with a value of Value
-    "batch_size":[1000, "Number of items per batch"],
-    "num_workers":[0, "Number of threads working on building batches"],
+    "batch_size":[100000, "Number of items per batch"],
+    "num_workers":[14, "Number of threads working on building batches"],
     "attemptLoad":[0, "0: do not use saves\n1:use saves"],
     "testlength":[1/4, "[0,1) percentage of training to test with"],
     "Mix unknowns and validation": [1,"0 or 1, 0 means that the test set is purely unknowns and 1 means that the testset is the validation set plus unknowns (for testing)"],
-    "MaxPerClass": [300, "Maximum number of samples per class\n if Datagrouping is Dendrogram Limit and this value is a float it interprets it as the maximum percentage of the class instead."],
-    "num_epochs":[200,"Number of times it trains on the whole trainset"],
+    "MaxPerClass": [1000, "Maximum number of samples per class\n if Datagrouping is Dendrogram Limit and this value is a float it interprets it as the maximum percentage of the class instead."],
+    "num_epochs":[150,"Number of times it trains on the whole trainset"],
     "learningRate":[0.01, "a modifier for training"],
     "threshold":[0.5,"When to declare something to be unknown"],
     "model":["Convolutional","Model type [Fully_Connected,Convolutional]"],
-    "Dropout":[0.03,"percent of nodes that are skipped per run, larger numbers for more complex models [0,1)"],
-    "OOD Type":["Open","type of out of distribution detection [Soft,Open,Energy,COOL,DOC,iiMod]"],
+    "OOD Type":["Soft","type of out of distribution detection [Soft,Open,Energy,COOL,DOC,iiMod]"],
+    "Dropout":[0.05,"percent of nodes that are skipped per run, larger numbers for more complex models [0,1)"],
     "Datagrouping":["Dendrogramlimit","Datagroup type [ClassChunk,Dendrogramlimit]"],
     "optimizer":opt_func["Adam"],
     "Unknowns":"refer to unknowns.CSV",
     "CLASSES":[15,"Number of classes, do not change"],
     "Temperature":[1,"Energy OOD scaling parameter"],
     "Degree of Overcompleteness": [3,"Parameter for Fitted Learning"],
-    "Number of Layers": [3,"Number of layers to add to the base model"],
+    "Number of Layers": [2,"Number of layers to add to the base model"],
     "Nodes": [512,"The number of nodes per added layer"],
     "Activation": ["Leaky","The type of activation function to use"],
     "LOOP": [0,"This is a parameter that determines if we want to loop over the algorithms.\n "\
     "0: no loop, 1:loop through variations of algorithms,thresholds,learning rates, groups and numbers of epochs, \n"\
     "2: Loop while adding more unknowns into the training data (making them knowns) without resetting the model"],
-    "Dataset": ["Payload_data_UNSW", "This is what dataset we are using, [Payload_data_CICIDS2017,Payload_data_UNSW]"],
+    "Dataset": ["Payload_data_CICIDS2017", "This is what dataset we are using, [Payload_data_CICIDS2017,Payload_data_UNSW]"],
     "SchedulerStepSize": [10, "This is how often the scheduler takes a step, 3 means every third epoch"],
     "SchedulerStep": [0.8,"This is how big a step the scheduler takes, leave 0 for no step"]
 }
