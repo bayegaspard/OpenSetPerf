@@ -137,7 +137,7 @@ epochs = [1,10,100]
 #alg.remove("Energy")
 #alg.remove("COOL")
 #alg.remove("DOC")
-
+#alg.remove("iiMod")
 
 #Optimizer has been removed from the list of things we are changing
 optim = [opt_func["Adam"], opt_func["SGD"], opt_func["RMSprop"]]
