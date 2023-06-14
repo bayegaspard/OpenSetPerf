@@ -58,7 +58,7 @@ parameters = {
     "threshold":[0.5,"When to declare something to be unknown"],
     "model":["Convolutional","Model type [Fully_Connected,Convolutional]"],
     "OOD Type":["Soft","type of out of distribution detection [Soft,Open,Energy,COOL,DOC,iiMod]"],
-    "Dropout":[0.05,"percent of nodes that are skipped per run, larger numbers for more complex models [0,1)"],
+    "Dropout":[0.01,"percent of nodes that are skipped per run, larger numbers for more complex models [0,1)"],
     "Datagrouping":["Dendrogramlimit","Datagroup type [ClassChunk,Dendrogramlimit]"],
     "optimizer":opt_func["Adam"],
     "Unknowns":"refer to unknowns.CSV",
@@ -160,7 +160,7 @@ optim = [opt_func["Adam"]]
 loops = [batch,datapoints_per_class,thresholds,learning_rates,epochs,optim,activation,groups]
 loops = [groups]
 loops2 = ["batch_size","MaxPerClass","threshold","learningRate","num_epochs","optimizer","Activation","Unknowns"]
-loops2 = ["Unknown"]
+loops2 = ["Unknowns"]
 for i in range(len(loops)):
     if loops2[i] == "Unknowns":
         loops[i].insert(0,helper_variables["unknowns_clss"])
