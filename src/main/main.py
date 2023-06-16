@@ -182,6 +182,10 @@ def run_model():
         # roc = RocCurveDisplay.from_predictions(model.end.rocData[0],model.end.rocData[1],name=model.end.type)
         # roc.plot()
         # plt.show()
+        if isinstance(model.end.rocData[0],torch.Tensor):
+            model.end.rocData[0] = model.end.rocData[0].cpu().numpy()
+        if isinstance(model.end.rocData[1],torch.Tensor):
+            model.end.rocData[1] = model.end.rocData[1].cpu().numpy()
         pd.DataFrame(roc_curve(model.end.rocData[0],model.end.rocData[1])).to_csv(f"Saves/roc/ROC_data_{Config.parameters['OOD Type'][0]}.csv")
     
     #This stores and prints the final results.

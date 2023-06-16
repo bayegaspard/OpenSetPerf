@@ -134,7 +134,7 @@ class EndLayers():
         #from sklearn.metrics import confusion_matrix
         #print(f"{confusion_matrix(labels.cpu(),percentages.argmax(dim=1).cpu(),labels=Config.helper_variables['knowns_clss'])}")
 
-        relabeledPercentages = helperFunctions.relabel(percentages)
+        # relabeledPercentages = helperFunctions.renameClasses(percentages)
 
         try:
             import CodeFromImplementations.OpenMaxByMaXu as Open
@@ -154,7 +154,7 @@ class EndLayers():
                     print("Openmax already failed")
                     failed = True
                 else:
-                    scores_open = Open.openmaxevaluation(relabeledPercentages.detach(),self.args,self.weibulInfo,self.weibulInfo["weibull"])
+                    scores_open = Open.openmaxevaluation(percentages.detach(),self.args,self.weibulInfo,self.weibulInfo["weibull"])
             except NotImplementedError:
                 print("Warning: OpenMax has failed to load!")
                 failed = True
@@ -170,6 +170,7 @@ class EndLayers():
             errorreturn = torch.zeros((percentages.size()))
             unknownColumn = torch.zeros(len(percentages)).unsqueeze(1)
             errorreturn = torch.cat((errorreturn,unknownColumn),1)
+            self.rocData[1] = unknownColumn
             self.Save_score.append(torch.zeros(0))
             return errorreturn
             
@@ -179,7 +180,7 @@ class EndLayers():
         #print(scores_open)
         scores = torch.tensor(np.array(scores_open),device=percentages.device)
         percentages[:,torch.concat([helperFunctions.mask,torch.zeros(1)==0])] = scores.to(dtype=torch.float32)
-        self.rocData[1] = scores
+        self.rocData[1] = percentages[:,helperFunctions.mask].max(dim=1)[0]
         self.Save_score.append(scores.squeeze())
         #scores.squeeze_().unsqueeze_(0)
         
