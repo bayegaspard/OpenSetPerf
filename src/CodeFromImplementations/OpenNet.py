@@ -113,7 +113,7 @@ def outlier_score(x:torch.Tensor,means:torch.Tensor)->torch.Tensor:
     normalDistance = torch.linalg.norm(distances,dim=1)
     return normalDistance.min()
 
-
+#Equation 6
 def iimod(Z, means):
     mask = torch.zeros(len(Z[0]))
     for x in Config.helper_variables["knowns_clss"]:

@@ -3,6 +3,9 @@ from torch.utils.data import DataLoader
 import numpy as np
 import torch
 import time
+import os
+from sklearn.metrics import roc_auc_score, roc_curve, RocCurveDisplay
+import pandas as pd
 
 # user defined modules
 import GPU, FileHandling
@@ -10,7 +13,6 @@ import plots
 import Dataload
 import ModelStruct
 import Config
-import os
 import helperFunctions
 
 root_path = os.getcwd()
@@ -174,7 +176,13 @@ def run_model():
         plots.plot_confusion_matrix(cnf_matrix, classes=class_names, normalize=True,
                     title=f'{Config.parameters["OOD Type"][0]} Test', knowns = knownVals)
 
-
+    #This loops through a list of "Threshold" values because they do not require retraining the model.
+    if Config.parameters["LOOP"][0] == 1:
+        # model.thresholdTest(test_loader)
+        # roc = RocCurveDisplay.from_predictions(model.end.rocData[0],model.end.rocData[1],name=model.end.type)
+        # roc.plot()
+        # plt.show()
+        pd.DataFrame(roc_curve(model.end.rocData[0],model.end.rocData[1])).to_csv(f"Saves/roc/ROC_data_{Config.parameters['OOD Type'][0]}.csv")
     
     #This stores and prints the final results.
     score_list = [recall,precision,f1]
@@ -230,9 +238,8 @@ def run_model():
         plt.show()
 
 
-    #This loops through a list of "Threshold" values because they do not require retraining the model.
-    if Config.parameters["LOOP"][0] == 1:
-        model.thresholdTest(test_loader)
+    
+
 
     plt.close()
 

@@ -178,20 +178,19 @@ def compute_train_score_and_mavs_and_dists(train_class_num,trainloader,device,ne
 
 
 #This was not a function before!
-def openmaxevaluation(scores,labels,args,dict,weibull=None):
+def openmaxevaluation(scores,args,dict,weibull=None):
     trainloader = dict["loader"]
     device = dict["device"]
     net = dict["net"]
-    scores,labels = helperFunctions.renameClassesLabeled(scores,labels)
+    scores = helperFunctions.renameClasses(scores)
     scores = [scores]
-    labels = [labels]
 
     #The following is from lines 186 to 207 from https://github.com/ma-xu/Open-Set-Recognition/blob/master/OSR/OpenMax/cifar100.py
     # Get the prdict results.
     scores = torch.cat(scores,dim=0).cpu().numpy()
-    labels = torch.cat(labels,dim=0).cpu().numpy()
+    #labels = torch.cat(labels,dim=0).cpu().numpy()
     scores = np.array(scores)[:, np.newaxis, :]
-    labels = np.array(labels)
+    #labels = np.array(labels)
 
 
     #ADDED: SAVE THE WEIBULL MODEL

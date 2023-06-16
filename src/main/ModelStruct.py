@@ -371,12 +371,14 @@ class AttackTrainingClassification(nn.Module):
         epoch_loss = torch.stack(batch_losses).mean()  # Combine losses
         batch_accs = [x['val_acc'] for x in outputs]
         epoch_acc = torch.stack(batch_accs).mean()  # Combine accuracies
-        batch_unkn = self.end.Save_score
-        self.end.Save_score = []
-        if len(batch_unkn) != 0:
-            epoch_unkn = torch.stack(batch_unkn).mean()  # Combine Unknowns
-        else:
-            epoch_unkn = torch.tensor(0)
+
+        #Now unused unknown score for finding threhsolds
+        # batch_unkn = self.end.Save_score
+        # self.end.Save_score = []
+        # if len(batch_unkn) != 0:
+        #     epoch_unkn = torch.stack(batch_unkn).mean()  # Combine Unknowns
+        # else:
+        epoch_unkn = torch.tensor(0)
 
         return {'val_loss': epoch_loss.item(), 'val_acc': epoch_acc.item(), "val_avgUnknown": epoch_unkn.item()}
 

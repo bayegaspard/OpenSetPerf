@@ -30,8 +30,9 @@ class EndLayers():
 
 
 
-    def endlayer(self, output_true:torch.Tensor, y:torch.Tensor, type=None, Train=False):
+    def endlayer(self, output_true:torch.Tensor, y:torch.Tensor, type=None):
         startTime = time.time()
+        self.rocData[0] = y==Config.parameters["CLASSES"][0]
         if 1==2:
             print(f"Argmax")
             helperFunctions.printconfmat(output_true.cpu(),y.cpu())
@@ -39,12 +40,8 @@ class EndLayers():
         if type is None:
             type = self.type
         
-        #modify outputs
-        if type != "Open":
-            output_modified = self.typesOfMod[type](self,output_true)
-        else:
-            #Openmax needs labels but does not use them? Should I modify this?
-            output_modified = self.typesOfMod[type](self,output_true,y)
+        #modify outputs if nessisary for algorithm
+        output_modified = self.typesOfMod.get(type,self.typesOfMod["none"])(self,output_true)
 
         #This is supposted to add an extra column for unknowns
         output_complete = self.typesOfUnknown[type](self,output_modified)
@@ -57,92 +54,7 @@ class EndLayers():
                 print(f"{confusion_matrix(y.cpu(),output_complete.cpu())}")
         return output_complete
 
-
-
-
-    #---------------------------------------------------------------------------------------------
-    #This is the section for adding unknown column
-
-    def softMaxUnknown(self,percentages:torch.Tensor):
-        self.Save_score.append(percentages.max(dim=1)[0].mean())
-        #this adds a row that is of the cutoff amout so unless there is another value greater it will be unknown
-        batchsize = len(percentages)
-        unknownColumn = self.cutoff * torch.zeros(batchsize,device=percentages.device)
-        return torch.cat((percentages,unknownColumn.unsqueeze(1)),dim=1)
-
-    def normalThesholdUnknown(self,percentages:torch.Tensor):
-        self.Save_score.append(percentages.max(dim=1)[0].mean())
-        #this adds a row that is of the cutoff amout so unless there is another value greater it will be unknown
-        batchsize = len(percentages)
-        unknownColumn = self.cutoff * torch.ones(batchsize,device=percentages.device)
-        return torch.cat((percentages,unknownColumn.unsqueeze(1)),dim=1)
-
-    def openMaxUnknown(self,percentages:torch.Tensor):
-        #Openmax already has a column for how much it thinks something is unknown
-        return percentages
-    
-    def energyUnknown(self, percentages:torch.Tensor):
-        if self.args is None:
-            self.setArgs()
-        import CodeFromImplementations.EnergyCodeByWetliu as Eng # useful link to import in relative directories https://stackoverflow.com/questions/4383571/importing-files-from-different-folder
-
-
-
-        #The energy score code likes to output as a list
-        scores = []
-        Eng.energyScoreCalc(scores,percentages,self.args)
-        scores = torch.tensor(np.array(scores),device=percentages.device)
-        #after converting it to a tensor, the wrong dimention is expanded
-        scores = -scores.squeeze().unsqueeze(dim=1)
-        #This was to print the scores it was going to save
-        #print(scores.sum()/len(scores))
-        #Just store this for later
-        self.Save_score.append(scores.mean())
-        #once the dimentions are how we want them we test if it is above the cutoff
-        scores = scores.less_equal(self.cutoff).to(torch.int)
-        #Then we run precentages through a softmax to get a nice score
-        percentages = torch.softmax(percentages,dim=1)
-        #Finally we join the results as an unknown class in the output vector
-        return torch.cat((percentages,scores),dim=1)
-        
-    def odinUnknown(self, percentages:torch.Tensor):
-        print("ODIN is not working at the moment")
-        return percentages.max(dim=1,keepdim=True)[0].greater_equal(self.cutoff)
-
-    def DOCUnknown(self, percentages:torch.Tensor):
-        import CodeFromImplementations.DeepOpenClassificationByLeishu02 as DOC
-        if self.docMu is None:
-            print("Mu Standards need to be collected")
-            if self.weibulInfo is None:
-                return
-            else:
-                self.docMu = DOC.muStandardsFromDataloader(Config.helper_variables["knowns_clss"],self.weibulInfo["loader"],self.weibulInfo["net"])
-                self.Save_score = [torch.tensor(self.docMu)[:,1]]
-        
-        newPredictions = DOC.runDOC(percentages.detach().cpu().numpy(),self.docMu,Config.helper_variables["knowns_clss"])
-        newPredictions = torch.tensor(newPredictions)
-        for x in range(len(newPredictions)):
-            newPredictions[x] = torch.tensor(helperFunctions.rerelabel[newPredictions[x].item()])
-        return newPredictions
-
-    def iiUnknown(self, tup):
-        percentages, unknowns = tup
-        mask = unknowns.greater(self.cutoff)
-        percentages = torch.cat([percentages,unknowns.unsqueeze(dim=-1)],dim=-1)
-        return percentages
-
-
-    #all functions here return a mask with 1 in all valid locations and 0 in all invalid locations
-    typesOfUnknown = {"Soft":softMaxUnknown, "Open":openMaxUnknown, "Energy":energyUnknown, "Odin":odinUnknown, "COOL":normalThesholdUnknown, "SoftThresh":normalThesholdUnknown, "DOC":DOCUnknown, "iiMod": iiUnknown}
-
-    #---------------------------------------------------------------------------------------------
-    #This is the section for modifying the outputs for the final layer
-
-    def softMaxMod(self,percentages:torch.Tensor):
-        return torch.softmax(percentages, dim=1)
-
-    
-
+    #setup
     def setArgs(self, classes=None, weibullThreshold=0.9, weibullTail=20, weibullAlpha=3, score="energy", m_in=-1, m_out=0, temp=None):
         param = pd.read_csv(os.path.join("Saves","hyperparam","hyperParam.csv"))
         unknowns = pd.read_csv(os.path.join("Saves","unknown","unknowns.csv"))
@@ -194,11 +106,35 @@ class EndLayers():
         
         net.train()
 
-    def openMaxMod(self,percentages:torch.Tensor, labels:torch.Tensor):
-        failed = False
+    def noChange(self,X:torch.Tensor):
+        return X
 
+    #---------------------------------------------------------------------------------------------
+    #This is the section for adding unknown column
+
+    def softMaxUnknown(self,percentages:torch.Tensor):
+        self.Save_score.append(percentages.max(dim=1)[0].mean())
+        #this adds a row that is of the cutoff amout so unless there is another value greater it will be unknown
+        batchsize = len(percentages)
+        unknownColumn = torch.zeros(batchsize,device=percentages.device)
+        self.Save_score.append(unknownColumn)
+        self.rocData[1] = unknownColumn
+        return torch.cat((percentages,unknownColumn.unsqueeze(1)),dim=1)
+
+    def normalThesholdUnknown(self,percentages:torch.Tensor):
+        self.rocData[1] = percentages.max(dim=1)[0]
+        self.Save_score.append(self.rocData[1].mean())
+        #this adds a row that is of the cutoff amout so unless there is another value greater it will be unknown
+        batchsize = len(percentages)
+        unknownColumn = self.cutoff * torch.ones(batchsize,device=percentages.device)
+        return torch.cat((percentages,unknownColumn.unsqueeze(1)),dim=1)
+
+    def openMaxUnknown(self,percentages:torch.Tensor):
+        failed = False
         #from sklearn.metrics import confusion_matrix
         #print(f"{confusion_matrix(labels.cpu(),percentages.argmax(dim=1).cpu(),labels=Config.helper_variables['knowns_clss'])}")
+
+        relabeledPercentages = helperFunctions.relabel(percentages)
 
         try:
             import CodeFromImplementations.OpenMaxByMaXu as Open
@@ -218,7 +154,7 @@ class EndLayers():
                     print("Openmax already failed")
                     failed = True
                 else:
-                    scores_open = Open.openmaxevaluation(percentages.detach(),labels.detach(),self.args,self.weibulInfo,self.weibulInfo["weibull"])
+                    scores_open = Open.openmaxevaluation(relabeledPercentages.detach(),self.args,self.weibulInfo,self.weibulInfo["weibull"])
             except NotImplementedError:
                 print("Warning: OpenMax has failed to load!")
                 failed = True
@@ -243,21 +179,81 @@ class EndLayers():
         #print(scores_open)
         scores = torch.tensor(np.array(scores_open),device=percentages.device)
         percentages[:,torch.concat([helperFunctions.mask,torch.zeros(1)==0])] = scores.to(dtype=torch.float32)
-        self.Save_score.append(scores.squeeze().mean())
+        self.rocData[1] = scores
+        self.Save_score.append(scores.squeeze())
         #scores.squeeze_().unsqueeze_(0)
         
         #return torch.cat((percentages,scores),dim=0)
         return percentages.to(device=percentages.device)
     
-    def energyMod(self, percentages:torch.Tensor):
-        return percentages
+    def energyUnknown(self, percentages:torch.Tensor):
+        if self.args is None:
+            self.setArgs()
+        import CodeFromImplementations.EnergyCodeByWetliu as Eng # useful link to import in relative directories https://stackoverflow.com/questions/4383571/importing-files-from-different-folder
+
+
+
+        #The energy score code likes to output as a list
+        scores = []
+        Eng.energyScoreCalc(scores,percentages,self.args)
+        scores = torch.tensor(np.array(scores),device=percentages.device)
+        #after converting it to a tensor, the wrong dimention is expanded
+        scores = -scores.squeeze().unsqueeze(dim=1)
+        #This was to print the scores it was going to save
+        #print(scores.sum()/len(scores))
+        #Just store this for later
+        self.rocData[1]=-scores
+        self.Save_score.append(scores.mean())
+        #once the dimentions are how we want them we test if it is above the cutoff
+        scores = scores.less_equal(self.cutoff).to(torch.int)
+        #Then we run precentages through a softmax to get a nice score
+        percentages = torch.softmax(percentages,dim=1)
+        #Finally we join the results as an unknown class in the output vector
+        return torch.cat((percentages,scores),dim=1)
         
-    def odinSetup(self, X, model, temp, noise):
-        #most of this line is from the ODIN implementation (line 27)
-        self.OdinX = torch.autograd.Variable(X, requires_grad = True)
-        self.model = model
-        self.temp = temp
-        self.noise = noise
+    def odinUnknown(self, percentages:torch.Tensor):
+        print("ODIN is not working at the moment")
+        return percentages.max(dim=1,keepdim=True)[0].greater_equal(self.cutoff)
+
+    def DOCUnknown(self, percentages:torch.Tensor):
+        import CodeFromImplementations.DeepOpenClassificationByLeishu02 as DOC
+        if self.docMu is None:
+            print("Mu Standards need to be collected")
+            if self.weibulInfo is None:
+                return
+            else:
+                self.docMu = DOC.muStandardsFromDataloader(Config.helper_variables["knowns_clss"],self.weibulInfo["loader"],self.weibulInfo["net"])
+                self.Save_score = [torch.tensor(self.docMu)[:,1]]
+        
+        self.rocData[1] = []
+        newPredictions = DOC.runDOC(percentages.detach().cpu().numpy(),self.docMu,Config.helper_variables["knowns_clss"],self.rocData[1])
+        newPredictions = torch.tensor(newPredictions)
+        for x in range(len(newPredictions)):
+            newPredictions[x] = torch.tensor(helperFunctions.rerelabel[newPredictions[x].item()])
+        return newPredictions
+
+    def iiUnknown(self, percentages):
+        import CodeFromImplementations.OpenNet as OpenNet
+        unknowns = []
+        for i in range(len(percentages)):
+            unknowns.append(OpenNet.outlier_score(percentages[i],self.iiLoss_means))
+        unknowns = torch.stack(unknowns)
+        percentages = OpenNet.iimod(percentages,self.iiLoss_means)
+        
+        self.rocData[1] = unknowns#I do not know if this is correct
+        unknowns = 2*unknowns.greater_equal(self.cutoff)
+
+        return torch.cat([percentages,unknowns.unsqueeze(dim=-1)],dim=-1)
+
+
+    #all functions here return a mask with 1 in all valid locations and 0 in all invalid locations
+    typesOfUnknown = {"Soft":softMaxUnknown, "Open":openMaxUnknown, "Energy":energyUnknown, "Odin":odinUnknown, "COOL":normalThesholdUnknown, "SoftThresh":normalThesholdUnknown, "DOC":DOCUnknown, "iiMod": iiUnknown}
+
+    #---------------------------------------------------------------------------------------------
+    #This is the section for modifying the outputs for the final layer
+
+    def softMaxMod(self,percentages:torch.Tensor):
+        return torch.softmax(percentages, dim=1)
 
     def odinMod(self, percentages:torch.Tensor):
         print("ODIN is not working at the moment")
@@ -280,24 +276,16 @@ class EndLayers():
         percent = torch.sigmoid(helperFunctions.renameClasses(logits))
         return percent
 
-    def iiLoss(self, percentages:torch.Tensor):
+    def iiLoss_Means(self, percentages:torch.Tensor):
         import CodeFromImplementations.OpenNet as OpenNet
-        means = OpenNet.Algorithm_1(self.weibulInfo["loader"],self.weibulInfo["net"])
-        unknowns = []
-        for i in range(len(percentages)):
-            unknowns.append(OpenNet.outlier_score(percentages[i],means))
-        unknowns = torch.stack(unknowns)
-        percentages = OpenNet.iimod(percentages,means)
-        return percentages,unknowns
+        self.iiLoss_means = OpenNet.Algorithm_1(self.weibulInfo["loader"],self.weibulInfo["net"])
+        return percentages
 
     #all functions here return a tensor, sometimes it has an extra column for unknowns
-    typesOfMod = {"Soft":softMaxMod, "Open":openMaxMod, "Energy":energyMod, "Odin":odinMod, "COOL":FittedLearningEval, "SoftThresh":softMaxMod, "DOC":DOCmod, "iiMod":iiLoss}
+    typesOfMod = {"Soft":softMaxMod, "Odin":odinMod, "COOL":FittedLearningEval, "SoftThresh":softMaxMod, "DOC":DOCmod, "iiMod":iiLoss_Means, "none":noChange}
 
     #---------------------------------------------------------------------------------------------
     #This is the section for training label modification
-
-    def noChange(self,X:torch.Tensor):
-        return X
 
     def FittedLearningLabel(self,labelList:torch.Tensor):
         import CodeFromImplementations.FittedLearningByYhenon as fitted
@@ -339,6 +327,7 @@ class EndLayers():
         self.docMu = None    #This is saving the muStandards from DOC so that they dont need to be recalculated 
         if (not self.weibulInfo is None) and (not self.weibulInfo["weibull"] is None):
             self.weibulInfo["weibull"] = None
+        self.rocData = [[],[]]  #This is the data for ROC of unknowns. First value is 1 if known data and 0 if unknown, second is the number before theshold.
 
     
 
