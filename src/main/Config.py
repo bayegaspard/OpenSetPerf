@@ -179,25 +179,27 @@ if parameters["LOOP"][0] == 2:
     helper_variables["knowns_clss"] = loopOverUnknowns(helper_variables["unknowns_clss"])
 
 
-
+use_alg_thesholds =False
 def algorithmSpecificSettings(alg="None"):
+    if use_alg_thesholds == False:
+        return
     if alg == "None":
         alg = parameters["OOD Type"][0]
     
     
     # match alg:
-    #     case "Soft":
-    #         pass
-    #     case "Open":
-    #         parameters["threshold"][0] = 0.8
-    #     case "Energy":
-    #         parameters["threshold"][0] = 15
-    #     case "COOL":
-    #         parameters["threshold"][0] = 0.8
-    #     case "DOC":
-    #         parameters["threshold"][0] = 0.8
-    #     case "iiLoss":
-    #         parameters["threshold"][0] = 0.8
+    if alg == "Soft":
+        pass
+    if alg == "Open":
+        parameters["threshold"][0] = 0.8
+    if alg == "Energy":
+        parameters["threshold"][0] = 0.474
+    if alg == "COOL":
+        parameters["threshold"][0] = 0.516034961
+    if alg == "DOC":
+        parameters["threshold"][0] = 0.06449493
+    if alg == "iiLoss":
+        parameters["threshold"][0] = 102064.4453
     
 #Getting version number
 #https://gist.github.com/sg-s/2ddd0fe91f6037ffb1bce28be0e74d4e
@@ -205,4 +207,8 @@ f = open("build_number.txt","r")
 parameters["Version"] = [f.read(),"The version number"]
 if __name__ == "__main__":
     import main
+    print("WARNING RUNNING WITH ALGORITHM SPECIFIC THRESHOLDS")
+    use_alg_thesholds
+    use_alg_thesholds=True
+    algorithmSpecificSettings(parameters["OOD Type"])
     main.main()

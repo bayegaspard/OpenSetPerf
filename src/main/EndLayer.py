@@ -32,7 +32,6 @@ class EndLayers():
 
     def endlayer(self, output_true:torch.Tensor, y:torch.Tensor, type=None):
         startTime = time.time()
-        self.rocData[0] = y==Config.parameters["CLASSES"][0]
         if 1==2:
             print(f"Argmax")
             helperFunctions.printconfmat(output_true.cpu(),y.cpu())
@@ -40,6 +39,12 @@ class EndLayers():
         if type is None:
             type = self.type
         
+        if type == "Energy":
+            #Energy kind of reverses things.
+            self.rocData[0] = y==Config.parameters["CLASSES"][0]
+        else:
+            self.rocData[0] = y!=Config.parameters["CLASSES"][0]
+
         #modify outputs if nessisary for algorithm
         output_modified = self.typesOfMod.get(type,self.typesOfMod["none"])(self,output_true)
 

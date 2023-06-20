@@ -144,6 +144,7 @@ def testRotate(notes=(0,0,0)):
     if al+1 < len(Config.alg):
         al = al+1
         Config.parameters["OOD Type"][0] = Config.alg[al]
+        Config.algorithmSpecificSettings(Config.alg[al])
         return (stage,step,al)
     
 
