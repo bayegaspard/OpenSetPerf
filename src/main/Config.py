@@ -17,11 +17,11 @@ def loopOverUnknowns(unknownlist):
         if un in knownVals:
             knownVals.remove(un)
     
-    if len(helper_variables["unknowns_clss"]) > parameters["CLASSES"][0] -3:
+    if len(class_split["unknowns_clss"]) > parameters["CLASSES"][0] -3:
         print("Too many unknowns, some algorithms might not work")
     if len(knownVals)<2:
         print("Too few knowns, things might break")
-    parameters["Unknowns"] = f"{len(helper_variables['unknowns_clss'])} Unknowns"
+    parameters["Unknowns"] = f"{len(class_split['unknowns_clss'])} Unknowns"
     
     return knownVals
 
@@ -30,15 +30,10 @@ opt_func = {"Adam":torch.optim.Adam,"SGD":torch.optim.SGD, "RMSprop":torch.optim
 
 
 #I do not know why this is diffrent than the parameters dictionary
-helper_variables = {
-    "phase" : -1,
-    "startphase" : 0,
-
+class_split = {
     #This is the only important value in this dictionary and it lists the diffrent values to consider unkowns.
     #Mappings are at the top of Dataload.py
     "unknowns_clss": [7,8,9], #Overriden if loop=2
-
-    "e": 0
 }
 
 
@@ -93,7 +88,7 @@ if parameters["Datagrouping"][0] == "DendrogramChunk":
 
 
 #Add a value to the dictionary that is the inverse of the unknowns
-helper_variables["knowns_clss"] = loopOverUnknowns(helper_variables["unknowns_clss"])
+class_split["knowns_clss"] = loopOverUnknowns(class_split["unknowns_clss"])
 
 
 #This is for saving the original number of epochs
@@ -164,7 +159,7 @@ loops2 = ["batch_size","MaxPerClass","threshold","learningRate","num_epochs","op
 loops2 = ["Unknowns"]
 for i in range(len(loops)):
     if loops2[i] == "Unknowns":
-        loops[i].insert(0,helper_variables["unknowns_clss"])
+        loops[i].insert(0,class_split["unknowns_clss"])
     elif loops2[i] == "optimizer":
         loops[i].insert(0,parameters[loops2[i]])
     elif loops2[i] == "None":
@@ -174,9 +169,9 @@ for i in range(len(loops)):
 
 #Override the unknowns because model is kept
 if parameters["LOOP"][0] == 2:
-    helper_variables["unknowns_clss"] = incGroups[0]
+    class_split["unknowns_clss"] = incGroups[0]
     parameters["Unknowns"] = f"{incGroups[0]} Unknowns"
-    helper_variables["knowns_clss"] = loopOverUnknowns(helper_variables["unknowns_clss"])
+    class_split["knowns_clss"] = loopOverUnknowns(class_split["unknowns_clss"])
 
 
 use_alg_thesholds =False

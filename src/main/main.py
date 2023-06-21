@@ -38,7 +38,7 @@ def run_model():
     FileHandling.generateHyperparameters(root_path) # generate hyper parameters copy files if they did not exist.
 
     #This is an example of how we get the values from Config now.
-    knownVals = Config.helper_variables["knowns_clss"]
+    knownVals = Config.class_split["knowns_clss"]
 
     #This just helps translate the config strings into model types. It is mostly unnesisary.
     model_list = {"Convolutional":ModelStruct.Conv1DClassifier,"Fully_Connected":ModelStruct.FullyConnected}
@@ -105,7 +105,7 @@ def run_model():
     class_names = Dataload.get_class_names(knownVals) #+ Dataload.get_class_names(unknownVals)
     class_names.append("Unknown")
     class_names = Dataload.get_class_names(range(Config.parameters["CLASSES"][0]))
-    for x in Config.helper_variables["unknowns_clss"]:
+    for x in Config.class_split["unknowns_clss"]:
         class_names[x] = class_names[x]+"*"
     class_names.append("*Unknowns")
     #print("class names", class_names)
@@ -349,7 +349,7 @@ def main():
                 plt.clf()
                 plots.name_override = f"Incremental with {Config.parameters['Unknowns']} unknowns"
                 plt.figure(figsize=(4,4))
-                print(f"unknowns: {Config.helper_variables['unknowns_clss']}")
+                print(f"unknowns: {Config.class_split['unknowns_clss']}")
                 run_model()
                 FileHandling.addMeasurement("Currently Modifying",plots.name_override)
 

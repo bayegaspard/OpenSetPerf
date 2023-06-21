@@ -4,7 +4,7 @@ This is a description of how to modify the hyperparameters in the `Config.py` fi
 ### Steps to modify the unknown classes
 
 - First you need to open the file `Config.py`
-- Find the definition of the dictionary `helper_variables`
+- Find the definition of the dictionary `class_split`
 - Inside the fefinition you will find a key called `"unknowns_clss"`
 - That key links to another dictionary and inside that dictionary there is one key called `"unknowns"`
 - To add classes to the unknowns you can simply add numbers 0 to 14 in the associated array. The key to which classes are which number cann be found in line 10 of the file `Dataload.py`.

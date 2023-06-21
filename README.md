@@ -24,14 +24,13 @@ source opensetperf/bin/activate
 `pip3 install -r requirements.txt
 `
 - Navigate up one directory `cd ..` into the root directory for the Repo.
-- You may need to create a folder in the root folder `OpenSetPerf\Saves\hyperparam`.
+- You may need to create some folders in the Saves directory namely, `OpenSetPerf\Saves\conf`,`OpenSetPerf\Saves\models`, and `OpenSetPerf\Saves\roc`.
 - Run the model using `python3 src\main\main.py`.
-- Saves will generate in the `Saves` folder.
+- Saves and model outputs will generate in the `Saves` folder.
 
 - Edit the `src/main/Config.py` file to change the hyperparameters for the model. More information in `src/main/README.md`
 
-##### Warnings: 
-- OpenMax can fail if the model does not predict at least 1 example of every class, when it does so it leaves a console error message. It however does not leave a message in the fscore.csv or other save files. The data it saves in case of those failures is not valid data. Beware: This is an error that we will fix.
+
 
 ##### Items in root folder: 
 
@@ -59,21 +58,27 @@ source opensetperf/bin/activate
       - Energy OOD
       - Competitive Overcomlete Output Layer (COOL)
       - Deep Open Classification (DOC)
+    - This code is modified as minimally as possible.
 
 - `Saves`
   - This is the output file that will save all of metrics from the model.
   - It has many diffrent types of files such as:
-    - hyperparam - saves the Config of the last time the file was run.
-    - unknown - saves which classes were unknown from the last time the file was run.
-    - batch - saves information about each batch that has been run. NOTE: this file can break if it is saved to too many times, you may need to delete it and allow it to regenerate.
     - Data/DataTest - This saves the specific dataloaders from the last time the model was run including the train/test split as to not contaiminate the model if it is run again.
+    - Scoresall.csv - This file saves the model state and all standard metrics from the model. 
     - EpochXXX - These save the hyperparameters of the pytorch model at each of the epochs. NOTE: If you decrease the number of epochs in the model it will not delete the old epoch files which may cause problems.
+    - ROC_data - these are files that store the reciever operator characteristic data. It can be used to inform about the settings of threshold. The first line is false positives, the second is true positives, and the third is thesholds to acheve those positives.
+  - The following files are still generated but are not used:
     - fscore - this saves the Config parameters and the associated f-score that those parameters got to.
     - history/history{Algorithm} - These save all of the output measures from each of the algorithms after each epoch. 
     - phase - Unused from a privious refactor, it used to be a save of where in the models training we last got to.
     - scores/scores{Algorithm} - Unused from a privios refactor. It is now unknown what is being stored.
+    - hyperparam - saves the Config of the last time the file was run.
+    - unknown - saves which classes were unknown from the last time the file was run.
+    - batch - saves information about each batch that has been run. NOTE: this file can break if it is saved to too many times, you may need to delete it and allow it to regenerate.
 
 - `datasets`
   - We place the NIDS dataset in this folder.
-  - Up to two more folders will automatically ganerate. If you get a warning that a file does not exist, try deleting the generated files and allowing them to regenerate.
+  - Up to two more folders will automatically ganerate. If you get a warning that a file does not exist, try deleting the generated folders and allowing them to regenerate.
 
+- `build_number.txt`
+  - This is a number that is included in `Saves/Scoresall.csv` to inform about which version of the code was used to generate the outputs.
