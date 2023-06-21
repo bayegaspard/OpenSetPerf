@@ -185,7 +185,7 @@ class EndLayers():
         #print(scores_open)
         scores = torch.tensor(np.array(scores_open),device=percentages.device)
         percentages[:,torch.concat([helperFunctions.mask,torch.zeros(1)==0])] = scores.to(dtype=torch.float32)
-        self.rocData[1] = percentages[:,helperFunctions.mask].max(dim=1)[0]
+        self.rocData[1] = percentages[:,:len(helperFunctions.mask)][:,helperFunctions.mask].max(dim=1)[0]
         self.Save_score.append(scores.squeeze())
         #scores.squeeze_().unsqueeze_(0)
         
@@ -247,7 +247,7 @@ class EndLayers():
         percentages = OpenNet.iimod(percentages,self.iiLoss_means)
         
         self.rocData[1] = unknowns#I do not know if this is correct
-        unknowns = 2*unknowns.greater_equal(self.cutoff)
+        unknowns = 2*unknowns.less_equal(self.cutoff)
 
         return torch.cat([percentages,unknowns.unsqueeze(dim=-1)],dim=-1)
 

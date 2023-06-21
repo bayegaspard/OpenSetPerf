@@ -131,6 +131,15 @@ def run_model():
         plots.plot_confusion_matrix(cnf_matrix, classes=class_names, normalize=True,
                     title=f'{Config.parameters["OOD Type"][0]} Validation', knowns = knownVals)
 
+
+
+
+
+
+
+
+
+
     #Resets the stored values that are used to generate the above values.
     model.storeReset()
 
@@ -140,9 +149,6 @@ def run_model():
     model.eval()
 
     
-    
-
-    
     #this creates plots as long as the model is not looping. 
     # It is annoying when the model stops just to show you things when you are trying to run the model overnight
     if not Config.parameters["LOOP"][0]:
@@ -150,15 +156,6 @@ def run_model():
         plots.plot_losses(history_final)
         plots.plot_accuracies(history_final)
 
-    
-    
-
-   
-    
-    
-
-
-    
 
     #Generates the values when unknowns are thrown in to the testing set.
     f1, recall, precision, accuracy = helperFunctions.getFscore(model.store)
@@ -176,17 +173,7 @@ def run_model():
         plots.plot_confusion_matrix(cnf_matrix, classes=class_names, normalize=True,
                     title=f'{Config.parameters["OOD Type"][0]} Test', knowns = knownVals)
 
-    #This loops through a list of "Threshold" values because they do not require retraining the model.
-    if Config.parameters["LOOP"][0] == 1:
-        # model.thresholdTest(test_loader)
-        # roc = RocCurveDisplay.from_predictions(model.end.rocData[0],model.end.rocData[1],name=model.end.type)
-        # roc.plot()
-        # plt.show()
-        if isinstance(model.end.rocData[0],torch.Tensor):
-            model.end.rocData[0] = model.end.rocData[0].cpu().numpy()
-        if isinstance(model.end.rocData[1],torch.Tensor):
-            model.end.rocData[1] = model.end.rocData[1].cpu().numpy()
-        pd.DataFrame(roc_curve(model.end.rocData[0],model.end.rocData[1])).to_csv(f"Saves/roc/ROC_data_{Config.parameters['OOD Type'][0]}.csv")
+
     
     #This stores and prints the final results.
     score_list = [recall,precision,f1]
@@ -198,48 +185,98 @@ def run_model():
     print(f"Precision : {precision*100:.2f}%")
     print(f"Recall : {recall*100:.2f}%")
 
-    #Use Softmax to test.
-    model.end.type = "Soft"
-    model.storeReset()
-    model.evaluate(val_loader)
 
-    #Validation values
-    f1, recall, precision, accuracy = helperFunctions.getFscore(model.store)
-    FileHandling.addMeasurement("Soft_Val_F1",f1)
-    FileHandling.addMeasurement("Soft_Val_Recall",recall)
-    FileHandling.addMeasurement("Soft_Val_Precision",precision)
-    FileHandling.addMeasurement("Soft_Val_Accuracy",accuracy)
+    #AUTOTHRESHOLD
 
-    if not Config.parameters["LOOP"][0]:
-        #More matrix stuff that we removed.
-        cnf_matrix = plots.confusionMatrix(model.store) 
-        plots.plot_confusion_matrix(cnf_matrix, classes=class_names, normalize=True,
-                    title=f'Soft Validation', knowns = knownVals)
+    #This loops through a list of "Threshold" values because they do not require retraining the model.
+    if model.end.type != "Soft":
+        # model.thresholdTest(test_loader)
+        # roc = RocCurveDisplay.from_predictions(model.end.rocData[0],model.end.rocData[1],name=model.end.type)
+        # roc.plot()
+        # plt.show()
+        if isinstance(model.end.rocData[0],torch.Tensor):
+            model.end.rocData[0] = model.end.rocData[0].cpu().numpy()
+        if isinstance(model.end.rocData[1],torch.Tensor):
+            model.end.rocData[1] = model.end.rocData[1].cpu().numpy()
+        roc_data = pd.DataFrame(roc_curve(model.end.rocData[0],model.end.rocData[1]))
+        roc_data.to_csv(f"Saves/roc/ROC_data_{Config.parameters['OOD Type'][0]}.csv")
+        model.end.cutoff = roc_data.iloc[2][roc_data.iloc[1]>0.95].iloc[0]
+        if model.end.type == "Energy":
+            model.end.cutoff = -model.end.cutoff
+
+    #Resets the stored values that are used to generate the above values.
     model.storeReset()
+    #model.evaluate() runs only the evaluation stage of running the model. model.fit() calls model.evaluate() after epochs
     model.evaluate(test_loader)
+    model.eval()
 
-    #Validation values
+    
+    #this creates plots as long as the model is not looping. 
+    # It is annoying when the model stops just to show you things when you are trying to run the model overnight
+    if not Config.parameters["LOOP"][0]:
+        plots.plot_all_losses(history_final)
+        plots.plot_losses(history_final)
+        plots.plot_accuracies(history_final)
+
+
+    #Generates the values when unknowns are thrown in to the testing set.
     f1, recall, precision, accuracy = helperFunctions.getFscore(model.store)
-    FileHandling.addMeasurement("Soft_Test_F1",f1)
-    FileHandling.addMeasurement("Soft_Test_Recall",recall)
-    FileHandling.addMeasurement("Soft_Test_Precision",precision)
-    FileHandling.addMeasurement("Soft_Test_Accuracy",accuracy)
-
-    if not Config.parameters["LOOP"][0]:
-        #More matrix stuff that we removed.
-        cnf_matrix = plots.confusionMatrix(model.store) 
-        plots.plot_confusion_matrix(cnf_matrix, classes=class_names, normalize=True,
-                    title=f'Soft Test', knowns = knownVals)
-    model.storeReset()
-
-    #This selects what algorithm you are using.
-    model.end.type = Config.parameters["OOD Type"][0]
+    FileHandling.addMeasurement("AUTOTHRESHOLD",model.end.cutoff)
+    FileHandling.addMeasurement("AUTOTHRESHOLD_Trained_on_length",len(model.end.rocData[0]))
+    FileHandling.addMeasurement("AUTOTHRESHOLD_Test_F1",f1)
+    FileHandling.addMeasurement("AUTOTHRESHOLD_Test_Recall",recall)
+    FileHandling.addMeasurement("AUTOTHRESHOLD_Test_Precision",precision)
+    FileHandling.addMeasurement("AUTOTHRESHOLD_Test_Accuracy",accuracy)
+    FileHandling.addMeasurement("AUTOTHRESHOLD_Found_Unknowns",helperFunctions.getFoundUnknown(model.store))
 
 
-    #This is the code to actually start showing the plots.
-    #Again, we do not want this activating while running overnight.
-    if not Config.parameters["LOOP"][0]:
-        plt.show()
+
+
+
+
+    if False:
+        #Use Softmax to test.
+        model.end.type = "Soft"
+        model.storeReset()
+        model.evaluate(val_loader)
+
+        #Validation values
+        f1, recall, precision, accuracy = helperFunctions.getFscore(model.store)
+        FileHandling.addMeasurement("Soft_Val_F1",f1)
+        FileHandling.addMeasurement("Soft_Val_Recall",recall)
+        FileHandling.addMeasurement("Soft_Val_Precision",precision)
+        FileHandling.addMeasurement("Soft_Val_Accuracy",accuracy)
+
+        if not Config.parameters["LOOP"][0]:
+            #More matrix stuff that we removed.
+            cnf_matrix = plots.confusionMatrix(model.store) 
+            plots.plot_confusion_matrix(cnf_matrix, classes=class_names, normalize=True,
+                        title=f'Soft Validation', knowns = knownVals)
+        model.storeReset()
+        model.evaluate(test_loader)
+
+        #Validation values
+        f1, recall, precision, accuracy = helperFunctions.getFscore(model.store)
+        FileHandling.addMeasurement("Soft_Test_F1",f1)
+        FileHandling.addMeasurement("Soft_Test_Recall",recall)
+        FileHandling.addMeasurement("Soft_Test_Precision",precision)
+        FileHandling.addMeasurement("Soft_Test_Accuracy",accuracy)
+
+        if not Config.parameters["LOOP"][0]:
+            #More matrix stuff that we removed.
+            cnf_matrix = plots.confusionMatrix(model.store) 
+            plots.plot_confusion_matrix(cnf_matrix, classes=class_names, normalize=True,
+                        title=f'Soft Test', knowns = knownVals)
+        model.storeReset()
+
+        #This selects what algorithm you are using.
+        model.end.type = Config.parameters["OOD Type"][0]
+
+
+        #This is the code to actually start showing the plots.
+        #Again, we do not want this activating while running overnight.
+        if not Config.parameters["LOOP"][0]:
+            plt.show()
 
 
     
