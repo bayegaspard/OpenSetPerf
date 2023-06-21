@@ -198,7 +198,7 @@ def algorithmSpecificSettings(alg="None"):
         parameters["threshold"][0] = 0.516034961
     if alg == "DOC":
         parameters["threshold"][0] = 0.06449493
-    if alg == "iiLoss":
+    if alg == "iiMod":
         parameters["threshold"][0] = 102064.4453
     
 #Getting version number
@@ -210,5 +210,5 @@ if __name__ == "__main__":
     print("WARNING RUNNING WITH ALGORITHM SPECIFIC THRESHOLDS")
     use_alg_thesholds
     use_alg_thesholds=True
-    algorithmSpecificSettings(parameters["OOD Type"])
+    algorithmSpecificSettings(parameters["OOD Type"][0])
     main.main()

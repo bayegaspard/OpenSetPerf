@@ -189,17 +189,18 @@ def run_model():
     #AUTOTHRESHOLD
 
     #This loops through a list of "Threshold" values because they do not require retraining the model.
-    if model.end.type != "Soft":
+    # if model.end.type != "Soft":
         # model.thresholdTest(test_loader)
         # roc = RocCurveDisplay.from_predictions(model.end.rocData[0],model.end.rocData[1],name=model.end.type)
         # roc.plot()
         # plt.show()
-        if isinstance(model.end.rocData[0],torch.Tensor):
-            model.end.rocData[0] = model.end.rocData[0].cpu().numpy()
-        if isinstance(model.end.rocData[1],torch.Tensor):
-            model.end.rocData[1] = model.end.rocData[1].cpu().numpy()
-        roc_data = pd.DataFrame(roc_curve(model.end.rocData[0],model.end.rocData[1]))
-        roc_data.to_csv(f"Saves/roc/ROC_data_{Config.parameters['OOD Type'][0]}.csv")
+    if isinstance(model.end.rocData[0],torch.Tensor):
+        model.end.rocData[0] = model.end.rocData[0].cpu().numpy()
+    if isinstance(model.end.rocData[1],torch.Tensor):
+        model.end.rocData[1] = model.end.rocData[1].cpu().numpy()
+    roc_data = pd.DataFrame(roc_curve(model.end.rocData[0],model.end.rocData[1]))
+    roc_data.to_csv(f"Saves/roc/ROC_data_{Config.parameters['OOD Type'][0]}.csv")
+    if len(roc_data.iloc[2][roc_data.iloc[1]>0.95])>0:
         model.end.cutoff = roc_data.iloc[2][roc_data.iloc[1]>0.95].iloc[0]
         if model.end.type == "Energy":
             model.end.cutoff = -model.end.cutoff
