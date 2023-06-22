@@ -194,41 +194,42 @@ def run_model():
         # roc = RocCurveDisplay.from_predictions(model.end.rocData[0],model.end.rocData[1],name=model.end.type)
         # roc.plot()
         # plt.show()
-    if isinstance(model.end.rocData[0],torch.Tensor):
-        model.end.rocData[0] = model.end.rocData[0].cpu().numpy()
-    if isinstance(model.end.rocData[1],torch.Tensor):
-        model.end.rocData[1] = model.end.rocData[1].cpu().numpy()
-    roc_data = pd.DataFrame(roc_curve(model.end.rocData[0],model.end.rocData[1]))
-    roc_data.to_csv(f"Saves/roc/ROC_data_{Config.parameters['OOD Type'][0]}.csv")
-    if len(roc_data.iloc[2][roc_data.iloc[1]>0.95])>0:
-        model.end.cutoff = roc_data.iloc[2][roc_data.iloc[1]>0.95].iloc[0]
-        if model.end.type == "Energy":
-            model.end.cutoff = -model.end.cutoff
+    if (not torch.all(model.end.rocData[0])) and (not torch.all(model.end.rocData[0]==False)):
+        if isinstance(model.end.rocData[0],torch.Tensor):
+            model.end.rocData[0] = model.end.rocData[0].cpu().numpy()
+        if isinstance(model.end.rocData[1],torch.Tensor):
+            model.end.rocData[1] = model.end.rocData[1].cpu().numpy()
+        roc_data = pd.DataFrame(roc_curve(model.end.rocData[0],model.end.rocData[1]))
+        roc_data.to_csv(f"Saves/roc/ROC_data_{Config.parameters['OOD Type'][0]}.csv")
+        if len(roc_data.iloc[2][roc_data.iloc[1]>0.95])>0:
+            model.end.cutoff = roc_data.iloc[2][roc_data.iloc[1]>0.95].iloc[0]
+            if model.end.type == "Energy":
+                model.end.cutoff = -model.end.cutoff
 
-    #Resets the stored values that are used to generate the above values.
-    model.storeReset()
-    #model.evaluate() runs only the evaluation stage of running the model. model.fit() calls model.evaluate() after epochs
-    model.evaluate(test_loader)
-    model.eval()
+        #Resets the stored values that are used to generate the above values.
+        model.storeReset()
+        #model.evaluate() runs only the evaluation stage of running the model. model.fit() calls model.evaluate() after epochs
+        model.evaluate(test_loader)
+        model.eval()
 
-    
-    #this creates plots as long as the model is not looping. 
-    # It is annoying when the model stops just to show you things when you are trying to run the model overnight
-    if not Config.parameters["LOOP"][0]:
-        plots.plot_all_losses(history_final)
-        plots.plot_losses(history_final)
-        plots.plot_accuracies(history_final)
+        
+        #this creates plots as long as the model is not looping. 
+        # It is annoying when the model stops just to show you things when you are trying to run the model overnight
+        if not Config.parameters["LOOP"][0]:
+            plots.plot_all_losses(history_final)
+            plots.plot_losses(history_final)
+            plots.plot_accuracies(history_final)
 
 
-    #Generates the values when unknowns are thrown in to the testing set.
-    f1, recall, precision, accuracy = helperFunctions.getFscore(model.store)
-    FileHandling.addMeasurement("AUTOTHRESHOLD",model.end.cutoff)
-    FileHandling.addMeasurement("AUTOTHRESHOLD_Trained_on_length",len(model.end.rocData[0]))
-    FileHandling.addMeasurement("AUTOTHRESHOLD_Test_F1",f1)
-    FileHandling.addMeasurement("AUTOTHRESHOLD_Test_Recall",recall)
-    FileHandling.addMeasurement("AUTOTHRESHOLD_Test_Precision",precision)
-    FileHandling.addMeasurement("AUTOTHRESHOLD_Test_Accuracy",accuracy)
-    FileHandling.addMeasurement("AUTOTHRESHOLD_Found_Unknowns",helperFunctions.getFoundUnknown(model.store))
+        #Generates the values when unknowns are thrown in to the testing set.
+        f1, recall, precision, accuracy = helperFunctions.getFscore(model.store)
+        FileHandling.addMeasurement("AUTOTHRESHOLD",model.end.cutoff)
+        FileHandling.addMeasurement("AUTOTHRESHOLD_Trained_on_length",len(model.end.rocData[0]))
+        FileHandling.addMeasurement("AUTOTHRESHOLD_Test_F1",f1)
+        FileHandling.addMeasurement("AUTOTHRESHOLD_Test_Recall",recall)
+        FileHandling.addMeasurement("AUTOTHRESHOLD_Test_Precision",precision)
+        FileHandling.addMeasurement("AUTOTHRESHOLD_Test_Accuracy",accuracy)
+        FileHandling.addMeasurement("AUTOTHRESHOLD_Found_Unknowns",helperFunctions.getFoundUnknown(model.store))
 
 
 

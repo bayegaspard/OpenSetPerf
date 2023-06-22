@@ -26,6 +26,7 @@ source opensetperf/bin/activate
 - Navigate up one directory `cd ..` into the root directory for the Repo.
 - You may need to create some folders in the Saves directory namely, `OpenSetPerf\Saves\conf`,`OpenSetPerf\Saves\models`, and `OpenSetPerf\Saves\roc`.
 - Run the model using `python3 src\main\main.py`.
+- Alternatively, you can run `chmod +x ./threeRuns.sh` and then `.\threeRuns.sh` to run the model three times.
 - Saves and model outputs will generate in the `Saves` folder.
 
 - Edit the `src/main/Config.py` file to change the hyperparameters for the model. More information in `src/main/README.md`
@@ -82,3 +83,6 @@ source opensetperf/bin/activate
 
 - `build_number.txt`
   - This is a number that is included in `Saves/Scoresall.csv` to inform about which version of the code was used to generate the outputs.
+
+- `threeRuns.sh`
+  - This is a simple and small shell script to run the model three times. 
