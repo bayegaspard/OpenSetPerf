@@ -29,6 +29,13 @@ def generateHyperparameters(root_path=""):
         param = pd.DataFrame(unknown_classes,columns=["Unknowns"])
         param.to_csv(os.path.join(root_path,"Saves","unknown","unknowns.csv"))
         print("Files created successfully !")
+    
+    if not os.path.exists("Saves/roc"):
+        os.mkdir("Saves/roc")
+    if not os.path.exists("Saves/models"):
+        os.mkdir("Saves/models")
+    if not os.path.exists("Saves/conf"):
+        os.mkdir("Saves/conf")
 
 
 
