@@ -59,7 +59,9 @@ source opensetperf/bin/activate
       - Energy OOD
       - Competitive Overcomlete Output Layer (COOL)
       - Deep Open Classification (DOC)
+      - OpenNet (iiMod) Created from the equations in the related paper.
     - This code is modified as minimally as possible.
+    - All of the implementations list a link at the top of where they were sourced from.
 
 - `Saves`
   - This is the output file that will save all of metrics from the model.

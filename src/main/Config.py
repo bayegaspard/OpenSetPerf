@@ -97,10 +97,10 @@ num_epochs = parameters["num_epochs"][0]
 
 #This is to test all of the algorithms one after the other. (Loop 1 values)
 alg = ["Soft","Open","Energy","COOL","DOC","iiMod"]
-batch = [10,100,1000]
-datapoints_per_class = [1000,2000,3000]
+batch = [100,1000,10000,100000]
+datapoints_per_class = [10,100,1000,10000]
 thresholds = [0.1,1,10]
-learning_rates = [0.1,0.01,0.0001]
+learning_rates = [0.1,0.01,0.001,0.0001]
 activation = ["ReLU", "Tanh", "Sigmoid"]
 groups = [[2],[2,3],[2,3,4],[2,3,4,5],[2,3,4,5,6],[2,3,4,5,6,7],[1,2,3,4,5,6,7],[1,2,3,4,5,6,7,8]]
 groups = [[7,8,9]]
@@ -153,10 +153,10 @@ optim = [opt_func["Adam"]]
 # alg.insert(0,parameters["OOD Type"][0])
 
 #This is an array to eaiser loop through everything.
-loops = [batch,datapoints_per_class,thresholds,learning_rates,epochs,optim,activation,groups]
-loops = [groups]
-loops2 = ["batch_size","MaxPerClass","threshold","learningRate","num_epochs","optimizer","Activation","Unknowns"]
-loops2 = ["Unknowns"]
+loops = [batch,datapoints_per_class,learning_rates,epochs,activation,groups,["ClassChunk","Dendrogramlimit"]]
+#loops = [groups]
+loops2 = ["batch_size","MaxPerClass","learningRate","num_epochs","Activation","Unknowns","Datagrouping"]
+#loops2 = ["Unknowns"]
 for i in range(len(loops)):
     if loops2[i] == "Unknowns":
         loops[i].insert(0,class_split["unknowns_clss"])

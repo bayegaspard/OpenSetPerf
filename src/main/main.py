@@ -199,18 +199,23 @@ def run_model():
             model.end.rocData[0] = model.end.rocData[0].cpu().numpy()
         if isinstance(model.end.rocData[1],torch.Tensor):
             model.end.rocData[1] = model.end.rocData[1].cpu().numpy()
-        roc_data = pd.DataFrame(roc_curve(model.end.rocData[0],model.end.rocData[1]))
-        roc_data.to_csv(f"Saves/roc/ROC_data_{Config.parameters['OOD Type'][0]}.csv")
-        if len(roc_data.iloc[2][roc_data.iloc[1]>0.95])>0:
-            model.end.cutoff = roc_data.iloc[2][roc_data.iloc[1]>0.95].iloc[0]
-            if model.end.type == "Energy":
-                model.end.cutoff = -model.end.cutoff
+        
+        #isnan gotten from https://stackoverflow.com/a/913499
+        if (np.isnan( model.end.rocData[1]).any()):
+            model.end.cutoff = -1
+        else:
+            roc_data = pd.DataFrame(roc_curve(model.end.rocData[0],model.end.rocData[1]))
+            roc_data.to_csv(f"Saves/roc/ROC_data_{Config.parameters['OOD Type'][0]}.csv")
+            if len(roc_data.iloc[2][roc_data.iloc[1]>0.95])>0:
+                model.end.cutoff = roc_data.iloc[2][roc_data.iloc[1]>0.95].iloc[0]
+                if model.end.type == "Energy":
+                    model.end.cutoff = -model.end.cutoff
 
         #Resets the stored values that are used to generate the above values.
         model.storeReset()
         #model.evaluate() runs only the evaluation stage of running the model. model.fit() calls model.evaluate() after epochs
-        model.evaluate(test_loader)
         model.eval()
+        model.evaluate(test_loader)
 
         
         #this creates plots as long as the model is not looping. 
