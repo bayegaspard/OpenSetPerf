@@ -202,6 +202,24 @@ def getcurrentlychanged(notes):
     currentSetting = Config.loops[notes[0]][notes[1]]
     return str(algorithm)+" "+str(currentlyChanging)+" "+str(currentSetting)
 
+#This puts the notes into a readable form
+#notes are how it keeps track of where in the loop it is.
+def getcurrentlychanged_Stage(notes):
+    """
+    getcurrentlychanged() turns the notes from the function testRotate() into a readable string to tag data with.
+
+    it takes one parameter:
+        -notes, a three integer tuple.
+    it outputs a string saying what algorithm is being used with what changing parameter and the current setting of that parameter
+    """
+
+    algorithm = Config.alg[notes[2]]
+    currentlyChanging = Config.loops2[notes[0]]
+    if currentlyChanging == "None":
+        return f"algorithm"
+    currentSetting = Config.loops[notes[0]][notes[1]]
+    return str(currentlyChanging)
+
 #This bit of code will loop through the entire loop and print all of the variations.
 def looptest():
     """

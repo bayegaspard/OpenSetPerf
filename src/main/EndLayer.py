@@ -244,7 +244,7 @@ class EndLayers():
         for i in range(len(percentages)):
             unknowns.append(OpenNet.outlier_score(percentages[i],self.iiLoss_means))
         unknowns = torch.stack(unknowns)
-        percentages = OpenNet.iimod(percentages,self.iiLoss_means)
+        percentages = OpenNet.iimod(percentages,self.iiLoss_means).softmax(dim=1)
         
         self.rocData[1] = unknowns#I do not know if this is correct
         unknowns = 2*unknowns.less_equal(self.cutoff)

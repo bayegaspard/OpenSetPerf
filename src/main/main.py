@@ -343,6 +343,7 @@ def main():
                 #Finally run the loop.
                 run_model()
                 FileHandling.addMeasurement("Currently Modifying",plots.name_override)
+                FileHandling.addMeasurement("Currently Modifying Stage",helperFunctions.getcurrentlychanged_Stage(step))
 
     
     #If it is loop type 2 (iterative unknowns loop):
