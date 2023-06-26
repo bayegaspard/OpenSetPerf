@@ -98,7 +98,7 @@ num_epochs = parameters["num_epochs"][0]
 #This is to test all of the algorithms one after the other. (Loop 1 values)
 alg = ["Soft","Open","Energy","COOL","DOC","iiMod"]
 batch = [100,1000,10000,100000]
-datapoints_per_class = [10,100,1000,10000]
+datapoints_per_class = [10,100,1000,3000]
 thresholds = [0.1,1,10]
 learning_rates = [0.1,0.01,0.001,0.0001]
 activation = ["ReLU", "Tanh", "Sigmoid"]
