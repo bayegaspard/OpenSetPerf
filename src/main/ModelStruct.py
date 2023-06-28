@@ -175,6 +175,7 @@ class AttackTrainingClassification(nn.Module):
                 train_losses = []
                 num = 0
                 for batch in train_loader:
+                    self.train()
                     #print("Batch")
                     # batch = to_device(batch,device)
                     # batch = DeviceDataLoader(batch, device)
@@ -400,6 +401,8 @@ class AttackTrainingClassification(nn.Module):
             epoch- the number of epochs the model has trained.
 
         """
+        if Config.unit_test_mode:
+            return
         if not os.path.exists(path):
             os.mkdir(path)
         torch.save(net.state_dict(), path + f"/Epoch{epoch:03d}{Config.parameters['OOD Type'][0]}.pth")

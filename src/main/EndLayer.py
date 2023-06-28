@@ -106,10 +106,8 @@ class EndLayers():
         self.args = args
     
     def prepWeibull(self,trainloader,device,net):
-        net.eval()
         self.weibulInfo = {"loader":trainloader,"device":device,"net":net, "weibull":None}
-        
-        net.train()
+
 
     def noChange(self,X:torch.Tensor):
         return X

@@ -15,8 +15,8 @@ import sys
 root_folder = os.path.abspath(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.append(os.path.join(root_folder,"CodeFromImplementations"))
 
-import Config
-import helperFunctions
+import src.main.Config as Config
+import src.main.helperFunctions as helperFunctions
 
 
 
@@ -143,6 +143,7 @@ def compute_channel_distances(mavs, features, eu_weight=0.5):
 
 
 def compute_train_score_and_mavs_and_dists(train_class_num,trainloader,device,net):
+    net.eval()#LINE ADDED
     scores = [[] for _ in range(train_class_num)]
     #print("train class in open",train_class_num)
     #print("scores from open",scores)

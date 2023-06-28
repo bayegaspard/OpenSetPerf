@@ -1,8 +1,8 @@
 #From https://github.com/leishu02/EMNLP2017_DOC/blob/2b870170ab20cdc9d6f0ec85631a9ddd199a2b18/DOC_emnlp17.py#L225
 import numpy as np
 import torch
-import Config
-import helperFunctions
+import src.main.Config as Config
+import src.main.helperFunctions as helperFunctions
 
 
 

@@ -33,7 +33,7 @@ opt_func = {"Adam":torch.optim.Adam,"SGD":torch.optim.SGD, "RMSprop":torch.optim
 class_split = {
     #This is the only important value in this dictionary and it lists the diffrent values to consider unkowns.
     #Mappings are at the top of Dataload.py
-    "unknowns_clss": [7,8,9], #Overriden if loop=2
+    "unknowns_clss": [], #Overriden if loop=2
 }
 
 
@@ -42,8 +42,8 @@ parameters = {
     #These parameters are orginized like this:
     #"ParamName":[Value,"Description"]
     #for a parameter called "ParamName" with a value of Value
-    "batch_size":[100000, "Number of items per batch"],
-    "num_workers":[14, "Number of threads working on building batches"],
+    "batch_size":[10000, "Number of items per batch"],
+    "num_workers":[0, "Number of threads working on building batches"],
     "attemptLoad":[0, "0: do not use saves\n1:use saves"],
     "testlength":[1/4, "[0,1) percentage of training to test with"],
     "Mix unknowns and validation": [1,"0 or 1, 0 means that the test set is purely unknowns and 1 means that the testset is the validation set plus unknowns (for testing)"],
@@ -52,7 +52,7 @@ parameters = {
     "learningRate":[0.01, "a modifier for training"],
     "threshold":[0.5,"When to declare something to be unknown"],
     "model":["Convolutional","Model type [Fully_Connected,Convolutional]"],
-    "OOD Type":["Soft","type of out of distribution detection [Soft,Open,Energy,COOL,DOC,iiMod]"],
+    "OOD Type":["iiMod","type of out of distribution detection [Soft,Open,Energy,COOL,DOC,iiMod]"],
     "Dropout":[0.01,"percent of nodes that are skipped per run, larger numbers for more complex models [0,1)"],
     "Datagrouping":["Dendrogramlimit","Datagroup type [ClassChunk,Dendrogramlimit]"],
     "optimizer":opt_func["Adam"],
@@ -103,7 +103,7 @@ thresholds = [0.1,1,10]
 learning_rates = [0.1,0.01,0.001,0.0001]
 activation = ["ReLU", "Tanh", "Sigmoid"]
 groups = [[2],[2,3],[2,3,4],[2,3,4,5],[2,3,4,5,6],[2,3,4,5,6,7],[1,2,3,4,5,6,7],[1,2,3,4,5,6,7,8]]
-groups = [[7,8,9]]
+#groups = [[7,8,9]]
 if parameters["Dataset"][0] == "Payload_data_CICIDS2017":
     incGroups = [[2,3,4,5,6,7,8,9,10,11,12,13,14],[3,4,5,6,7,8,9,10,11,12,13,14],[4,5,6,7,8,9,10,11,12,13,14],[5,6,7,8,9,10,11,12,13,14],[6,7,8,9,10,11,12,13,14],[7,8,9,10,11,12,13,14],[8,9,10,11,12,13,14],[9,10,11,12,13,14],[10,11,12,13,14],[11,12,13,14],[12,13,14],[13,14],[14]] 
 #This one list is for loop 2. Note: array size should be decreasing.
@@ -128,12 +128,12 @@ epochs = [1,10,100]
 #     incGroups.append(new)
 
 #Here is where we remove some of the algorithms if we want to skip them. We could also just remove them from the list above.
-#alg.remove("Soft")
-#alg.remove("Open")
-#alg.remove("Energy")
-#alg.remove("COOL")
-#alg.remove("DOC")
-#alg.remove("iiMod")
+alg.remove("Soft")
+alg.remove("Open")
+alg.remove("Energy")
+alg.remove("COOL")
+alg.remove("DOC")
+# alg.remove("iiMod")
 
 #Optimizer has been removed from the list of things we are changing
 optim = [opt_func["Adam"], opt_func["SGD"], opt_func["RMSprop"]]
@@ -154,9 +154,9 @@ optim = [opt_func["Adam"]]
 
 #This is an array to eaiser loop through everything.
 loops = [batch,datapoints_per_class,learning_rates,epochs,activation,groups,["ClassChunk","Dendrogramlimit"]]
-#loops = [groups]
+loops = [groups]
 loops2 = ["batch_size","MaxPerClass","learningRate","num_epochs","Activation","Unknowns","Datagrouping"]
-#loops2 = ["Unknowns"]
+loops2 = ["Unknowns"]
 for i in range(len(loops)):
     if loops2[i] == "Unknowns":
         loops[i].insert(0,class_split["unknowns_clss"])
@@ -173,6 +173,9 @@ if parameters["LOOP"][0] == 2:
     parameters["Unknowns"] = f"{incGroups[0]} Unknowns"
     class_split["knowns_clss"] = loopOverUnknowns(class_split["unknowns_clss"])
 
+
+#This controls all of the save data (so that we can run small tests without changing the nice files.)
+unit_test_mode = False
 
 use_alg_thesholds =False
 def algorithmSpecificSettings(alg="None"):

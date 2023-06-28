@@ -73,6 +73,7 @@ def checkAttempLoad(root_path=""):
     This is so that the validation and testing data does not get mixed up which would invalidate the validation data.
     """
     # get the data and create a test set and train set
+    
     print("Reading datasets to create test and train sets")
     
     train, unknowns = getDatagroup()
@@ -86,6 +87,9 @@ def checkAttempLoad(root_path=""):
     else:
         test=val
     
+    if Config.unit_test_mode:
+        return train, test, val
+
     if Config.parameters["attemptLoad"][0] and os.path.exists(os.path.join(root_path,"Saves","Data.pt")):
         train = torch.load(os.path.join(root_path,"Saves","Data.pt"))
         test = torch.load(os.path.join(root_path,"Saves","DataTest.pt"))
@@ -176,6 +180,8 @@ def write_hist_to_file(lst, num_epochs, type=""):
     Adds lines to history.csv. This is used to keep a log of how well the algorithm works during training.
     This also saves the same information in an algorithm specific file that we thought would be useful at some point.
     """
+    if Config.unit_test_mode:
+        return
     for l in lst:
         l["type"] = type
     if os.path.exists(os.path.join("Saves","history.csv")):
@@ -200,6 +206,8 @@ def write_scores_to_file(lst, num_epochs, type=""):
     Adds a line to scores.csv. This is used to keep a log of how well the algorithm works during evaluation.
     This also saves the same information in an algorithm specific file that we thought would be useful at some point.
     """
+    if Config.unit_test_mode:
+        return
     thisRun = pd.DataFrame.from_dict(lst)
     thisRun["type"] = type
     if os.path.exists(os.path.join("Saves","scores.csv")):
@@ -225,6 +233,8 @@ def write_batch_to_file(loss, num, modeltype="", batchtype=""):
         model type - the endlayer type while running
         batch type - if this was either a training or evaluation batch
     """
+    if Config.unit_test_mode:
+        return
     thisRun = pd.DataFrame([[loss.item(), num, modeltype, batchtype]],
                            columns=["Loss", "Batch Number", "Model Type", "Batch Type"])
     # thisRun["Loss"] = loss.detach()
@@ -270,6 +280,8 @@ def create_params_Fscore(path, score, threshold = None):
         score - the final F1 score of the algorithm
         threshold - I think this is supposed to be the threshold? I dont know why.
     """
+    if Config.unit_test_mode:
+        return
     params = pd.read_csv(os.path.join(path,"Saves","hyperparam","hyperParam.csv"),index_col=0)
 
     if threshold != None:
@@ -296,6 +308,8 @@ def create_params_All(path=""):
 
     you can change the path with the path parameter.
     """
+    if Config.unit_test_mode:
+        return
     params = pd.DataFrame(Config.parameters,columns=Config.parameters.keys())
 
 
@@ -317,6 +331,8 @@ def addMeasurement(name:str,val,path=""):
         name - measurement name
         val - measurement value
     """
+    if Config.unit_test_mode:
+        return
     total = pd.read_csv(os.path.join(path,"Saves","Scoresall.csv"),index_col=0)
     #print(f"last valid index = {total.last_valid_index()} item name= {name}, item value={val}")
     total.at[total.last_valid_index(),name] = val
