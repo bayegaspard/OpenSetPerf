@@ -234,7 +234,11 @@ class EndLayers():
         newPredictions = torch.tensor(newPredictions)
         for x in range(len(newPredictions)):
             newPredictions[x] = torch.tensor(helperFunctions.rerelabel[newPredictions[x].item()])
-        return newPredictions
+
+        #to fit with the rest of the endlayers I am setting this back to a one hot vector even though we are just going to colapse it again.
+        oneHotPredictions = F.one_hot(newPredictions,num_classes=Config.parameters["CLASSES"][0])
+
+        return oneHotPredictions
 
     def iiUnknown(self, percentages):
         import CodeFromImplementations.OpenNet as OpenNet

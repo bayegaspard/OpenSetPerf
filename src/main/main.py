@@ -291,6 +291,53 @@ def run_model():
 
     plt.close()
 
+def loopType1(main,measurement):
+    #If it is loop type 1 (changing parameters loop):
+    if Config.parameters["LOOP"][0] == 1:
+        step = (0,0,0) #keeps track of what is being updated.
+        measurement("Currently Modifying",helperFunctions.getcurrentlychanged(step))
+        measurement("Currently Modifying Stage",helperFunctions.getcurrentlychanged_Stage(step))
+        
+
+        #Loops until the loop function disables the loop.
+        while Config.parameters["LOOP"][0]:
+            #The function testRotate changes the values in Config.py, it is treating those as global veriables.
+            #I know this is bad code but if it is only changed in specific places it is not awful.
+            step = helperFunctions.testRotate(step)
+
+            #If it did not hit the end of the loop (Loop end returns False)
+            if step:
+                #Reset pyplot
+                plt.clf()
+
+                #Change the name override to accurately state what has changed
+                plots.name_override = helperFunctions.getcurrentlychanged(step)
+                #This is to change the level of detail on the confusion matricies (Not needed anymore)
+                plt.figure(figsize=(4,4))
+
+                #State what is changing for bugfixing.
+                print(f"Now changing: {plots.name_override}")
+
+                #Finally run the loop.
+                main()
+                measurement("Currently Modifying",plots.name_override)
+                measurement("Currently Modifying Stage",helperFunctions.getcurrentlychanged_Stage(step))
+
+def loopType2(main,measurement):
+    #If it is loop type 2 (iterative unknowns loop):
+    #Same structure as above.
+    if Config.parameters["LOOP"][0] == 2:
+        step = (0) 
+        measurement("Currently Modifying",f"Incremental with {Config.parameters['Unknowns']} unknowns")
+        while Config.parameters["LOOP"][0]:
+            step = helperFunctions.incrementLoop(step)
+            if step:
+                plt.clf()
+                plots.name_override = f"Incremental with {Config.parameters['Unknowns']} unknowns"
+                plt.figure(figsize=(4,4))
+                print(f"unknowns: {Config.class_split['unknowns_clss']}")
+                main()
+                measurement("Currently Modifying",plots.name_override)
 
 def main():
     """
@@ -317,48 +364,10 @@ def main():
     #Runs the model
     run_model()
 
-    #If it is loop type 1 (changing parameters loop):
-    if Config.parameters["LOOP"][0] == 1:
-        step = (0,0,0) #keeps track of what is being updated.
-
-        #Loops until the loop function disables the loop.
-        while Config.parameters["LOOP"][0]:
-            #The function testRotate changes the values in Config.py, it is treating those as global veriables.
-            #I know this is bad code but if it is only changed in specific places it is not awful.
-            step = helperFunctions.testRotate(step)
-
-            #If it did not hit the end of the loop (Loop end returns False)
-            if step:
-                #Reset pyplot
-                plt.clf()
-
-                #Change the name override to accurately state what has changed
-                plots.name_override = helperFunctions.getcurrentlychanged(step)
-                #This is to change the level of detail on the confusion matricies (Not needed anymore)
-                plt.figure(figsize=(4,4))
-
-                #State what is changing for bugfixing.
-                print(f"Now changing: {plots.name_override}")
-
-                #Finally run the loop.
-                run_model()
-                FileHandling.addMeasurement("Currently Modifying",plots.name_override)
-                FileHandling.addMeasurement("Currently Modifying Stage",helperFunctions.getcurrentlychanged_Stage(step))
-
+    loopType1(run_model,FileHandling.addMeasurement)
+    loopType2(run_model,FileHandling.addMeasurement)
     
-    #If it is loop type 2 (iterative unknowns loop):
-    #Same structure as above.
-    elif Config.parameters["LOOP"][0] == 2:
-        step = (0) 
-        while Config.parameters["LOOP"][0]:
-            step = helperFunctions.incrementLoop(step)
-            if step:
-                plt.clf()
-                plots.name_override = f"Incremental with {Config.parameters['Unknowns']} unknowns"
-                plt.figure(figsize=(4,4))
-                print(f"unknowns: {Config.class_split['unknowns_clss']}")
-                run_model()
-                FileHandling.addMeasurement("Currently Modifying",plots.name_override)
+    
 
 
 if __name__ == '__main__':

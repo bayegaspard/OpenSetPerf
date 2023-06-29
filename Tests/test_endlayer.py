@@ -73,8 +73,9 @@ def testAllEndlayers():
         if x == "COOL":
             example_tensor = torch.cat([example_tensor,example_tensor,example_tensor],dim=-1)
         before_argmax = end.endlayer(example_tensor,targets)
-        after_argmax = before_argmax.argmax()
+        after_argmax = before_argmax.argmax(dim=1)
         assert isinstance(after_argmax,torch.Tensor)
+        assert len(after_argmax) == 2
 
 
 def testConsecutaveDimentions_a():
@@ -84,9 +85,9 @@ def testConsecutaveDimentions_a():
     net = sampleNet()
     example_tensor, labels = net.testingTensor()
     consecutive_tensor, consecutive_labels = helperFunctions.renameClassesLabeled(example_tensor,labels)
-    assert len(example_tensor[0]) != len(consecutive_tensor) or len(Config.class_split["knowns_clss"])==Config.parameters["CLASSES"][0]
+    assert len(example_tensor[0]) != len(consecutive_tensor[0]) or len(Config.class_split["knowns_clss"])==Config.parameters["CLASSES"][0]
     assert consecutive_labels.max() < len(Config.class_split["knowns_clss"])
-    assert torch.all(consecutive_tensor.argmax(dim=1)==consecutive_labels[:,0])
+    assert torch.all(consecutive_tensor[consecutive_tensor.max(dim=1)[0].gt(0)].argmax(dim=1)==consecutive_labels[consecutive_tensor.max(dim=1)[0].gt(0),0])
 
 def testConsecutaveDimentions_b():
     """
@@ -94,12 +95,14 @@ def testConsecutaveDimentions_b():
     """
     Config.class_split["unknowns_clss"] = []
     Config.class_split["knowns_clss"] = Config.loopOverUnknowns(Config.class_split["unknowns_clss"])
+    helperFunctions.Config.class_split = Config.class_split.copy()
+    helperFunctions.setrelabel()
     net = sampleNet()
     example_tensor, labels = net.testingTensor()
-    consecutive_tensor, consecutive_labels = helperFunctions.makeConsecutive(example_tensor,labels)
-    assert len(example_tensor[0]) != len(consecutive_tensor) or len(Config.class_split["knowns_clss"])==Config.parameters["CLASSES"][0]
+    consecutive_tensor, consecutive_labels = helperFunctions.renameClassesLabeled(example_tensor,labels)
+    assert len(example_tensor[0]) != len(consecutive_tensor[0]) or len(Config.class_split["knowns_clss"])==Config.parameters["CLASSES"][0]
     assert consecutive_labels.max() < len(Config.class_split["knowns_clss"])
-    assert torch.all(consecutive_tensor.argmax(dim=1)==consecutive_labels[:,0])
+    assert torch.all(consecutive_tensor[consecutive_tensor.max(dim=1)[0].gt(0)].argmax(dim=1)==consecutive_labels[consecutive_tensor.max(dim=1)[0].gt(0),0])
 
 
 def testConsecutaveDimentions_c():
@@ -108,22 +111,11 @@ def testConsecutaveDimentions_c():
     """
     Config.class_split["unknowns_clss"] = [1,2,3,4]
     Config.class_split["knowns_clss"] = Config.loopOverUnknowns(Config.class_split["unknowns_clss"])
+    helperFunctions.Config.class_split = Config.class_split.copy()
+    helperFunctions.setrelabel()
     net = sampleNet()
     example_tensor, labels = net.testingTensor()
-    consecutive_tensor, consecutive_labels = helperFunctions.makeConsecutive(example_tensor,labels)
-    assert len(example_tensor[0]) != len(consecutive_tensor) or len(Config.class_split["knowns_clss"])==Config.parameters["CLASSES"][0]
+    consecutive_tensor, consecutive_labels = helperFunctions.renameClassesLabeled(example_tensor,labels)
+    assert len(example_tensor[0]) != len(consecutive_tensor[0]) or len(Config.class_split["knowns_clss"])==Config.parameters["CLASSES"][0]
     assert consecutive_labels.max() < len(Config.class_split["knowns_clss"])
-    assert torch.all(consecutive_tensor.argmax(dim=1)==consecutive_labels[:,0])
-
-    #test to make sure it was a shallow copy (we want it to be shallow)
-    label_was = labels[0][0].item()
-    labels[0][0] = Config.parameters["CLASSES"][0]+1
-    assert not torch.all(consecutive_tensor.argmax(dim=1)==consecutive_labels[:,0])
-    labels[0][0] = label_was
-    assert torch.all(consecutive_tensor.argmax(dim=1)==consecutive_labels[:,0])
-    #also testing the other direction
-    tensor_was = consecutive_tensor[0][0].item()
-    consecutive_tensor[0][0] = Config.parameters["CLASSES"][0]+1
-    assert not torch.all(example_tensor.argmax(dim=1)==labels[:,0])
-    consecutive_tensor[0][0] = tensor_was
-    assert torch.all(example_tensor.argmax(dim=1)==labels[:,0])
+    assert torch.all(consecutive_tensor[consecutive_tensor.max(dim=1)[0].gt(0)].argmax(dim=1)==consecutive_labels[consecutive_tensor.max(dim=1)[0].gt(0),0])
