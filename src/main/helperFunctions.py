@@ -74,6 +74,18 @@ def printconfmat(outputs:torch.Tensor,labels:torch.Tensor):
 
 
 
+def configMod_testRotate(stage=0, step=0):
+    if Config.loops2[stage] == "optimizer":
+        Config.parameters[Config.loops2[stage]] = Config.loops[stage][step]
+    elif Config.loops2[stage] == "Unknowns":
+        Config.class_split["unknowns_clss"] = Config.loops[stage][step]
+        Config.parameters["Unknowns"] = f"{len(Config.loops[stage][step])} Unknowns"
+        Config.class_split["knowns_clss"] = Config.loopOverUnknowns(Config.class_split["unknowns_clss"])
+        setrelabel()
+    elif Config.loops2[stage] == "None":
+        pass
+    else:
+        Config.parameters[Config.loops2[stage]][0] = Config.loops[stage][step]
 
 #Handels running the loop
 def testRotate(notes=(0,0,0)):
@@ -104,40 +116,20 @@ def testRotate(notes=(0,0,0)):
     if step+1 < len(Config.loops[stage]):
         step = step+1
 
-        if Config.loops2[stage] == "optimizer":
-            Config.parameters[Config.loops2[stage]] = Config.loops[stage][step]
-        elif Config.loops2[stage] == "Unknowns":
-            Config.class_split["unknowns_clss"] = Config.loops[stage][step]
-            Config.parameters["Unknowns"] = f"{len(Config.loops[stage][step])} Unknowns"
-            Config.class_split["knowns_clss"] = Config.loopOverUnknowns(Config.class_split["unknowns_clss"])
-            setrelabel()
-        elif Config.loops2[stage] == "None":
-            pass
-        else:
-            Config.parameters[Config.loops2[stage]][0] = Config.loops[stage][step]
+        configMod_testRotate(stage,step)
 
         return (stage,step,al)
 
     #reset this stage
     step = 0
 
-    if Config.loops2[stage] == "optimizer":
-        Config.parameters[Config.loops2[stage]] = Config.loops[stage][step]
-    elif Config.loops2[stage] == "Unknowns":
-        Config.class_split["unknowns_clss"] = Config.loops[stage][step]
-        Config.parameters["Unknowns"] = f"{len(Config.loops[stage][step])} Unknowns"
-        Config.class_split["knowns_clss"] = Config.loopOverUnknowns(Config.class_split["unknowns_clss"])
-        setrelabel()
-    elif Config.loops2[stage] == "None":
-            pass
-    else:
-        Config.parameters[Config.loops2[stage]][0] = Config.loops[stage][step]
+    configMod_testRotate(stage,step)
 
     #Go to next stage
     if stage+1 < len(Config.loops):
         stage = stage+1
         #Skip the next rotate algorithm step and just go to rotate step
-        return testRotate((stage,step,al))
+        return (stage,step,al)
 
     #Reset stage
     stage = 0
@@ -209,6 +201,8 @@ def getcurrentlychanged(notes):
     if currentlyChanging == "None":
         return f"algorithm"
     currentSetting = Config.loops[notes[0]][notes[1]]
+    if notes[1] == 0:
+        currentSetting = "Default"
     return str(algorithm)+" "+str(currentlyChanging)+" "+str(currentSetting)
 
 #This puts the notes into a readable form
@@ -222,11 +216,9 @@ def getcurrentlychanged_Stage(notes):
     it outputs a string saying what algorithm is being used with what changing parameter and the current setting of that parameter
     """
 
-    algorithm = Config.alg[notes[2]]
     currentlyChanging = Config.loops2[notes[0]]
     if currentlyChanging == "None":
         return f"algorithm"
-    currentSetting = Config.loops[notes[0]][notes[1]]
     return str(currentlyChanging)
 
 #This bit of code will loop through the entire loop and print all of the variations.

@@ -299,8 +299,8 @@ def loopType1(main=run_model,measurement=FileHandling.addMeasurement):
     #If it is loop type 1 (changing parameters loop):
     if Config.parameters["LOOP"][0] == 1:
         step = (0,0,0) #keeps track of what is being updated.
-        measurement("Currently Modifying",helperFunctions.getcurrentlychanged(step))
-        measurement("Currently Modifying Stage",helperFunctions.getcurrentlychanged_Stage(step))
+        measurement("Currently Modifying","Default")
+        measurement("Currently Modifying Stage","Default")
         
 
         #Loops until the loop function disables the loop.
@@ -340,7 +340,7 @@ def loopType2(main=run_model,measurement=FileHandling.addMeasurement):
     #Same structure as above.
     if Config.parameters["LOOP"][0] == 2:
         step = (0) 
-        measurement("Currently Modifying",f"Incremental with {Config.parameters['Unknowns']} unknowns")
+        measurement("Currently Modifying",f"Incremental TRAINING with {Config.parameters['Unknowns']} unknowns")
         while Config.parameters["LOOP"][0]:
             step = helperFunctions.incrementLoop(step)
             if step:

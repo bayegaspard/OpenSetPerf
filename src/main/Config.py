@@ -154,9 +154,9 @@ optim = [opt_func["Adam"]]
 # alg.insert(0,parameters["OOD Type"][0])
 
 #This is an array to eaiser loop through everything.
-loops = [batch,datapoints_per_class,learning_rates,epochs,activation,groups,["ClassChunk","Dendrogramlimit"]]
+loops = [batch,datapoints_per_class,learning_rates,epochs,activation,["ClassChunk","Dendrogramlimit"]]
 # loops = [groups]
-loops2 = ["batch_size","MaxPerClass","learningRate","num_epochs","Activation","Unknowns","Datagrouping"]
+loops2 = ["batch_size","MaxPerClass","learningRate","num_epochs","Activation","Datagrouping"]
 # loops2 = ["Unknowns"]
 for i in range(len(loops)):
     if loops2[i] == "Unknowns":
