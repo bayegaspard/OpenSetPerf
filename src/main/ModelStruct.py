@@ -131,7 +131,7 @@ class AttackTrainingClassification(nn.Module):
         return x
         
 
-    def fit(self, epochs, lr, train_loader, test_loader,val_loader, opt_func):
+    def fit(self, epochs, lr, train_loader, test_loader,val_loader, opt_func, measurement=FileHandling.addMeasurement):
         """
         Trains the model on the train_loader and evaluates it off of the val_loader. Also it stores all of the results in model.store.
         It also generates a new line of ScoresAll.csv that stores all of the data for this model. (note: if you are running two threads at once the data will be overriden)
@@ -164,7 +164,8 @@ class AttackTrainingClassification(nn.Module):
         else:
             sch = None
         self.los = helperFunctions.LossPerEpoch("TestingDuringTrainEpochs.csv")
-        FileHandling.create_params_All()
+        if measurement == FileHandling.addMeasurement:
+            FileHandling.create_params_All()
         # torch.cuda.empty_cache()
         if epochs > 0:
             for epoch in range(epochs):
@@ -194,13 +195,14 @@ class AttackTrainingClassification(nn.Module):
                     sch.step()
                 
 
-                if epoch > epochs-5:
-                    self.savePoint(f"Saves/models", epoch+startingEpoch)
-
                 # Validation phase
                 result = self.evaluate(val_loader)
+
+                if epoch > epochs-5 or result['val_acc'] > 0.7:
+                    self.savePoint(f"Saves/models", epoch+startingEpoch)
+
                 result['train_loss'] = torch.stack(train_losses).mean().item()
-                FileHandling.addMeasurement(f"Epoch{epoch+startingEpoch} loss",result['train_loss'])
+                measurement(f"Epoch{epoch+startingEpoch} loss",result['train_loss'])
                 result["epoch"] = epoch+startingEpoch
                 self.epoch_end(epoch+startingEpoch, result)
                 #print("result", result)
@@ -434,7 +436,7 @@ class AttackTrainingClassification(nn.Module):
 
     
     #This loops through all the thresholds without resetting the model.
-    def thresholdTest(net,val_loader):
+    def thresholdTest(net,val_loader,measurement=FileHandling.addMeasurement):
         """
         This tests the results from val_loader at various thresholds and saves it to scoresAll.csv
         """
@@ -463,7 +465,7 @@ class AttackTrainingClassification(nn.Module):
             f1 = 2 * (precision * recall) / (precision + recall)
             #save the f1 score
             FileHandling.create_params_Fscore("",f1,x)
-            FileHandling.addMeasurement(f"Threshold {x} Fscore",f1)
+            measurement(f"Threshold {x} Fscore",f1)
 
             #Generate and save confusion matrix
             # if plots.name_override:

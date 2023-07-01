@@ -5,19 +5,17 @@ root_folder = os.path.abspath(os.path.dirname(os.path.dirname(os.path.abspath(__
 sys.path.append(root_folder)
 sys.path.append(f"{root_folder}/src/main")
 sys.path.append(f"{root_folder}/src/CodeFromImplementations")
-import src.main.EndLayer as EndLayer
 # import src.main.Config as Config
 import src.main.main as main
-import torch
-import src.main.FileHandling as FileHandling
-import src.main.Dataload as Dataload
-from torch.utils.data import DataLoader
 
 main.Config.parameters["MaxPerClass"][0] = 10
 
 
 
 def testLoop1Uniqueness():
+    """
+    Tests if Loop 1 has all unique values
+    """
     global loopNames
     global count
     count = 0
@@ -31,11 +29,15 @@ def testLoop1Uniqueness():
             global loopNames
             assert not item in loopNames
             loopNames.add(item)
+        assert isinstance(itemDescription,str)
     
     main.Config.parameters["LOOP"][0] = 1
     main.loopType1(nothing,addtoLoopNames)
 
 def testLoop2Uniqueness():
+    """
+    Tests if loop 2 has unique vlaues. Note that Loop 2 is not used anymore
+    """
     global loopNames
     global count
     count = 0
@@ -49,6 +51,19 @@ def testLoop2Uniqueness():
             global loopNames
             assert not item in loopNames
             loopNames.add(item)
+        assert isinstance(itemDescription,str)
     
-    main.Config.parameters["LOOP"][0] = 1
+    main.Config.parameters["LOOP"][0] = 2
     main.loopType2(nothing,addtoLoopNames)
+
+def testLoop3looping():
+    """
+    Tests if loop 3 works properly
+    """
+    def nothing():
+        pass
+    def nothing2(item1,item2):
+        pass
+    main.Config.parameters["loopLevel"] = [0,"testing"]
+    main.Config.parameters["LOOP"][0] = 3
+    main.loopType3(nothing,nothing2)

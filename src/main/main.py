@@ -25,9 +25,11 @@ if __name__ == "__main__":
 opt_func = Config.parameters["optimizer"]
 device = GPU.get_default_device() # selects a device, cpu or gpu
 
-def run_model():
+def run_model(measurement=FileHandling.addMeasurement):
     """
-    run_model() takes no parameters and runs the model according to the current model configurations in Config.py
+    run_model() takes up to one parameter and runs the model according to the current model configurations in Config.py
+    parameter:
+        Measurement - is a function that stores data gathered from the model, the data is in the form of (type_of_data,value_of_data)
     run_model() does not return anything but outputs are saved in Saves/
     
     """
@@ -96,7 +98,7 @@ def run_model():
 
     starttime = time.time()
     #Model.fit is what actually runs the model. It outputs some kind of history array?
-    history_final += model.fit(Config.parameters["num_epochs"][0], Config.parameters["learningRate"][0], train_loader, test_loader,val_loader, opt_func=opt_func)
+    history_final += model.fit(Config.parameters["num_epochs"][0], Config.parameters["learningRate"][0], train_loader, test_loader,val_loader, opt_func=opt_func, measurement=measurement)
 
 
     #This big block of commented code is to create confusion matricies that we thought could be misleading,
@@ -112,16 +114,16 @@ def run_model():
 
 
 
-    FileHandling.addMeasurement(f"Length train",len(train))
-    FileHandling.addMeasurement(f"Length validation",len(val))
-    FileHandling.addMeasurement(f"Length test",len(test))
+    measurement(f"Length train",len(train))
+    measurement(f"Length validation",len(val))
+    measurement(f"Length test",len(test))
 
     #Validation values
     f1, recall, precision, accuracy = helperFunctions.getFscore(model.store)
-    FileHandling.addMeasurement("Val_F1",f1)
-    FileHandling.addMeasurement("Val_Recall",recall)
-    FileHandling.addMeasurement("Val_Precision",precision)
-    FileHandling.addMeasurement("Val_Accuracy",accuracy)
+    measurement("Val_F1",f1)
+    measurement("Val_Recall",recall)
+    measurement("Val_Precision",precision)
+    measurement("Val_Accuracy",accuracy)
 
 
     #Sets the model to really be sure to be on evaluation mode and not on training mode. (Affects dropout)
@@ -138,52 +140,9 @@ def run_model():
 
 
 
-
-
-    #Resets the stored values that are used to generate the above values.
-    model.storeReset()
-
-    #model.evaluate() runs only the evaluation stage of running the model. model.fit() calls model.evaluate() after epochs
-    model.evaluate(test_loader)
-    
-    model.eval()
+    runExistingModel(model,test_loader,"Test",history_final,class_names)
 
     
-    #this creates plots as long as the model is not looping. 
-    # It is annoying when the model stops just to show you things when you are trying to run the model overnight
-    if not Config.parameters["LOOP"][0]:
-        plots.plot_all_losses(history_final)
-        plots.plot_losses(history_final)
-        plots.plot_accuracies(history_final)
-
-
-    #Generates the values when unknowns are thrown in to the testing set.
-    f1, recall, precision, accuracy = helperFunctions.getFscore(model.store)
-    FileHandling.addMeasurement("Test_F1",f1)
-    FileHandling.addMeasurement("Test_Recall",recall)
-    FileHandling.addMeasurement("Test_Precision",precision)
-    FileHandling.addMeasurement("Test_Accuracy",accuracy)
-    FileHandling.addMeasurement("Found_Unknowns",helperFunctions.getFoundUnknown(model.store))
-
-    FileHandling.create_params_Fscore(root_path,f1)
-
-    if not Config.parameters["LOOP"][0]:
-        #More matrix stuff that we removed.
-        cnf_matrix = plots.confusionMatrix(model.store) 
-        plots.plot_confusion_matrix(cnf_matrix, classes=class_names, normalize=True,
-                    title=f'{Config.parameters["OOD Type"][0]} Test', knowns = knownVals)
-
-
-    
-    #This stores and prints the final results.
-    score_list = [recall,precision,f1]
-    FileHandling.write_hist_to_file(history_final,Config.parameters["num_epochs"][0],model.end.type)
-    FileHandling.write_scores_to_file(score_list,Config.parameters["num_epochs"][0],model.end.type)
-    print("Type : ",model.end.type)
-    print(f"Now changing : {plots.name_override}")
-    print(f"F-Score : {f1*100:.2f}%")
-    print(f"Precision : {precision*100:.2f}%")
-    print(f"Recall : {recall*100:.2f}%")
 
 
     #AUTOTHRESHOLD
@@ -211,30 +170,11 @@ def run_model():
                 if model.end.type == "Energy":
                     model.end.cutoff = -model.end.cutoff
 
-        #Resets the stored values that are used to generate the above values.
-        model.storeReset()
-        #model.evaluate() runs only the evaluation stage of running the model. model.fit() calls model.evaluate() after epochs
-        model.eval()
-        model.evaluate(test_loader)
+        runExistingModel(model,test_loader,"AUTOTHRESHOLD_Test",history_final,class_names)
 
-        
-        #this creates plots as long as the model is not looping. 
-        # It is annoying when the model stops just to show you things when you are trying to run the model overnight
-        if not Config.parameters["LOOP"][0]:
-            plots.plot_all_losses(history_final)
-            plots.plot_losses(history_final)
-            plots.plot_accuracies(history_final)
+        measurement("AUTOTHRESHOLD",model.end.cutoff)
+        measurement("AUTOTHRESHOLD_Trained_on_length",len(model.end.rocData[0]))
 
-
-        #Generates the values when unknowns are thrown in to the testing set.
-        f1, recall, precision, accuracy = helperFunctions.getFscore(model.store)
-        FileHandling.addMeasurement("AUTOTHRESHOLD",model.end.cutoff)
-        FileHandling.addMeasurement("AUTOTHRESHOLD_Trained_on_length",len(model.end.rocData[0]))
-        FileHandling.addMeasurement("AUTOTHRESHOLD_Test_F1",f1)
-        FileHandling.addMeasurement("AUTOTHRESHOLD_Test_Recall",recall)
-        FileHandling.addMeasurement("AUTOTHRESHOLD_Test_Precision",precision)
-        FileHandling.addMeasurement("AUTOTHRESHOLD_Test_Accuracy",accuracy)
-        FileHandling.addMeasurement("AUTOTHRESHOLD_Found_Unknowns",helperFunctions.getFoundUnknown(model.store))
 
 
 
@@ -249,10 +189,10 @@ def run_model():
 
         #Validation values
         f1, recall, precision, accuracy = helperFunctions.getFscore(model.store)
-        FileHandling.addMeasurement("Soft_Val_F1",f1)
-        FileHandling.addMeasurement("Soft_Val_Recall",recall)
-        FileHandling.addMeasurement("Soft_Val_Precision",precision)
-        FileHandling.addMeasurement("Soft_Val_Accuracy",accuracy)
+        measurement("Soft_Val_F1",f1)
+        measurement("Soft_Val_Recall",recall)
+        measurement("Soft_Val_Precision",precision)
+        measurement("Soft_Val_Accuracy",accuracy)
 
         if not Config.parameters["LOOP"][0]:
             #More matrix stuff that we removed.
@@ -264,10 +204,10 @@ def run_model():
 
         #Validation values
         f1, recall, precision, accuracy = helperFunctions.getFscore(model.store)
-        FileHandling.addMeasurement("Soft_Test_F1",f1)
-        FileHandling.addMeasurement("Soft_Test_Recall",recall)
-        FileHandling.addMeasurement("Soft_Test_Precision",precision)
-        FileHandling.addMeasurement("Soft_Test_Accuracy",accuracy)
+        measurement("Soft_Test_F1",f1)
+        measurement("Soft_Test_Recall",recall)
+        measurement("Soft_Test_Precision",precision)
+        measurement("Soft_Test_Accuracy",accuracy)
 
         if not Config.parameters["LOOP"][0]:
             #More matrix stuff that we removed.
@@ -291,7 +231,71 @@ def run_model():
 
     plt.close()
 
-def loopType1(main,measurement):
+def runExistingModel(model,data,name,history_final,class_names,measurement=FileHandling.addMeasurement):
+    """
+    Runs an existing and loaded model.
+    
+    Parameters:
+        Model - loaded model object with preset weights
+        data - dataloader used to generate the data
+        name - string to specify the name of the collected data
+        history_final - results from fitting the model (Not sure why we need this or what it is)
+        class_names - generated class names for the confusion matrix
+        measurement (optional) - Function that is passed the results from the model in the form of (type_of_data,value_of_data)
+    """
+    #Resets the stored values that are used to generate the above values.
+    model.storeReset()
+
+    #model.evaluate() runs only the evaluation stage of running the model. model.fit() calls model.evaluate() after epochs
+    model.evaluate(data)
+    
+    model.eval()
+
+    
+    #this creates plots as long as the model is not looping. 
+    # It is annoying when the model stops just to show you things when you are trying to run the model overnight
+    if not Config.parameters["LOOP"][0]:
+        plots.plot_all_losses(history_final)
+        plots.plot_losses(history_final)
+        plots.plot_accuracies(history_final)
+
+
+    #Generates the values when unknowns are thrown in to the testing set.
+    f1, recall, precision, accuracy = helperFunctions.getFscore(model.store)
+    measurement(f"{name}_F1",f1)
+    measurement(f"{name}_Recall",recall)
+    measurement(f"{name}_Precision",precision)
+    measurement(f"{name}_Accuracy",accuracy)
+    measurement(f"{name}_Found_Unknowns",helperFunctions.getFoundUnknown(model.store))
+
+    FileHandling.create_params_Fscore(root_path,f1)
+
+    if not Config.parameters["LOOP"][0]:
+        #More matrix stuff that we removed.
+        cnf_matrix = plots.confusionMatrix(model.store) 
+        plots.plot_confusion_matrix(cnf_matrix, classes=class_names, normalize=True, title=f'{Config.parameters["OOD Type"][0]} Test', knowns = Config.class_split["knowns_clss"])
+
+
+    
+    #This stores and prints the final results.
+    score_list = [recall,precision,f1]
+    FileHandling.write_hist_to_file(history_final,Config.parameters["num_epochs"][0],model.end.type)
+    FileHandling.write_scores_to_file(score_list,Config.parameters["num_epochs"][0],model.end.type)
+    print("Type : ",model.end.type)
+    print(f"Now changing : {plots.name_override}")
+    print(f"F-Score : {f1*100:.2f}%")
+    print(f"Precision : {precision*100:.2f}%")
+    print(f"Recall : {recall*100:.2f}%")
+
+def loopType1(main=run_model,measurement=FileHandling.addMeasurement):
+    """
+    Tests if loop type 1 is true and if it is runs loop type 1.
+    Note, this should be run after the model is run for the first time.
+
+    parameters:
+        main - the main function to run, this should be run_model unless being tested.
+        measurement - Function that is passed the results from the model in the form of (type_of_data,value_of_data)
+    """
     #If it is loop type 1 (changing parameters loop):
     if Config.parameters["LOOP"][0] == 1:
         step = (0,0,0) #keeps track of what is being updated.
@@ -323,7 +327,15 @@ def loopType1(main,measurement):
                 measurement("Currently Modifying",plots.name_override)
                 measurement("Currently Modifying Stage",helperFunctions.getcurrentlychanged_Stage(step))
 
-def loopType2(main,measurement):
+def loopType2(main=run_model,measurement=FileHandling.addMeasurement):
+    """
+    Tests if loop type 2 is true and if it is runs loop type 2.
+    Note, this should be run after the model is run for the first time.
+
+    parameters:
+        main - the main function to run, this should be run_model unless being tested.
+        measurement - Function that is passed the results from the model in the form of (type_of_data,value_of_data)
+    """
     #If it is loop type 2 (iterative unknowns loop):
     #Same structure as above.
     if Config.parameters["LOOP"][0] == 2:
@@ -338,6 +350,24 @@ def loopType2(main,measurement):
                 print(f"unknowns: {Config.class_split['unknowns_clss']}")
                 main()
                 measurement("Currently Modifying",plots.name_override)
+
+def loopType3(main=run_model,measurement=FileHandling.addMeasurement):
+    """
+    Tests if loop type 3 is true and if it is runs loop type 3.
+    Note, this should be run after the model is run for the first time.
+
+    parameters:
+        main - the main function to run, this should be run_model unless being tested.
+        measurement - Function that is passed the results from the model in the form of (type_of_data,value_of_data)
+    """
+    if Config.parameters["LOOP"][0] == 3:
+        while Config.parameters["LOOP"][0]:
+            helperFunctions.resilianceLoop()
+            plt.clf()
+            plots.name_override = f"Reisiliance with {Config.parameters['Unknowns']} unknowns"
+            plt.figure(figsize=(4,4))
+            measurement(f"Row of percentages", Config.parameters['loopLevel'])
+            main()
 
 def main():
     """
@@ -366,7 +396,7 @@ def main():
 
     loopType1(run_model,FileHandling.addMeasurement)
     loopType2(run_model,FileHandling.addMeasurement)
-    
+    loopType3(run_model,FileHandling.addMeasurement)
     
 
 

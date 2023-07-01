@@ -183,7 +183,15 @@ def incrementLoop(notes=(0)):
     FileHandling.incrementLoopModData(list(set(Config.incGroups[notes-1])-set(Config.incGroups[notes])))
     return notes
 
-
+#Resiliance loop
+def resilianceLoop():
+    current = Config.parameters["loopLevel"][0]
+    file = pd.read_csv("datasets/percentages.csv", index_col=None)
+    if current+1<len(file):
+        Config.parameters["loopLevel"][0] = current+1
+        Config.parameters["threshold"][0] = Config.thresholds[file["Threshold "].iloc[current+1]-1]
+    else:
+        Config.parameters["LOOP"][0] = 0
 
 #This puts the notes into a readable form
 #notes are how it keeps track of where in the loop it is.

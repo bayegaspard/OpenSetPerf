@@ -335,6 +335,8 @@ def addMeasurement(name:str,val,path=""):
         return
     total = pd.read_csv(os.path.join(path,"Saves","Scoresall.csv"),index_col=0)
     #print(f"last valid index = {total.last_valid_index()} item name= {name}, item value={val}")
+    if name in total and not (pd.isnull(total.at[total.last_valid_index(),name]) or name in ["Number Of Failures"]):
+        total.at[total.last_valid_index(),"A spot has already been filled?"] = "An error has occured"
     total.at[total.last_valid_index(),name] = val
     total.to_csv(os.path.join(path,"Saves","Scoresall.csv"))
 

@@ -100,8 +100,9 @@ alg = ["Soft","Open","Energy","COOL","DOC","iiMod"]
 batch = [100,1000,10000,100000]
 datapoints_per_class = [10,100,1000]
 thresholds = [0.1,1,10]
+thresholds = [30,20,15,5]
 learning_rates = [0.1,0.01,0.001,0.0001]
-activation = ["ReLU", "Tanh", "Sigmoid"]
+activation = ["ReLU", "Tanh", "Sigmoid","Leaky"]
 groups = [[2],[2,3],[2,3,4],[2,3,4,5],[2,3,4,5,6],[2,3,4,5,6,7],[1,2,3,4,5,6,7],[1,2,3,4,5,6,7,8]]
 #groups = [[7,8,9]]
 if parameters["Dataset"][0] == "Payload_data_CICIDS2017":
@@ -110,7 +111,7 @@ if parameters["Dataset"][0] == "Payload_data_CICIDS2017":
 else:
     incGroups = [[2,3,4,5,6,7,8,9],[3,4,5,6,7,8,9],[4,5,6,7,8,9],[5,6,7,8,9],[6,7,8,9],[7,8,9],[8,9],[9]]
 epochs= []
-epochs = [1,10,100]
+epochs = [1,10,100,150]
 
 
 # groups = [list(range(2,parameters["CLASSES"][0]))]
@@ -199,6 +200,12 @@ def algorithmSpecificSettings(alg="None"):
     if alg == "iiMod":
         parameters["threshold"][0] = 102064.4453
     
+if parameters["LOOP"][0] == 3:
+    parameters["num_epochs"][0] = 0
+    parameters["loopLevel"] = [0,"What percentages the model is on"]
+    parameters["MaxSamples"] = [parameters["MaxPerClass"][0], "Max number of samples total"]
+
+
 #Getting version number
 #https://gist.github.com/sg-s/2ddd0fe91f6037ffb1bce28be0e74d4e
 f = open("build_number.txt","r")
@@ -210,3 +217,4 @@ if __name__ == "__main__":
     use_alg_thesholds=True
     algorithmSpecificSettings(parameters["OOD Type"][0])
     main.main()
+

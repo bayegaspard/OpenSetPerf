@@ -8,8 +8,9 @@ rev=False
 bar=False
 logX=False
 scatter = False
+row_labels = True
 
-#File: ScoresAll(autorecovered)2/sheet1
+# File: ScoresAll(autorecovered)2/sheet1
 # fileNames = ["TestF1","TestAccuracy","TestRecall","TestPrecision","FoundUnknowns","KnownsF1","KnownsAccuracy","KnownsRecall","KnownsPrecision"]
 # axisNames = ["F1 Score","Accuracy","Recall","Precision","Percent of Unknowns Found","F1 Score","Accuracy","Recall","Precision"]
 # rev = True
@@ -21,9 +22,9 @@ scatter = False
 # scatter = True
 # graphNumber = 0
 
-fileNames = ["TestF1_LR","FoundUnknowns_LR","KnownsF1_LR"]
-axisNames = ["F1 Score","Percentage of Unknowns Found","F1 Score"]
-logX=True
+# fileNames = ["TestF1_LR","FoundUnknowns_LR","KnownsF1_LR"]
+# axisNames = ["F1 Score","Percentage of Unknowns Found","F1 Score"]
+# logX=True
 
 #File: ScoresLoop/toPrint2
 # fileNames = ["AccuracyTest_Activation","RecallTest_Activation","PrecisionTest_Activation","AccuracyVal_Activation","RecallVal_Activation","PrecisionVal_Activation","AccuracyTest_LR","RecallTest_LR","PrecisionTest_LR","AccuracyVal_LR","RecallVal_LR","PrecisionVal_LR","AccuracyTest_DPPerClass","RecallTest_DPPerClass","PrecisionTest_DPPerClass","AccuracyVal_DPPerClass","RecallVal_DPPerClass","PrecisionVal_DPPerClass"]
@@ -32,7 +33,13 @@ logX=True
 # scatter = True
 # graphNumber = 0
 
+#File: Current scores Loop
+fileNames = ["TestF1_BatchSize","FoundUnknowns_BatchSize","KnownsF1_BatchSize","TestF1_Grouping","FoundUnknowns_Grouping","KnownsF1_Grouping","TestF1_LR","FoundUnknowns_LR","KnownsF1_LR","TestF1_DPPerClass","FoundUnknowns_DPPerClass","KnownsF1_DPPerClass","TestF1_Epochs","FoundUnknowns_Epochs","KnownsF1_Epochs"]
+axisNames = ["F1 Score","Percentage of Unknowns Found","F1 Score","F1 Score","Percentage of Unknowns Found","F1 Score","F1 Score","Percentage of Unknowns Found","F1 Score"]
+row_labels = False
+
 for graphNumber in range(len(fileNames)):
+    input(f"{fileNames[graphNumber]} please.")
     df = pd.read_clipboard(index_col=0)
 
     if not bar:
@@ -43,7 +50,7 @@ for graphNumber in range(len(fileNames)):
         fig = px.bar(df)
     if graphNumber>4 and rev:
         fig.update_xaxes(autorange="reversed")
-    fig.update_layout(yaxis_title=axisNames[graphNumber],paper_bgcolor="rgba(0,0,0,0)",plot_bgcolor="rgba(0,0,0,0)",font={"size":18,"color":"rgba(0,0,0,255)"})
+    fig.update_layout(yaxis_title=axisNames[graphNumber%len(axisNames)],xaxis_title="",paper_bgcolor="rgba(0,0,0,0)",plot_bgcolor="rgba(0,0,0,0)",font={"size":18,"color":"rgba(0,0,0,255)"},legend_title_text='Algorithm')
     fig.update_yaxes(range=[0, 1],gridcolor="rgba(200,200,200,50)",zerolinecolor="rgba(200,200,200,50)",zerolinewidth=1)
     fig.update_xaxes(gridcolor="rgba(200,200,200,50)",zerolinecolor="rgba(200,200,200,50)",zerolinewidth=1,exponentformat='power')
     #from: https://www.datacamp.com/cheat-sheet/plotly-express-cheat-sheet
@@ -85,8 +92,8 @@ for graphNumber in range(len(fileNames)):
     fig.for_each_trace(traceLines)
 
     #fig.show()
-    fig.write_image(f"/Users/abroggi/Desktop/images/V2/{fileNames[graphNumber]}.png",scale=4)
+    fig.write_image(f"/Users/abroggi/Desktop/images/V3/{fileNames[graphNumber]}.png",scale=4)
 
     if graphNumber>=2:
         bar=False
-    input(f"{fileNames[graphNumber]} done. Next?")
+    

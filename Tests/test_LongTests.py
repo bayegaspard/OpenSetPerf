@@ -17,12 +17,18 @@ main.Config.parameters["MaxPerClass"][0] = 10
 
 
 def testrunall():
+    """
+    Tries run all of all algorithms.
+    """
     main.Config.unit_test_mode = True
     main.Config.parameters["num_epochs"][0] = 0
     main.Config.parameters["LOOP"][0] = 1
     main.main()
 
 def testMostSamples():
+    """
+    Tests if the computer can load all of the datapoints
+    """
     main.Config.parameters["num_epochs"][0] = 1
     main.Config.parameters["MaxPerClass"][0] = 10
     main.Config.unit_test_mode = True
