@@ -34,8 +34,8 @@ row_labels = True
 # graphNumber = 0
 
 #File: Current scores Loop
-fileNames = ["TestF1_BatchSize","FoundUnknowns_BatchSize","KnownsF1_BatchSize","TestF1_Grouping","FoundUnknowns_Grouping","KnownsF1_Grouping","TestF1_LR","FoundUnknowns_LR","KnownsF1_LR","TestF1_DPPerClass","FoundUnknowns_DPPerClass","KnownsF1_DPPerClass","TestF1_Epochs","FoundUnknowns_Epochs","KnownsF1_Epochs"]
-axisNames = ["F1 Score","Percentage of Unknowns Found","F1 Score","F1 Score","Percentage of Unknowns Found","F1 Score","F1 Score","Percentage of Unknowns Found","F1 Score"]
+fileNames = ["TestF1_Activation","FoundUnknowns_Activation","KnownsF1_Activation","TestF1_BatchSize","FoundUnknowns_BatchSize","KnownsF1_BatchSize","TestF1_Grouping","FoundUnknowns_Grouping","KnownsF1_Grouping","TestF1_LR","FoundUnknowns_LR","KnownsF1_LR","TestF1_DPPerClass","FoundUnknowns_DPPerClass","KnownsF1_DPPerClass","TestF1_Epochs","FoundUnknowns_Epochs","KnownsF1_Epochs"]
+axisNames = ["F1 Score","Percentage of Unknowns Found","F1 Score"]
 row_labels = False
 
 for graphNumber in range(len(fileNames)):

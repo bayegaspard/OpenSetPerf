@@ -22,7 +22,7 @@ def testrun():
     Tests if everything runs properly in a single run.
     """
     main.Config.unit_test_mode = True
-    main.run_model()
+    main.run_model(graphDefault=False)
 
 def testrunall():
     """
@@ -31,8 +31,23 @@ def testrunall():
     main.Config.unit_test_mode = True
     for x in main.Config.alg:
         main.Config.parameters["OOD Type"][0] = x
-        main.run_model()
+        main.run_model(graphDefault=False)
 
+def testrunEnergy():
+    """
+    Tries Energy as it gets some of the more intresting outputs even if it does not train much.
+    """
+    main.Config.unit_test_mode = True
+    main.Config.parameters["OOD Type"][0] = "Energy"
+    main.run_model(graphDefault=False)
+
+def testrunDOC():
+    """
+    DOC is being problematic.
+    """
+    main.Config.unit_test_mode = True
+    main.Config.parameters["OOD Type"][0] = "Energy"
+    main.run_model(graphDefault=False)
 
 def testrunFromSave():
     """
@@ -50,6 +65,6 @@ def testrunFromSave():
     main.Config.unit_test_mode = True
     main.Config.parameters["num_epochs"][0] = 0
     main.torch.manual_seed(1)
-    main.run_model(addtoLoopNames)
+    main.run_model(addtoLoopNames,graphDefault=False)
     main.torch.manual_seed(1)
-    main.run_model(checkifinloop)
+    main.run_model(checkifinloop,graphDefault=False)

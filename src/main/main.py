@@ -25,10 +25,11 @@ if __name__ == "__main__":
 opt_func = Config.parameters["optimizer"]
 device = GPU.get_default_device() # selects a device, cpu or gpu
 
-def run_model(measurement=FileHandling.addMeasurement):
+def run_model(measurement=FileHandling.addMeasurement, graphDefault=True):
     """
     run_model() takes up to one parameter and runs the model according to the current model configurations in Config.py
     parameter:
+        graphDefault - by default create graphs
         Measurement - is a function that stores data gathered from the model, the data is in the form of (type_of_data,value_of_data)
     run_model() does not return anything but outputs are saved in Saves/
     
@@ -127,7 +128,7 @@ def run_model(measurement=FileHandling.addMeasurement):
 
 
     #Sets the model to really be sure to be on evaluation mode and not on training mode. (Affects dropout)
-    if not Config.parameters["LOOP"][0]:
+    if not Config.parameters["LOOP"][0] and graphDefault:
         #More matrix stuff that we removed.
         cnf_matrix = plots.confusionMatrix(model.store) 
         plots.plot_confusion_matrix(cnf_matrix, classes=class_names, normalize=True,
@@ -140,7 +141,7 @@ def run_model(measurement=FileHandling.addMeasurement):
 
 
 
-    runExistingModel(model,test_loader,"Test",history_final,class_names)
+    runExistingModel(model,test_loader,"Test",history_final,class_names, graphDefault=graphDefault)
 
     
 
@@ -164,6 +165,11 @@ def run_model(measurement=FileHandling.addMeasurement):
             model.end.cutoff = -1
         else:
             roc_data = pd.DataFrame(roc_curve(model.end.rocData[0],model.end.rocData[1]))
+            #https://stackoverflow.com/a/62329743 (unused)
+            
+            new_row = ((1-roc_data.iloc[0])*roc_data.iloc[1])
+            #New row code: https://stackoverflow.com/a/72084365 (why was this so difficult, it is literally just adding a new row?)
+            roc_data = pd.concat([roc_data,new_row.to_frame().T]).reset_index(drop=True)
             roc_data.to_csv(f"Saves/roc/ROC_data_{Config.parameters['OOD Type'][0]}.csv")
             if len(roc_data.iloc[2][roc_data.iloc[1]>0.95])>0:
                 model.end.cutoff = roc_data.iloc[2][roc_data.iloc[1]>0.95].iloc[0]
@@ -174,6 +180,12 @@ def run_model(measurement=FileHandling.addMeasurement):
 
         measurement("AUTOTHRESHOLD",model.end.cutoff)
         measurement("AUTOTHRESHOLD_Trained_on_length",len(model.end.rocData[0]))
+
+        if not (np.isnan( model.end.rocData[1]).any()):
+            model.end.cutoff = roc_data.iloc[2][roc_data.iloc[3].idxmax()]
+            if model.end.type == "Energy":
+                model.end.cutoff = -model.end.cutoff
+            runExistingModel(model,test_loader,"AUTOTHRESHOLD2_Test",history_final,class_names)
 
 
 
@@ -194,7 +206,7 @@ def run_model(measurement=FileHandling.addMeasurement):
         measurement("Soft_Val_Precision",precision)
         measurement("Soft_Val_Accuracy",accuracy)
 
-        if not Config.parameters["LOOP"][0]:
+        if not Config.parameters["LOOP"][0] and graphDefault:
             #More matrix stuff that we removed.
             cnf_matrix = plots.confusionMatrix(model.store) 
             plots.plot_confusion_matrix(cnf_matrix, classes=class_names, normalize=True,
@@ -209,7 +221,7 @@ def run_model(measurement=FileHandling.addMeasurement):
         measurement("Soft_Test_Precision",precision)
         measurement("Soft_Test_Accuracy",accuracy)
 
-        if not Config.parameters["LOOP"][0]:
+        if not Config.parameters["LOOP"][0] and graphDefault:
             #More matrix stuff that we removed.
             cnf_matrix = plots.confusionMatrix(model.store) 
             plots.plot_confusion_matrix(cnf_matrix, classes=class_names, normalize=True,
@@ -231,7 +243,7 @@ def run_model(measurement=FileHandling.addMeasurement):
 
     plt.close()
 
-def runExistingModel(model,data,name,history_final,class_names,measurement=FileHandling.addMeasurement):
+def runExistingModel(model,data,name,history_final,class_names,measurement=FileHandling.addMeasurement,graphDefault = False):
     """
     Runs an existing and loaded model.
     
@@ -242,6 +254,7 @@ def runExistingModel(model,data,name,history_final,class_names,measurement=FileH
         history_final - results from fitting the model (Not sure why we need this or what it is)
         class_names - generated class names for the confusion matrix
         measurement (optional) - Function that is passed the results from the model in the form of (type_of_data,value_of_data)
+        graphDefault - the default for desplaying graphs, normally False
     """
     #Resets the stored values that are used to generate the above values.
     model.storeReset()
@@ -254,7 +267,7 @@ def runExistingModel(model,data,name,history_final,class_names,measurement=FileH
     
     #this creates plots as long as the model is not looping. 
     # It is annoying when the model stops just to show you things when you are trying to run the model overnight
-    if not Config.parameters["LOOP"][0]:
+    if not Config.parameters["LOOP"][0] and graphDefault:
         plots.plot_all_losses(history_final)
         plots.plot_losses(history_final)
         plots.plot_accuracies(history_final)
@@ -270,7 +283,7 @@ def runExistingModel(model,data,name,history_final,class_names,measurement=FileH
 
     FileHandling.create_params_Fscore(root_path,f1)
 
-    if not Config.parameters["LOOP"][0]:
+    if not Config.parameters["LOOP"][0] and graphDefault:
         #More matrix stuff that we removed.
         cnf_matrix = plots.confusionMatrix(model.store) 
         plots.plot_confusion_matrix(cnf_matrix, classes=class_names, normalize=True, title=f'{Config.parameters["OOD Type"][0]} Test', knowns = Config.class_split["knowns_clss"])
