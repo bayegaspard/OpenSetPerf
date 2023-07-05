@@ -22,3 +22,12 @@ def testRemovedVals():
     newTensor = helperFunctions.renameClasses(newTensor)
     for x in class_split["unknowns_clss"]:
         assert not x in newTensor
+
+    tensor = newTensor.clone()
+    for x in range(len(newTensor)):
+        newTensor[x] = torch.tensor(helperFunctions.relabel[newTensor[x].item()])
+    assert newTensor.max() <= parameters["CLASSES"][0]-len(class_split["unknowns_clss"])
+    for x in range(len(newTensor)):
+        newTensor[x] = torch.tensor(helperFunctions.rerelabel[newTensor[x].item()])
+
+    assert torch.all(newTensor==tensor)

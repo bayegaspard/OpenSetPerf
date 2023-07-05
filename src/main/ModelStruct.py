@@ -407,7 +407,13 @@ class AttackTrainingClassification(nn.Module):
             return
         if not os.path.exists(path):
             os.mkdir(path)
-        torch.save(net.state_dict(), path + f"/Epoch{epoch:03d}{Config.parameters['OOD Type'][0]}.pth")
+        to_save = {
+            "model_state": net.state_dict(),
+            "parameter_keys": Config.parameters.keys(),
+            "parameters": Config.parameters,
+            "class_split": Config.class_split
+        }
+        torch.save(to_save, path + f"/Epoch{epoch:03d}{Config.parameters['OOD Type'][0]}")
 
     def loadPoint(net, path: str):
         """
@@ -424,9 +430,16 @@ class AttackTrainingClassification(nn.Module):
         i = 999
         epochFound = -1
         while i >= 0:
-            if os.path.exists(path + f"/Epoch{i:03d}{Config.parameters['OOD Type'][0]}.pth"):
-                net.load_state_dict(torch.load(path + f"/Epoch{i:03d}{Config.parameters['OOD Type'][0]}.pth"))
-                print(f"Loaded  model /Epoch{i:03d}{Config.parameters['OOD Type'][0]}.pth")
+            if os.path.exists(path + f"/Epoch{i:03d}{Config.parameters['OOD Type'][0]}"):
+                loaded = torch.load(path + f"/Epoch{i:03d}{Config.parameters['OOD Type'][0]}")
+                net.load_state_dict(loaded["model_state"])
+                print(f"Loaded  model from /Epoch{i:03d}{Config.parameters['OOD Type'][0]}")
+                for x in loaded["parameter_keys"]:
+                    if loaded["parameters"][x][0] != Config.parameters[x][0]:
+                        print(f"Warning: {x} has been changed from when model was created")
+                for x in loaded["class_split"]["unknowns_clss"]:
+                    if not x in Config.class_split["unknowns_clss"]:
+                        print(f"Warning: Model trained with {x} as an unknown.")
                 epochFound = i
                 i = -1
             i = i - 1

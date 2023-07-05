@@ -9,6 +9,7 @@ import src.main.EndLayer as EndLayer
 # import src.main.Config as Config
 import src.main.main as main
 import torch
+import numpy as np
 import src.main.FileHandling as FileHandling
 import src.main.Dataload as Dataload
 from torch.utils.data import DataLoader
@@ -82,7 +83,7 @@ def testrunFromSave():
         vals[itemDescription] = item
     def checkifinloop(itemDescription,item):
         global vals
-        assert item==(vals[itemDescription])
+        assert item==(vals[itemDescription]) or (item is np.nan and vals[itemDescription] is np.nan)
     main.Config.unit_test_mode = True
     main.Config.parameters["num_epochs"][0] = 0
     main.torch.manual_seed(1)
