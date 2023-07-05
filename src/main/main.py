@@ -181,6 +181,10 @@ def run_model(measurement=FileHandling.addMeasurement, graphDefault=True):
         measurement("AUTOTHRESHOLD",model.end.cutoff)
         measurement("AUTOTHRESHOLD_Trained_on_length",len(model.end.rocData[0]))
 
+        if isinstance(model.end.rocData[0],torch.Tensor):
+            model.end.rocData[0] = model.end.rocData[0].cpu().numpy()
+        if isinstance(model.end.rocData[1],torch.Tensor):
+            model.end.rocData[1] = model.end.rocData[1].cpu().numpy()
         if not (np.isnan( model.end.rocData[1]).any()):
             model.end.cutoff = roc_data.iloc[2][roc_data.iloc[3].idxmax()]
             if model.end.type == "Energy":

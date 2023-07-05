@@ -17,7 +17,7 @@ sys.path.append(os.path.join(root_folder,"CodeFromImplementations"))
 
 import src.main.Config as Config
 import src.main.helperFunctions as helperFunctions
-
+from src.main.helperFunctions import NoExamples
 
 
 
@@ -170,7 +170,7 @@ def compute_train_score_and_mavs_and_dists(train_class_num,trainloader,device,ne
     for x in scores:
         if len(x) == 0:
             print(f"Class{a} has no examples")
-            raise helperFunctions.NoExamples()
+            raise NoExamples()
         a+=1
     scores = [torch.cat(x).cpu().numpy() for x in scores]  # (N_c, 1, C) * C
     mavs = np.array([np.mean(x, axis=0) for x in scores])  # (C, 1, C)

@@ -17,6 +17,7 @@ sys.path.append(root_folder)
 root_path = os.getcwd()
 
 import helperFunctions
+from src.main.helperFunctions import NoExamples
 
 class EndLayers():
 

@@ -26,9 +26,11 @@ def testrun():
 
 def testrunall():
     """
-    Tries all of the algorithms.
+    Tries all of the algorithms. Except Openmax
     """
     main.Config.unit_test_mode = True
+    if "Open" in main.Config.alg:
+        main.Config.alg.remove("Open")
     for x in main.Config.alg:
         main.Config.parameters["OOD Type"][0] = x
         main.run_model(graphDefault=False)
@@ -49,6 +51,25 @@ def testrunDOC():
     main.Config.parameters["OOD Type"][0] = "Energy"
     main.run_model(graphDefault=False)
 
+def testrunOpen():
+    """
+    Openmax is being problematic.
+    """
+    main.Config.unit_test_mode = True
+    main.Config.parameters["OOD Type"][0] = "Open"
+    main.run_model(graphDefault=False)
+
+def testLoadDataset():
+    main.torch.manual_seed(1)
+    train1, test1, val1 = FileHandling.checkAttempLoad("")
+    main.torch.manual_seed(1)
+    train2, test2, val2 = FileHandling.checkAttempLoad("")
+    for x,y in zip(train1,train2):
+        assert torch.all(x[0] == y[0])
+    
+
+
+
 def testrunFromSave():
     """
     Tests if saves work and if they result in the same answer if given the same seed.
@@ -61,7 +82,7 @@ def testrunFromSave():
         vals[itemDescription] = item
     def checkifinloop(itemDescription,item):
         global vals
-        assert item<(vals[itemDescription]*1.01) and item>(vals[itemDescription]*0.99)
+        assert item==(vals[itemDescription])
     main.Config.unit_test_mode = True
     main.Config.parameters["num_epochs"][0] = 0
     main.torch.manual_seed(1)

@@ -21,7 +21,8 @@ def testrunall():
     Tries run all of all algorithms.
     """
     main.Config.unit_test_mode = True
-    main.Config.parameters["num_epochs"][0] = 0
+    main.Config.parameters["num_epochs"][0] = 1
+    main.Config.parameters["attemptLoad"][0] = 1
     main.Config.parameters["LOOP"][0] = 1
     main.main()
 
