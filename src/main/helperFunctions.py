@@ -221,6 +221,20 @@ def getcurrentlychanged_Stage(notes):
         return f"algorithm"
     return str(currentlyChanging)
 
+def getcurrentlychanged_Step(notes):
+    """
+    getcurrentlychanged() turns the notes from the function testRotate() into a readable string to tag data with.
+
+    it takes one parameter:
+        -notes, a three integer tuple.
+    it outputs a string saying what algorithm is being used with what changing parameter and the current setting of that parameter
+    """
+
+    currentlyChanging = Config.loops[notes[1]][notes[0]]
+    if currentlyChanging == "None":
+        return f"Default"
+    return str(currentlyChanging)
+
 #This bit of code will loop through the entire loop and print all of the variations.
 def looptest():
     """

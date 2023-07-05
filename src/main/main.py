@@ -317,7 +317,8 @@ def loopType1(main=run_model,measurement=FileHandling.addMeasurement):
     if Config.parameters["LOOP"][0] == 1:
         step = (0,0,0) #keeps track of what is being updated.
         measurement("Currently Modifying","Default")
-        measurement("Currently Modifying Stage","Default")
+        measurement("Type of modification","Default")
+        measurement("Modification Level","Default")
         
 
         #Loops until the loop function disables the loop.
@@ -342,7 +343,8 @@ def loopType1(main=run_model,measurement=FileHandling.addMeasurement):
                 #Finally run the loop.
                 main()
                 measurement("Currently Modifying",plots.name_override)
-                measurement("Currently Modifying Stage",helperFunctions.getcurrentlychanged_Stage(step))
+                measurement("Type of modification",helperFunctions.getcurrentlychanged_Stage(step))
+                measurement("Modification Level",helperFunctions.getcurrentlychanged_Step(step))
 
 def loopType2(main=run_model,measurement=FileHandling.addMeasurement):
     """

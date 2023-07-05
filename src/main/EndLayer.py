@@ -12,7 +12,8 @@ import os
 import sys
 root_folder = os.path.abspath(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.append(root_folder)
-
+root_folder = os.path.abspath(os.path.dirname(root_folder))
+sys.path.append(root_folder)
 
 root_path = os.getcwd()
 
@@ -163,7 +164,7 @@ class EndLayers():
                 print("Warning: OpenMax has failed to load!")
                 failed = True
             #except LookupError:
-            except helperFunctions.NoExamples:
+            except NoExamples:
                 print("OpenMax failed to idenitify at least 1 class!")
                 self.weibulInfo["weibull"]=False
                 #Note: usual reason for failure is having no correct examples for at least 1 class.

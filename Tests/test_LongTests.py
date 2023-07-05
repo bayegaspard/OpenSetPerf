@@ -18,7 +18,7 @@ main.Config.parameters["MaxPerClass"][0] = 10
 
 def testrunall():
     """
-    Tries run all of all algorithms.
+    Tries run all of all algorithms with the settings.
     """
     main.Config.unit_test_mode = True
     main.Config.parameters["num_epochs"][0] = 1

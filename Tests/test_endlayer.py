@@ -21,6 +21,12 @@ class sampleNet(torch.nn.Module):
             testingTensor[x][x] = 1
         testingTensor = torch.tensor(testingTensor)
         return testingTensor, torch.tensor(list(zip(testingTensor.argmax(dim=1),testingTensor.argmax(dim=1))))
+    def testingTensorFalure(self):
+        testingTensor = [[0]*Config.parameters["CLASSES"][0] for x in range(Config.parameters["CLASSES"][0])]
+        for x in range(Config.parameters["CLASSES"][0]):
+            testingTensor[x][Config.parameters["CLASSES"][0]-1] = 1
+        testingTensor = torch.tensor(testingTensor)
+        return testingTensor, torch.tensor(list(zip(testingTensor.argmax(dim=1),testingTensor.argmax(dim=1))))
     def forward(self, x: torch.Tensor):
         return x
 
@@ -77,6 +83,21 @@ def testAllEndlayers():
         assert isinstance(after_argmax,torch.Tensor)
         assert len(after_argmax) == 2
 
+def testOpenFailure():
+    """
+    Tests if openmax falure is working corectly.
+    """
+    net = sampleNet()
+    end = EndLayer.EndLayers(Config.parameters["CLASSES"][0])
+    end.prepWeibull([net.testingTensor()],torch.device('cpu'),net)
+
+    end.type = "Open"
+    example_tensor = torch.Tensor([range(Config.parameters["CLASSES"][0])]*2)
+    targets = torch.Tensor([[4,4],[5,Config.parameters["CLASSES"][0]]])
+    before_argmax = end.endlayer(example_tensor,targets)
+    after_argmax = before_argmax.argmax(dim=1)
+    assert isinstance(after_argmax,torch.Tensor)
+    assert len(after_argmax) == 2
 
 def testConsecutaveDimentions_a():
     """
