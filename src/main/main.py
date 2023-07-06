@@ -3,6 +3,9 @@ from torch.utils.data import DataLoader
 import numpy as np
 import torch
 import time
+import os
+from sklearn.metrics import roc_auc_score, roc_curve, RocCurveDisplay
+import pandas as pd
 
 # user defined modules
 import GPU, FileHandling
@@ -10,7 +13,6 @@ import plots
 import Dataload
 import ModelStruct
 import Config
-import os
 import helperFunctions
 
 root_path = os.getcwd()
@@ -23,9 +25,12 @@ if __name__ == "__main__":
 opt_func = Config.parameters["optimizer"]
 device = GPU.get_default_device() # selects a device, cpu or gpu
 
-def run_model():
+def run_model(measurement=FileHandling.addMeasurement, graphDefault=True):
     """
-    run_model() takes no parameters and runs the model according to the current model configurations in Config.py
+    run_model() takes up to one parameter and runs the model according to the current model configurations in Config.py
+    parameter:
+        graphDefault - by default create graphs
+        Measurement - is a function that stores data gathered from the model, the data is in the form of (type_of_data,value_of_data)
     run_model() does not return anything but outputs are saved in Saves/
     
     """
@@ -36,7 +41,7 @@ def run_model():
     FileHandling.generateHyperparameters(root_path) # generate hyper parameters copy files if they did not exist.
 
     #This is an example of how we get the values from Config now.
-    knownVals = Config.helper_variables["knowns_clss"]
+    knownVals = Config.class_split["knowns_clss"]
 
     #This just helps translate the config strings into model types. It is mostly unnesisary.
     model_list = {"Convolutional":ModelStruct.Conv1DClassifier,"Fully_Connected":ModelStruct.FullyConnected}
@@ -94,7 +99,7 @@ def run_model():
 
     starttime = time.time()
     #Model.fit is what actually runs the model. It outputs some kind of history array?
-    history_final += model.fit(Config.parameters["num_epochs"][0], Config.parameters["learningRate"][0], train_loader, test_loader,val_loader, opt_func=opt_func)
+    history_final += model.fit(Config.parameters["num_epochs"][0], Config.parameters["learningRate"][0], train_loader, test_loader,val_loader, opt_func=opt_func, measurement=measurement)
 
 
     #This big block of commented code is to create confusion matricies that we thought could be misleading,
@@ -103,76 +108,189 @@ def run_model():
     class_names = Dataload.get_class_names(knownVals) #+ Dataload.get_class_names(unknownVals)
     class_names.append("Unknown")
     class_names = Dataload.get_class_names(range(Config.parameters["CLASSES"][0]))
-    for x in Config.helper_variables["unknowns_clss"]:
+    for x in Config.class_split["unknowns_clss"]:
         class_names[x] = class_names[x]+"*"
     class_names.append("*Unknowns")
     #print("class names", class_names)
 
 
 
-    FileHandling.addMeasurement(f"Length train",len(train))
-    FileHandling.addMeasurement(f"Length validation",len(val))
-    FileHandling.addMeasurement(f"Length test",len(test))
+    measurement(f"Length train",len(train))
+    measurement(f"Length validation",len(val))
+    measurement(f"Length test",len(test))
 
     #Validation values
     f1, recall, precision, accuracy = helperFunctions.getFscore(model.store)
-    FileHandling.addMeasurement("Val_F1",f1)
-    FileHandling.addMeasurement("Val_Recall",recall)
-    FileHandling.addMeasurement("Val_Precision",precision)
-    FileHandling.addMeasurement("Val_Accuracy",accuracy)
+    measurement("Val_F1",f1)
+    measurement("Val_Recall",recall)
+    measurement("Val_Precision",precision)
+    measurement("Val_Accuracy",accuracy)
 
 
     #Sets the model to really be sure to be on evaluation mode and not on training mode. (Affects dropout)
-    if not Config.parameters["LOOP"][0]:
+    if not Config.parameters["LOOP"][0] and graphDefault:
         #More matrix stuff that we removed.
         cnf_matrix = plots.confusionMatrix(model.store) 
         plots.plot_confusion_matrix(cnf_matrix, classes=class_names, normalize=True,
                     title=f'{Config.parameters["OOD Type"][0]} Validation', knowns = knownVals)
 
+
+
+
+
+
+
+
+    runExistingModel(model,test_loader,"Test",history_final,class_names, graphDefault=graphDefault,print_vals=True)
+
+    
+
+
+    #AUTOTHRESHOLD
+
+    #This loops through a list of "Threshold" values because they do not require retraining the model.
+    # if model.end.type != "Soft":
+        # model.thresholdTest(test_loader)
+        # roc = RocCurveDisplay.from_predictions(model.end.rocData[0],model.end.rocData[1],name=model.end.type)
+        # roc.plot()
+        # plt.show()
+    if (not torch.all(model.end.rocData[0])) and (not torch.all(model.end.rocData[0]==False)):
+        if isinstance(model.end.rocData[0],torch.Tensor):
+            model.end.rocData[0] = model.end.rocData[0].cpu().numpy()
+        if isinstance(model.end.rocData[1],torch.Tensor):
+            model.end.rocData[1] = model.end.rocData[1].cpu().numpy()
+        
+        #isnan gotten from https://stackoverflow.com/a/913499
+        if (np.isnan( model.end.rocData[1]).any()):
+            model.end.cutoff = -1
+        else:
+            roc_data = pd.DataFrame(roc_curve(model.end.rocData[0],model.end.rocData[1]))
+            #https://stackoverflow.com/a/62329743 (unused)
+            
+            new_row = ((1-roc_data.iloc[0])*roc_data.iloc[1])
+            #New row code: https://stackoverflow.com/a/72084365 (why was this so difficult, it is literally just adding a new row?)
+            roc_data = pd.concat([roc_data,new_row.to_frame().T]).reset_index(drop=True)
+            roc_data.to_csv(f"Saves/roc/ROC_data_{Config.parameters['OOD Type'][0]}.csv")
+            if len(roc_data.iloc[2][roc_data.iloc[1]>0.95])>0:
+                model.end.cutoff = roc_data.iloc[2][roc_data.iloc[1]>0.95].iloc[0]
+                if model.end.type == "Energy":
+                    model.end.cutoff = -model.end.cutoff
+
+        runExistingModel(model,test_loader,"AUTOTHRESHOLD_Test",history_final,class_names)
+
+        measurement("AUTOTHRESHOLD",model.end.cutoff)
+        measurement("AUTOTHRESHOLD_Trained_on_length",len(model.end.rocData[0]))
+
+        if isinstance(model.end.rocData[0],torch.Tensor):
+            model.end.rocData[0] = model.end.rocData[0].cpu().numpy()
+        if isinstance(model.end.rocData[1],torch.Tensor):
+            model.end.rocData[1] = model.end.rocData[1].cpu().numpy()
+        if not (np.isnan( model.end.rocData[1]).any()):
+            model.end.cutoff = roc_data.iloc[2][roc_data.iloc[3].idxmax()]
+            if model.end.type == "Energy":
+                model.end.cutoff = -model.end.cutoff
+            runExistingModel(model,test_loader,"AUTOTHRESHOLD2_Test",history_final,class_names)
+
+
+
+
+
+
+
+    if False:
+        #Use Softmax to test.
+        model.end.type = "Soft"
+        model.storeReset()
+        model.evaluate(val_loader)
+
+        #Validation values
+        f1, recall, precision, accuracy = helperFunctions.getFscore(model.store)
+        measurement("Soft_Val_F1",f1)
+        measurement("Soft_Val_Recall",recall)
+        measurement("Soft_Val_Precision",precision)
+        measurement("Soft_Val_Accuracy",accuracy)
+
+        if not Config.parameters["LOOP"][0] and graphDefault:
+            #More matrix stuff that we removed.
+            cnf_matrix = plots.confusionMatrix(model.store) 
+            plots.plot_confusion_matrix(cnf_matrix, classes=class_names, normalize=True,
+                        title=f'Soft Validation', knowns = knownVals)
+        model.storeReset()
+        model.evaluate(test_loader)
+
+        #Validation values
+        f1, recall, precision, accuracy = helperFunctions.getFscore(model.store)
+        measurement("Soft_Test_F1",f1)
+        measurement("Soft_Test_Recall",recall)
+        measurement("Soft_Test_Precision",precision)
+        measurement("Soft_Test_Accuracy",accuracy)
+
+        if not Config.parameters["LOOP"][0] and graphDefault:
+            #More matrix stuff that we removed.
+            cnf_matrix = plots.confusionMatrix(model.store) 
+            plots.plot_confusion_matrix(cnf_matrix, classes=class_names, normalize=True,
+                        title=f'Soft Test', knowns = knownVals)
+        model.storeReset()
+
+        #This selects what algorithm you are using.
+        model.end.type = Config.parameters["OOD Type"][0]
+
+
+        #This is the code to actually start showing the plots.
+        #Again, we do not want this activating while running overnight.
+        if not Config.parameters["LOOP"][0]:
+            plt.show()
+
+
+    
+
+
+    plt.close()
+
+def runExistingModel(model,data,name,history_final,class_names,measurement=FileHandling.addMeasurement,graphDefault = False, print_vals = False):
+    """
+    Runs an existing and loaded model.
+    
+    Parameters:
+        Model - loaded model object with preset weights
+        data - dataloader used to generate the data
+        name - string to specify the name of the collected data
+        history_final - results from fitting the model (Not sure why we need this or what it is)
+        class_names - generated class names for the confusion matrix
+        measurement (optional) - Function that is passed the results from the model in the form of (type_of_data,value_of_data)
+        graphDefault - the default for desplaying graphs, normally False
+    """
     #Resets the stored values that are used to generate the above values.
     model.storeReset()
 
     #model.evaluate() runs only the evaluation stage of running the model. model.fit() calls model.evaluate() after epochs
-    model.evaluate(test_loader)
+    model.evaluate(data)
     
     model.eval()
 
     
-    
-
-    
     #this creates plots as long as the model is not looping. 
     # It is annoying when the model stops just to show you things when you are trying to run the model overnight
-    if not Config.parameters["LOOP"][0]:
+    if not Config.parameters["LOOP"][0] and graphDefault:
         plots.plot_all_losses(history_final)
         plots.plot_losses(history_final)
         plots.plot_accuracies(history_final)
 
-    
-    
-
-   
-    
-    
-
-
-    
 
     #Generates the values when unknowns are thrown in to the testing set.
     f1, recall, precision, accuracy = helperFunctions.getFscore(model.store)
-    FileHandling.addMeasurement("Test_F1",f1)
-    FileHandling.addMeasurement("Test_Recall",recall)
-    FileHandling.addMeasurement("Test_Precision",precision)
-    FileHandling.addMeasurement("Test_Accuracy",accuracy)
-    FileHandling.addMeasurement("Found_Unknowns",helperFunctions.getFoundUnknown(model.store))
+    measurement(f"{name}_F1",f1)
+    measurement(f"{name}_Recall",recall)
+    measurement(f"{name}_Precision",precision)
+    measurement(f"{name}_Accuracy",accuracy)
+    measurement(f"{name}_Found_Unknowns",helperFunctions.getFoundUnknown(model.store))
 
     FileHandling.create_params_Fscore(root_path,f1)
 
-    if not Config.parameters["LOOP"][0]:
+    if not Config.parameters["LOOP"][0] and graphDefault:
         #More matrix stuff that we removed.
         cnf_matrix = plots.confusionMatrix(model.store) 
-        plots.plot_confusion_matrix(cnf_matrix, classes=class_names, normalize=True,
-                    title=f'{Config.parameters["OOD Type"][0]} Test', knowns = knownVals)
+        plots.plot_confusion_matrix(cnf_matrix, classes=class_names, normalize=True, title=f'{Config.parameters["OOD Type"][0]} Test', knowns = Config.class_split["knowns_clss"])
 
 
     
@@ -180,62 +298,96 @@ def run_model():
     score_list = [recall,precision,f1]
     FileHandling.write_hist_to_file(history_final,Config.parameters["num_epochs"][0],model.end.type)
     FileHandling.write_scores_to_file(score_list,Config.parameters["num_epochs"][0],model.end.type)
-    print("Type : ",model.end.type)
-    print(f"Now changing : {plots.name_override}")
-    print(f"F-Score : {f1*100:.2f}%")
-    print(f"Precision : {precision*100:.2f}%")
-    print(f"Recall : {recall*100:.2f}%")
+    if print_vals:
+        print("Type : ",model.end.type)
+        print(f"Now changing : {plots.name_override}")
+        print(f"F-Score : {f1*100:.2f}%")
+        print(f"Precision : {precision*100:.2f}%")
+        print(f"Recall : {recall*100:.2f}%")
 
-    #Use Softmax to test.
-    model.end.type = "Soft"
-    model.storeReset()
-    model.evaluate(val_loader)
+def loopType1(main=run_model,measurement=FileHandling.addMeasurement):
+    """
+    Tests if loop type 1 is true and if it is runs loop type 1.
+    Note, this should be run after the model is run for the first time.
 
-    #Validation values
-    f1, recall, precision, accuracy = helperFunctions.getFscore(model.store)
-    FileHandling.addMeasurement("Soft_Val_F1",f1)
-    FileHandling.addMeasurement("Soft_Val_Recall",recall)
-    FileHandling.addMeasurement("Soft_Val_Precision",precision)
-    FileHandling.addMeasurement("Soft_Val_Accuracy",accuracy)
-
-    if not Config.parameters["LOOP"][0]:
-        #More matrix stuff that we removed.
-        cnf_matrix = plots.confusionMatrix(model.store) 
-        plots.plot_confusion_matrix(cnf_matrix, classes=class_names, normalize=True,
-                    title=f'Soft Validation', knowns = knownVals)
-    model.storeReset()
-    model.evaluate(test_loader)
-
-    #Validation values
-    f1, recall, precision, accuracy = helperFunctions.getFscore(model.store)
-    FileHandling.addMeasurement("Soft_Test_F1",f1)
-    FileHandling.addMeasurement("Soft_Test_Recall",recall)
-    FileHandling.addMeasurement("Soft_Test_Precision",precision)
-    FileHandling.addMeasurement("Soft_Test_Accuracy",accuracy)
-
-    if not Config.parameters["LOOP"][0]:
-        #More matrix stuff that we removed.
-        cnf_matrix = plots.confusionMatrix(model.store) 
-        plots.plot_confusion_matrix(cnf_matrix, classes=class_names, normalize=True,
-                    title=f'Soft Test', knowns = knownVals)
-    model.storeReset()
-
-    #This selects what algorithm you are using.
-    model.end.type = Config.parameters["OOD Type"][0]
-
-
-    #This is the code to actually start showing the plots.
-    #Again, we do not want this activating while running overnight.
-    if not Config.parameters["LOOP"][0]:
-        plt.show()
-
-
-    #This loops through a list of "Threshold" values because they do not require retraining the model.
+    parameters:
+        main - the main function to run, this should be run_model unless being tested.
+        measurement - Function that is passed the results from the model in the form of (type_of_data,value_of_data)
+    """
+    #If it is loop type 1 (changing parameters loop):
     if Config.parameters["LOOP"][0] == 1:
-        model.thresholdTest(test_loader)
+        step = (0,0,0) #keeps track of what is being updated.
+        measurement("Currently Modifying","Default")
+        measurement("Type of modification","Default")
+        measurement("Modification Level","Default")
+        
 
-    plt.close()
+        #Loops until the loop function disables the loop.
+        while Config.parameters["LOOP"][0]:
+            #The function testRotate changes the values in Config.py, it is treating those as global veriables.
+            #I know this is bad code but if it is only changed in specific places it is not awful.
+            step = helperFunctions.testRotate(step)
 
+            #If it did not hit the end of the loop (Loop end returns False)
+            if step:
+                #Reset pyplot
+                plt.clf()
+
+                #Change the name override to accurately state what has changed
+                plots.name_override = helperFunctions.getcurrentlychanged(step)
+                #This is to change the level of detail on the confusion matricies (Not needed anymore)
+                plt.figure(figsize=(4,4))
+
+                #State what is changing for bugfixing.
+                print(f"Now changing: {plots.name_override}")
+
+                #Finally run the loop.
+                main()
+                measurement("Currently Modifying",plots.name_override)
+                measurement("Type of modification",helperFunctions.getcurrentlychanged_Stage(step))
+                measurement("Modification Level",helperFunctions.getcurrentlychanged_Step(step))
+
+def loopType2(main=run_model,measurement=FileHandling.addMeasurement):
+    """
+    Tests if loop type 2 is true and if it is runs loop type 2.
+    Note, this should be run after the model is run for the first time.
+
+    parameters:
+        main - the main function to run, this should be run_model unless being tested.
+        measurement - Function that is passed the results from the model in the form of (type_of_data,value_of_data)
+    """
+    #If it is loop type 2 (iterative unknowns loop):
+    #Same structure as above.
+    if Config.parameters["LOOP"][0] == 2:
+        step = (0) 
+        measurement("Currently Modifying",f"Incremental TRAINING with {Config.parameters['Unknowns']} unknowns")
+        while Config.parameters["LOOP"][0]:
+            step = helperFunctions.incrementLoop(step)
+            if step:
+                plt.clf()
+                plots.name_override = f"Incremental with {Config.parameters['Unknowns']} unknowns"
+                plt.figure(figsize=(4,4))
+                print(f"unknowns: {Config.class_split['unknowns_clss']}")
+                main()
+                measurement("Currently Modifying",plots.name_override)
+
+def loopType3(main=run_model,measurement=FileHandling.addMeasurement):
+    """
+    Tests if loop type 3 is true and if it is runs loop type 3.
+    Note, this should be run after the model is run for the first time.
+
+    parameters:
+        main - the main function to run, this should be run_model unless being tested.
+        measurement - Function that is passed the results from the model in the form of (type_of_data,value_of_data)
+    """
+    if Config.parameters["LOOP"][0] == 3:
+        while Config.parameters["LOOP"][0]:
+            helperFunctions.resilianceLoop()
+            plt.clf()
+            plots.name_override = f"Reisiliance with {Config.parameters['Unknowns']} unknowns"
+            plt.figure(figsize=(4,4))
+            measurement(f"Row of percentages", Config.parameters['loopLevel'])
+            main()
 
 def main():
     """
@@ -262,47 +414,10 @@ def main():
     #Runs the model
     run_model()
 
-    #If it is loop type 1 (changing parameters loop):
-    if Config.parameters["LOOP"][0] == 1:
-        step = (0,0,0) #keeps track of what is being updated.
-
-        #Loops until the loop function disables the loop.
-        while Config.parameters["LOOP"][0]:
-            #The function testRotate changes the values in Config.py, it is treating those as global veriables.
-            #I know this is bad code but if it is only changed in specific places it is not awful.
-            step = helperFunctions.testRotate(step)
-
-            #If it did not hit the end of the loop (Loop end returns False)
-            if step:
-                #Reset pyplot
-                plt.clf()
-
-                #Change the name override to accurately state what has changed
-                plots.name_override = helperFunctions.getcurrentlychanged(step)
-                #This is to change the level of detail on the confusion matricies (Not needed anymore)
-                plt.figure(figsize=(4,4))
-
-                #State what is changing for bugfixing.
-                print(f"Now changing: {plots.name_override}")
-
-                #Finally run the loop.
-                run_model()
-                FileHandling.addMeasurement("Currently Modifying",plots.name_override)
-
+    loopType1(run_model,FileHandling.addMeasurement)
+    loopType2(run_model,FileHandling.addMeasurement)
+    loopType3(run_model,FileHandling.addMeasurement)
     
-    #If it is loop type 2 (iterative unknowns loop):
-    #Same structure as above.
-    elif Config.parameters["LOOP"][0] == 2:
-        step = (0) 
-        while Config.parameters["LOOP"][0]:
-            step = helperFunctions.incrementLoop(step)
-            if step:
-                plt.clf()
-                plots.name_override = f"Incremental with {Config.parameters['Unknowns']} unknowns"
-                plt.figure(figsize=(4,4))
-                print(f"unknowns: {Config.helper_variables['unknowns_clss']}")
-                run_model()
-                FileHandling.addMeasurement("Currently Modifying",plots.name_override)
 
 
 if __name__ == '__main__':

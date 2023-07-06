@@ -87,6 +87,8 @@ class ClassDivDataset(Dataset):
         self.length = None
         self.listOfCounts = None
         self.maxclass = Config.parameters["MaxPerClass"][0]
+        if "MaxSamples" in Config.parameters:
+            self.totalSamples = Config.parameters["MaxSamples"][0]
         
         
 
@@ -115,14 +117,32 @@ class ClassDivDataset(Dataset):
         """
         if self.listOfCounts is None:
             self.listOfCounts = pd.read_csv(self.countspath, index_col=0)
-            #add max per class
-            if isinstance(self.maxclass,int):
-                self.listOfCounts.mask(self.listOfCounts>self.maxclass,self.maxclass,inplace=True)
-            elif self.maxclass == "File":
-                maxclass = pd.read_csv("datasets/percentages.csv", index_col=0)
-                self.listOfCounts.mask(self.listOfCounts>self.maxclass,self.maxclass,inplace=True)
-            #This removes all of the unused classes
-            self.listOfCounts = self.listOfCounts.loc[self.use]
+            if "MaxSamples" in Config.parameters:
+                #MAX SAMPLES DEFINITION:
+                #Max Samples limits the total number of samples to self.totalSamples
+                #It then distributes those samples to match with the percentages given in percentages.csv as best as possible.
+                maxperclass = pd.read_csv("datasets/percentages.csv", index_col=None)
+                maxperclass = maxperclass.iloc[Config.parameters["loopLevel"][0],:len(self.listOfCounts)]
+                maxperclass = ((torch.tensor(maxperclass)/100)*self.totalSamples).ceil()
+                for x in range(len(self.listOfCounts)):
+                    if self.listOfCounts.iloc[x,0] > maxperclass[x].item():
+                        self.listOfCounts.iloc[x,0] = maxperclass[x].item()
+                #This removes all of the unused classes
+                self.listOfCounts = self.listOfCounts.loc[self.use]
+                print(f"Items per class: \n{self.listOfCounts}")
+            else:
+                #add max per class
+                if isinstance(self.maxclass,int):
+                    #Huh, this only runs if Config MaxPerClass is an integer. 
+                    # But it takes x samples of each class where x is MaxPerClass
+                    self.listOfCounts.mask(self.listOfCounts>self.maxclass,self.maxclass,inplace=True)
+                elif self.maxclass == "File":
+                    #Not quite sure how this works, 
+                    # I think it is assuming there are 100 samples and just taking the number of samples listed in percentages.csv
+                    self.maxclass = pd.read_csv("datasets/percentages.csv", index_col=0)
+                    self.listOfCounts.mask(self.listOfCounts>self.maxclass,self.maxclass,inplace=True)
+                #This removes all of the unused classes
+                self.listOfCounts = self.listOfCounts.loc[self.use]
         if self.length is None:
             self.length = self.listOfCounts.sum().item()
         return self.length
@@ -288,31 +308,51 @@ class ClusterDivDataset(ClassDivDataset):
     def __len__(self) -> int:
         if self.listOfCounts is None:
             self.listOfCounts = pd.read_csv(self.countspath, index_col=0)
-            if isinstance(Config.parameters["MaxPerClass"][0],int):
+            if "MaxSamples" in Config.parameters:
+                #MAX SAMPLES DEFINITION:    (effectively percentage based distribution)
+                #Max Samples limits the total number of samples to self.totalSamples
+                #It then distributes those samples to match with the percentages given in percentages.csv as best as possible.
+                maxclass = pd.read_csv("datasets/percentages.csv", index_col=None)
+                maxclass = maxclass.iloc[Config.parameters["loopLevel"][0],:len(self.listOfCounts)]
+                maxclass = ((torch.tensor(maxclass)/100)*self.totalSamples).ceil()
                 for y in range(self.listOfCounts.shape[0]):
                     x=0
                     cutofflist = self.listOfCounts.iloc[y].copy()
                     cutofflist[cutofflist>x]  = x
-                    while cutofflist.sum()<self.maxclass and x<self.maxclass:
+                    while cutofflist.sum()<maxclass[y] and x<maxclass[y]:
                         x+=1
                         cutofflist = self.listOfCounts.iloc[y].copy()
                         cutofflist[cutofflist>x]  = x
                     self.listOfCounts.iloc[y] = cutofflist
+                #This removes all of the unused classes
+                self.listOfCounts = self.listOfCounts.loc[self.use]
+                print(f"Items per class: \n{self.listOfCounts.sum(axis=1)}")
             else:
-                #This is a diffrent version of doing a MaxPerClass
-                #It revolves around the maxperclass being a percentage of the total number of samples of that class
-                #this preserves the distribution.
-                maxclass = [self.maxclass]*Config.parameters["CLASSES"][0]
-                maxclass = (torch.tensor(maxclass))
-                self.listOfCounts = torch.tensor(self.listOfCounts.to_numpy())
-                #test = torch.stack([maxclass]*listOfCounts.size()[1]).T
-                maxclass = self.listOfCounts.mul(torch.stack([maxclass]*self.listOfCounts.size()[1]).T).ceil()
-                self.listOfCounts[self.listOfCounts>maxclass] = maxclass[self.listOfCounts>maxclass].to(torch.long)
-                
-                self.listOfCounts = self.listOfCounts.numpy()
-                self.listOfCounts = pd.DataFrame(self.listOfCounts)
-            #This removes all of the unused classes
-            self.listOfCounts = self.listOfCounts.loc[self.use]
+                if isinstance(Config.parameters["MaxPerClass"][0],int):
+                    for y in range(self.listOfCounts.shape[0]):
+                        x=0
+                        cutofflist = self.listOfCounts.iloc[y].copy()
+                        cutofflist[cutofflist>x]  = x
+                        while cutofflist.sum()<self.maxclass and x<self.maxclass:
+                            x+=1
+                            cutofflist = self.listOfCounts.iloc[y].copy()
+                            cutofflist[cutofflist>x]  = x
+                        self.listOfCounts.iloc[y] = cutofflist
+                else:
+                    #This is a diffrent version of doing a MaxPerClass
+                    #It revolves around the maxperclass being a percentage of the total number of samples of that class
+                    #this preserves the distribution but may not make sense in all cases.
+                    maxclass = [self.maxclass]*Config.parameters["CLASSES"][0]
+                    maxclass = (torch.tensor(maxclass))
+                    self.listOfCounts = torch.tensor(self.listOfCounts.to_numpy())
+                    #test = torch.stack([maxclass]*listOfCounts.size()[1]).T
+                    maxclass = self.listOfCounts.mul(torch.stack([maxclass]*self.listOfCounts.size()[1]).T).ceil()
+                    self.listOfCounts[self.listOfCounts>maxclass] = maxclass[self.listOfCounts>maxclass].to(torch.long)
+                    
+                    self.listOfCounts = self.listOfCounts.numpy()
+                    self.listOfCounts = pd.DataFrame(self.listOfCounts)
+                #This removes all of the unused classes
+                self.listOfCounts = self.listOfCounts.loc[self.use]
         if self.length is None:
             self.length = self.listOfCounts.sum().sum().item()
 
@@ -393,7 +433,7 @@ class ClusterDivDataset(ClassDivDataset):
             for x in range(Config.parameters["CLASSES"][0]):
                 X = data.astype(int)
                 X = X[X["label"]==x]
-                #X = X.sample(n=200 if 200<len(X) else len(X))
+                X = X.sample(n=100000 if 100000<len(X) else len(X))
                 X2 = X.to_numpy()
 
                 # setting distance_threshold=0 ensures we compute the full tree.

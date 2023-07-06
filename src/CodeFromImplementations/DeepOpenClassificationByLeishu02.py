@@ -1,8 +1,8 @@
-#From https://github.com/leishu02/EMNLP2017_DOC/blob/2b870170ab20cdc9d6f0ec85631a9ddd199a2b18/DOC_emnlp17.py#L225
+#From https://github.com/leishu02/EMNLP2017_DOC
 import numpy as np
 import torch
-import Config
-import helperFunctions
+import src.main.Config as Config
+import src.main.helperFunctions as helperFunctions
 
 
 
@@ -47,7 +47,7 @@ def muStandardsFromDataloader(seen,Dataloader,model):
 #     seen_test_X = seen_test_X[seen_test_y!=15].numpy()
 #     seen_test_y = seen_test_y[seen_test_y!=15].numpy()
     
-def runDOC(test_X_pred_true, mu_stds, seen):
+def runDOC(test_X_pred_true, mu_stds, seen, saved_scores=[]):
     #test_X_pred = test_X_pred_true[:,seen]
     test_X_pred = test_X_pred_true
     #Only code by Leishu
@@ -70,6 +70,7 @@ def runDOC(test_X_pred_true, mu_stds, seen):
     for p in test_X_pred:# loop every test prediction
         max_class = np.argmax(p)# predicted class
         max_value = np.max(p)# predicted probability
+        saved_scores.append(max_value)# ADDED LINE
         threshold = max(0.5, 1. - scale * mu_stds[max_class][1])#find threshold for the predicted class
         if max_value > threshold:
              test_y_pred.append(max_class)#predicted probability is greater than threshold, accept

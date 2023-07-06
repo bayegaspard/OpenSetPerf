@@ -15,9 +15,9 @@ import sys
 root_folder = os.path.abspath(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.append(os.path.join(root_folder,"CodeFromImplementations"))
 
-import Config
-import helperFunctions
-
+import src.main.Config as Config
+import src.main.helperFunctions as helperFunctions
+from src.main.helperFunctions import NoExamples
 
 
 
@@ -143,6 +143,7 @@ def compute_channel_distances(mavs, features, eu_weight=0.5):
 
 
 def compute_train_score_and_mavs_and_dists(train_class_num,trainloader,device,net):
+    net.eval()#LINE ADDED
     scores = [[] for _ in range(train_class_num)]
     #print("train class in open",train_class_num)
     #print("scores from open",scores)
@@ -169,7 +170,7 @@ def compute_train_score_and_mavs_and_dists(train_class_num,trainloader,device,ne
     for x in scores:
         if len(x) == 0:
             print(f"Class{a} has no examples")
-            raise helperFunctions.NoExamples()
+            raise NoExamples()
         a+=1
     scores = [torch.cat(x).cpu().numpy() for x in scores]  # (N_c, 1, C) * C
     mavs = np.array([np.mean(x, axis=0) for x in scores])  # (C, 1, C)
@@ -178,20 +179,19 @@ def compute_train_score_and_mavs_and_dists(train_class_num,trainloader,device,ne
 
 
 #This was not a function before!
-def openmaxevaluation(scores,labels,args,dict,weibull=None):
+def openmaxevaluation(scores,args,dict,weibull=None):
     trainloader = dict["loader"]
     device = dict["device"]
     net = dict["net"]
-    scores,labels = helperFunctions.renameClassesLabeled(scores,labels)
+    scores = helperFunctions.renameClasses(scores)
     scores = [scores]
-    labels = [labels]
 
     #The following is from lines 186 to 207 from https://github.com/ma-xu/Open-Set-Recognition/blob/master/OSR/OpenMax/cifar100.py
     # Get the prdict results.
     scores = torch.cat(scores,dim=0).cpu().numpy()
-    labels = torch.cat(labels,dim=0).cpu().numpy()
+    #labels = torch.cat(labels,dim=0).cpu().numpy()
     scores = np.array(scores)[:, np.newaxis, :]
-    labels = np.array(labels)
+    #labels = np.array(labels)
 
 
     #ADDED: SAVE THE WEIBULL MODEL

@@ -22,7 +22,7 @@ def Algorithm_1(data_loader, model:ms.AttackTrainingClassification, train=False)
     #Note, this masking is only due to how we are handling model outputs.
     #If I was to design things again I would have designed the model outputs not to need this masking.
     mask = torch.zeros(Config.parameters["CLASSES"][0])
-    for x in Config.helper_variables["knowns_clss"]:
+    for x in Config.class_split["knowns_clss"]:
         mask[x] = 1
     mask = mask==1 #Apparently it only wants bools
 
@@ -62,7 +62,7 @@ def singleBatch(batch, model:ms.AttackTrainingClassification, train=True):
 #Equation 2
 def class_means(Z:torch.Tensor,Y:torch.Tensor):
     means = []
-    for y in Config.helper_variables["knowns_clss"]:
+    for y in Config.class_split["knowns_clss"]:
     # for y in [0,1,2]:
         #Technically only this part is actually equation 2 but it seems to want to output a value for each class.
         mask = (Y==y).cpu()
@@ -75,12 +75,12 @@ def class_means(Z:torch.Tensor,Y:torch.Tensor):
 def intra_spread(Z:torch.Tensor,means:list,Y:torch.Tensor)->torch.Tensor:
     intraspread = torch.tensor(0,dtype=torch.float32)
     N = len(Y)
-    K = range(len(Config.helper_variables["knowns_clss"]))
+    K = range(len(Config.class_split["knowns_clss"]))
     # K = range(len([0,1,2]))
     #For each class in the knowns
     for j in K:
         #The mask will only select items of the correct class
-        mask = (Y==Config.helper_variables["knowns_clss"][j]).cpu()
+        mask = (Y==Config.class_split["knowns_clss"][j]).cpu()
         # mask = Y==[0,1,2][j]
         distanceVector = means[j]-Z[mask]
         
@@ -90,7 +90,7 @@ def intra_spread(Z:torch.Tensor,means:list,Y:torch.Tensor)->torch.Tensor:
 
 #Equation 3
 def inter_sparation(means)->torch.Tensor:
-    K = range(len(Config.helper_variables["knowns_clss"]))
+    K = range(len(Config.class_split["knowns_clss"]))
     # K = range(len([0,1,2]))
     minimum = torch.linalg.norm(means[0]-means[1])
     #I know I shouldn't use loops in python but I do not understand what this is doing enough to condense it.
@@ -104,7 +104,7 @@ def inter_sparation(means)->torch.Tensor:
 #Equation 5
 def outlier_score(x:torch.Tensor,means:torch.Tensor)->torch.Tensor:
     mask = torch.zeros(Config.parameters["CLASSES"][0])
-    for i in Config.helper_variables["knowns_clss"]:
+    for i in Config.class_split["knowns_clss"]:
         mask[i] = 1
     mask = (mask==1).cpu() #Apparently it only wants bools
 
@@ -113,10 +113,10 @@ def outlier_score(x:torch.Tensor,means:torch.Tensor)->torch.Tensor:
     normalDistance = torch.linalg.norm(distances,dim=1)
     return normalDistance.min()
 
-
+#Equation 6
 def iimod(Z, means):
     mask = torch.zeros(len(Z[0]))
-    for x in Config.helper_variables["knowns_clss"]:
+    for x in Config.class_split["knowns_clss"]:
         mask[x] = 1
     mask = mask==1 #Apparently it only wants bools
     Z = Z.cpu()*mask
@@ -133,7 +133,7 @@ def iimod(Z, means):
 
 #testing
 if __name__ == "__main__":
-    Config.helper_variables["knowns_clss"] = [0,1,2,3]
+    Config.class_split["knowns_clss"] = [0,1,2,3]
     test = torch.rand((4,4))
     testLabels = torch.tensor((0,1,2,2))
     print(f"Test tensor\n{test}")

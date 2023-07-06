@@ -16,6 +16,11 @@ Saves/conf/*
 Saves/hyperparam/*
 !Saves/unknown/
 Saves/unknown/*
+!Saves/roc/
+!Saves/models
+Saves/models/*
 *.json
 src/CodeFromImplementations/Ignore.py
 !datasets/percentages.csv
+test concat scores.py
+test copy.py

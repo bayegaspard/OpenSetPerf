@@ -25,10 +25,17 @@ def generateHyperparameters(root_path=""):
         if param["num_epochs"][0] == 0:
             param["num_epochs"][0] = Config.num_epochs
         param.to_csv(os.path.join(root_path,"Saves","hyperparam","hyperParam.csv"))
-        unknown_classes = Config.helper_variables["unknowns_clss"]
+        unknown_classes = Config.class_split["unknowns_clss"]
         param = pd.DataFrame(unknown_classes,columns=["Unknowns"])
         param.to_csv(os.path.join(root_path,"Saves","unknown","unknowns.csv"))
         print("Files created successfully !")
+    
+    if not os.path.exists("Saves/roc"):
+        os.mkdir("Saves/roc")
+    if not os.path.exists("Saves/models"):
+        os.mkdir("Saves/models")
+    if not os.path.exists("Saves/conf"):
+        os.mkdir("Saves/conf")
 
 
 
@@ -46,14 +53,14 @@ def getDatagroup():
     """
     groupType = Config.parameters["Datagrouping"][0]
     if groupType == "ClassChunk":
-        train = Dataload.ClassDivDataset(os.path.join("datasets",Config.parameters["Dataset"][0]), use=Config.helper_variables["knowns_clss"])
-        unknowns = Dataload.ClassDivDataset(os.path.join("datasets",Config.parameters["Dataset"][0]), use=Config.helper_variables["unknowns_clss"], unknownData=True)
+        train = Dataload.ClassDivDataset(os.path.join("datasets",Config.parameters["Dataset"][0]), use=Config.class_split["knowns_clss"])
+        unknowns = Dataload.ClassDivDataset(os.path.join("datasets",Config.parameters["Dataset"][0]), use=Config.class_split["unknowns_clss"], unknownData=True)
     elif groupType == "Dendrogramlimit":
-        train = Dataload.ClusterLimitDataset(os.path.join("datasets",Config.parameters["Dataset"][0]), use=Config.helper_variables["knowns_clss"])
-        unknowns = Dataload.ClusterLimitDataset(os.path.join("datasets",Config.parameters["Dataset"][0]), use=Config.helper_variables["unknowns_clss"], unknownData=True)
+        train = Dataload.ClusterLimitDataset(os.path.join("datasets",Config.parameters["Dataset"][0]), use=Config.class_split["knowns_clss"])
+        unknowns = Dataload.ClusterLimitDataset(os.path.join("datasets",Config.parameters["Dataset"][0]), use=Config.class_split["unknowns_clss"], unknownData=True)
     elif groupType == "DendrogramChunk":
-        train = Dataload.ClusterDivDataset(os.path.join("datasets",Config.parameters["Dataset"][0]), use=Config.helper_variables["knowns_clss"])
-        unknowns = Dataload.ClusterDivDataset(os.path.join("datasets",Config.parameters["Dataset"][0]), use=Config.helper_variables["unknowns_clss"], unknownData=True)
+        train = Dataload.ClusterDivDataset(os.path.join("datasets",Config.parameters["Dataset"][0]), use=Config.class_split["knowns_clss"])
+        unknowns = Dataload.ClusterDivDataset(os.path.join("datasets",Config.parameters["Dataset"][0]), use=Config.class_split["unknowns_clss"], unknownData=True)
     else:
         raise ValueError("Invalid Dataloader type")
     return train,unknowns
@@ -66,12 +73,13 @@ def checkAttempLoad(root_path=""):
     This is so that the validation and testing data does not get mixed up which would invalidate the validation data.
     """
     # get the data and create a test set and train set
+    
     print("Reading datasets to create test and train sets")
     
     train, unknowns = getDatagroup()
     train, val = torch.utils.data.random_split(train,[len(train) - int(len(train) * Config.parameters["testlength"][0]),int(len(train) * Config.parameters["testlength"][0])]) 
     
-    if len(Config.helper_variables["unknowns_clss"])>0:
+    if len(Config.class_split["unknowns_clss"])>0:
         if (Config.parameters["Mix unknowns and validation"][0]):
             test = torch.utils.data.ConcatDataset([val, unknowns])
         else:
@@ -79,6 +87,9 @@ def checkAttempLoad(root_path=""):
     else:
         test=val
     
+    if Config.unit_test_mode:
+        return train, test, val
+
     if Config.parameters["attemptLoad"][0] and os.path.exists(os.path.join(root_path,"Saves","Data.pt")):
         train = torch.load(os.path.join(root_path,"Saves","Data.pt"))
         test = torch.load(os.path.join(root_path,"Saves","DataTest.pt"))
@@ -106,13 +117,13 @@ def incrementLoopModData(changed:list):
     """
     if Config.parameters["Datagrouping"][0] == "ClassChunk":
         known = Dataload.ClassDivDataset(os.path.join("datasets",Config.parameters["Dataset"][0]), use=changed)
-        unknowns = Dataload.ClassDivDataset(os.path.join("datasets",Config.parameters["Dataset"][0]), use=Config.helper_variables["unknowns_clss"], unknownData=True)
+        unknowns = Dataload.ClassDivDataset(os.path.join("datasets",Config.parameters["Dataset"][0]), use=Config.class_split["unknowns_clss"], unknownData=True)
     elif Config.parameters["Datagrouping"][0] == "Dendrogramlimit":
         known = Dataload.ClusterLimitDataset(os.path.join("datasets",Config.parameters["Dataset"][0]), use=changed)
-        unknowns = Dataload.ClusterLimitDataset(os.path.join("datasets",Config.parameters["Dataset"][0]), use=Config.helper_variables["unknowns_clss"], unknownData=True)
+        unknowns = Dataload.ClusterLimitDataset(os.path.join("datasets",Config.parameters["Dataset"][0]), use=Config.class_split["unknowns_clss"], unknownData=True)
     elif Config.parameters["Datagrouping"][0] == "DendrogramChunk":
         known = Dataload.ClusterDivDataset(os.path.join("datasets",Config.parameters["Dataset"][0]), use=changed)
-        unknowns = Dataload.ClusterDivDataset(os.path.join("datasets",Config.parameters["Dataset"][0]), use=Config.helper_variables["unknowns_clss"], unknownData=True)
+        unknowns = Dataload.ClusterDivDataset(os.path.join("datasets",Config.parameters["Dataset"][0]), use=Config.class_split["unknowns_clss"], unknownData=True)
     else:
         raise ValueError("Invalid Dataloader type")
     
@@ -169,6 +180,8 @@ def write_hist_to_file(lst, num_epochs, type=""):
     Adds lines to history.csv. This is used to keep a log of how well the algorithm works during training.
     This also saves the same information in an algorithm specific file that we thought would be useful at some point.
     """
+    if Config.unit_test_mode:
+        return
     for l in lst:
         l["type"] = type
     if os.path.exists(os.path.join("Saves","history.csv")):
@@ -193,6 +206,8 @@ def write_scores_to_file(lst, num_epochs, type=""):
     Adds a line to scores.csv. This is used to keep a log of how well the algorithm works during evaluation.
     This also saves the same information in an algorithm specific file that we thought would be useful at some point.
     """
+    if Config.unit_test_mode:
+        return
     thisRun = pd.DataFrame.from_dict(lst)
     thisRun["type"] = type
     if os.path.exists(os.path.join("Saves","scores.csv")):
@@ -218,6 +233,8 @@ def write_batch_to_file(loss, num, modeltype="", batchtype=""):
         model type - the endlayer type while running
         batch type - if this was either a training or evaluation batch
     """
+    if Config.unit_test_mode:
+        return
     thisRun = pd.DataFrame([[loss.item(), num, modeltype, batchtype]],
                            columns=["Loss", "Batch Number", "Model Type", "Batch Type"])
     # thisRun["Loss"] = loss.detach()
@@ -263,6 +280,8 @@ def create_params_Fscore(path, score, threshold = None):
         score - the final F1 score of the algorithm
         threshold - I think this is supposed to be the threshold? I dont know why.
     """
+    if Config.unit_test_mode:
+        return
     params = pd.read_csv(os.path.join(path,"Saves","hyperparam","hyperParam.csv"),index_col=0)
 
     if threshold != None:
@@ -289,6 +308,8 @@ def create_params_All(path=""):
 
     you can change the path with the path parameter.
     """
+    if Config.unit_test_mode:
+        return
     params = pd.DataFrame(Config.parameters,columns=Config.parameters.keys())
 
 
@@ -310,8 +331,12 @@ def addMeasurement(name:str,val,path=""):
         name - measurement name
         val - measurement value
     """
+    if Config.unit_test_mode:
+        return
     total = pd.read_csv(os.path.join(path,"Saves","Scoresall.csv"),index_col=0)
     #print(f"last valid index = {total.last_valid_index()} item name= {name}, item value={val}")
+    if name in total and not (pd.isnull(total.at[total.last_valid_index(),name]) or name in ["Number Of Failures"]):
+        total.at[total.last_valid_index(),"A spot has already been filled?"] = "An error has occured"
     total.at[total.last_valid_index(),name] = val
     total.to_csv(os.path.join(path,"Saves","Scoresall.csv"))
 

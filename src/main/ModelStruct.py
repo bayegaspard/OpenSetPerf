@@ -131,6 +131,93 @@ class AttackTrainingClassification(nn.Module):
         return x
         
 
+    def fit(self, epochs, lr, train_loader, test_loader,val_loader, opt_func, measurement=FileHandling.addMeasurement):
+        """
+        Trains the model on the train_loader and evaluates it off of the val_loader. Also it stores all of the results in model.store.
+        It also generates a new line of ScoresAll.csv that stores all of the data for this model. (note: if you are running two threads at once the data will be overriden)
+
+        parameters:
+            epochs- the number of epochs to run the training for
+            lr- the learning rate to start at, the schedular will change the learning rate over time and can be set in the Config
+            train_loader- the torch dataloader to train the model on
+            test_loader- Unused but this should be the data that you want to do the final test of the model on, also in the form of a torch dataloader
+            val_loader- the model is tested every epoch against this data
+            opt_func- the optimization function to use
+
+        returns:
+            history- a list of tuples, each containing:
+                val_loss - the loss from the validation stage
+                val_acc - the accuract from the validation  stage. Note: this accuracy is not used in the save.
+                val_avgUnknown - internal metric that is not used
+                epoch - the epoch that this data was taken
+                train_loss - the average training loss per batch of this epoch
+        """
+        if Config.parameters["attemptLoad"][0] == 1:
+            startingEpoch = self.loadPoint("Saves/models")
+            #If it cannot find a model to load because of some error, the epoch number starts at -1 to avoid overwriting a possilby working model
+        else:
+            startingEpoch = 0
+        history = []
+        optimizer = opt_func(self.parameters(), lr)
+        if isinstance(Config.parameters["SchedulerStep"][0],float) and Config.parameters["SchedulerStep"][0] !=0:
+            sch = torch.optim.lr_scheduler.StepLR(optimizer, Config.parameters["SchedulerStepSize"][0], Config.parameters["SchedulerStep"][0])
+        else:
+            sch = None
+        self.los = helperFunctions.LossPerEpoch("TestingDuringTrainEpochs.csv")
+        if measurement == FileHandling.addMeasurement:
+            FileHandling.create_params_All()
+        # torch.cuda.empty_cache()
+        if epochs > 0:
+            for epoch in range(epochs):
+                self.end.resetvals()
+                self.storeReset()
+                # Training Phase
+                self.train()
+                train_losses = []
+                num = 0
+                for batch in train_loader:
+                    self.train()
+                    #print("Batch")
+                    # batch = to_device(batch,device)
+                    # batch = DeviceDataLoader(batch, device)
+                    loss = self.training_step(batch)
+
+                    #FileHandling.write_batch_to_file(loss, num, self.end.type, "train")
+                    train_losses.append(loss.detach())
+                    self.end.trainMod(batch,self)
+                    #print(loss)
+                    loss.backward()
+                    optimizer.step()
+                    optimizer.zero_grad()
+                    num += 1
+
+                if not sch is None:
+                    sch.step()
+                
+
+                # Validation phase
+                result = self.evaluate(val_loader)
+
+                if epoch > epochs-5 or result['val_acc'] > 0.7:
+                    self.savePoint(f"Saves/models", epoch+startingEpoch)
+
+                result['train_loss'] = torch.stack(train_losses).mean().item()
+                measurement(f"Epoch{epoch+startingEpoch} loss",result['train_loss'])
+                result["epoch"] = epoch+startingEpoch
+                self.epoch_end(epoch+startingEpoch, result)
+                #print("result", result)
+
+                history.append(result)
+                self.los.collect()
+        else:
+            # Validation phase
+            epoch = self.loadPoint("Saves/models")
+            result = self.evaluate(val_loader)
+            result['train_loss'] = -1
+            self.epoch_end(epoch, result)
+            #print("result", result)
+            history.append(result)
+        return history
 
 
     def training_step(self, batch):
@@ -155,147 +242,13 @@ class AttackTrainingClassification(nn.Module):
             out = nn.Sigmoid()(out)
         
         
-
+        
 
         # out = DeviceDataLoader(out, device)
         loss = F.cross_entropy(out, labels)  # Calculate loss
         #torch.cuda.empty_cache()
         # print("loss from training step ... ", loss)
         return loss
-
-    @torch.no_grad()
-    def evaluate(self, validationset):
-        """
-        Evaluates the given dataset on this model.
-        
-        parameters:
-            torch dataset to iterate through.
-        
-        returns:
-            A dictionary of all of the mean values from the run consisting of:
-                val_loss - the loss from the validation stage
-                val_acc - the accuract from the validation  stage
-                val_avgUnknown - internal metric that is not used
-        """
-        self.eval()
-        self.batchnum = 0
-        outputs = [self.validation_step(batch) for batch in validationset]  ### reverted bac
-        return self.validation_epoch_end(outputs)
-
-    def accuracy(self, outputs:torch.Tensor, labels):
-        """
-        Finds the final accuracy of the batch and saves the predictions and true values to model.store
-
-        parameters:
-            outputs- a torch Tensor containing all of the outputs from the models forward pass.
-            labels- a torch Tensor containing all of the true and tested against values corresponding to the output results
-                labels[:,0]- should be the values that you are training the model to get
-                labels[:,1:]- should be the true values or other metadata that you want to store associated with a datapoint.
-        
-        returns:
-            A dictionary of all of the mean values from the run.
-        """
-        if outputs.ndim == 2:
-            preds = torch.argmax(outputs, dim=1)
-        else:
-            #DOC already applies an argmax equivalent so we do not apply one here.
-            preds = outputs
-        # print("preds from accuracy", preds)
-        # print("labels from accuracy", labels)
-        # Y_Pred.append(preds.tolist()[:])
-        # Y_test.append(labels.tolist()[:])
-        # preds = torch.tensor(preds)
-
-        #Find out if something failed, if it did get no accuracy
-        if outputs.max() == 0:
-            return torch.tensor(0.0)
-
-
-        #First is the guess, second is the actual class and third is the class to consider correct.
-        self.store = torch.cat((self.store[0], preds)), torch.cat((self.store[1], labels[:,1])),torch.cat((self.store[2], labels[:,0]))
-        return torch.tensor(torch.sum(preds == labels[:,0]).item() / len(preds))
-        # def fit(epochs, lr, model, train_loader, val_loader, opt_func=torch.optim.SGD):
-
-    def fit(self, epochs, lr, train_loader, test_loader,val_loader, opt_func):
-        """
-        Trains the model on the train_loader and evaluates it off of the val_loader. Also it stores all of the results in model.store.
-        It also generates a new line of ScoresAll.csv that stores all of the data for this model. (note: if you are running two threads at once the data will be overriden)
-
-        parameters:
-            epochs- the number of epochs to run the training for
-            lr- the learning rate to start at, the schedular will change the learning rate over time and can be set in the Config
-            train_loader- the torch dataloader to train the model on
-            test_loader- Unused but this should be the data that you want to do the final test of the model on, also in the form of a torch dataloader
-            val_loader- the model is tested every epoch against this data
-            opt_func- the optimization function to use
-
-        returns:
-            history- a list of tuples, each containing:
-                val_loss - the loss from the validation stage
-                val_acc - the accuract from the validation  stage. Note: this accuracy is not used in the save.
-                val_avgUnknown - internal metric that is not used
-                epoch - the epoch that this data was taken
-                train_loss - the average training loss per batch of this epoch
-        """
-        if Config.parameters["attemptLoad"][0] == 1:
-            startingEpoch = self.loadPoint("Saves/models")
-        else:
-            startingEpoch = 0
-        history = []
-        optimizer = opt_func(self.parameters(), lr)
-        if isinstance(Config.parameters["SchedulerStep"][0],float) and Config.parameters["SchedulerStep"][0] !=0:
-            sch = torch.optim.lr_scheduler.StepLR(optimizer, Config.parameters["SchedulerStepSize"][0], Config.parameters["SchedulerStep"][0])
-        else:
-            sch = None
-        self.los = helperFunctions.LossPerEpoch("TestingDuringTrainEpochs.csv")
-        FileHandling.create_params_All()
-        # torch.cuda.empty_cache()
-        if epochs > 0:
-            for epoch in range(epochs):
-                self.end.resetvals()
-                self.storeReset()
-                # Training Phase
-                self.train()
-                train_losses = []
-                num = 0
-                for batch in train_loader:
-                    #print("Batch")
-                    # batch = to_device(batch,device)
-                    # batch = DeviceDataLoader(batch, device)
-                    loss = self.training_step(batch)
-
-                    #FileHandling.write_batch_to_file(loss, num, self.end.type, "train")
-                    train_losses.append(loss.detach())
-                    self.end.trainMod(batch,self)
-                    #print(loss)
-                    loss.backward()
-                    optimizer.step()
-                    optimizer.zero_grad()
-                    num += 1
-
-                if not sch is None:
-                    sch.step()
-                
-                # Validation phase
-                self.savePoint(f"Saves/models", epoch+startingEpoch)
-                result = self.evaluate(val_loader)
-                result['train_loss'] = torch.stack(train_losses).mean().item()
-                FileHandling.addMeasurement(f"Epoch{epoch+startingEpoch} loss",result['train_loss'])
-                result["epoch"] = epoch+startingEpoch
-                self.epoch_end(epoch+startingEpoch, result)
-                #print("result", result)
-
-                history.append(result)
-                self.los.collect()
-        else:
-            # Validation phase
-            epoch = self.loadPoint("Saves/models")
-            result = self.evaluate(val_loader)
-            result['train_loss'] = -1
-            self.epoch_end(epoch, result)
-            #print("result", result)
-            history.append(result)
-        return history
 
     def validation_step(self, batch):
         """
@@ -351,6 +304,62 @@ class AttackTrainingClassification(nn.Module):
         #print("validation accuracy: ", acc)
         return {'val_loss': loss.detach(), 'val_acc': acc, "val_avgUnknown": unknowns}
 
+
+    @torch.no_grad()
+    def evaluate(self, validationset):
+        """
+        Evaluates the given dataset on this model.
+        
+        parameters:
+            torch dataset to iterate through.
+        
+        returns:
+            A dictionary of all of the mean values from the run consisting of:
+                val_loss - the loss from the validation stage
+                val_acc - the accuract from the validation  stage
+                val_avgUnknown - internal metric that is not used
+        """
+        self.eval()
+        self.batchnum = 0
+        outputs = [self.validation_step(batch) for batch in validationset]  ### reverted bac
+        return self.validation_epoch_end(outputs)
+
+    def accuracy(self, outputs:torch.Tensor, labels):
+        """
+        Finds the final accuracy of the batch and saves the predictions and true values to model.store
+
+        parameters:
+            outputs- a torch Tensor containing all of the outputs from the models forward pass.
+            labels- a torch Tensor containing all of the true and tested against values corresponding to the output results
+                labels[:,0]- should be the values that you are training the model to get
+                labels[:,1:]- should be the true values or other metadata that you want to store associated with a datapoint.
+        
+        returns:
+            A dictionary of all of the mean values from the run.
+        """
+        if outputs.ndim == 2:
+            preds = torch.argmax(outputs, dim=1)
+        else:
+            #DOC already applies an argmax equivalent so we do not apply one here.
+            preds = outputs
+        # print("preds from accuracy", preds)
+        # print("labels from accuracy", labels)
+        # Y_Pred.append(preds.tolist()[:])
+        # Y_test.append(labels.tolist()[:])
+        # preds = torch.tensor(preds)
+
+        #Find out if something failed, if it did get no accuracy
+        if outputs.max() == 0:
+            return torch.tensor(0.0)
+
+
+        #First is the guess, second is the actual class and third is the class to consider correct.
+        self.store = torch.cat((self.store[0], preds)), torch.cat((self.store[1], labels[:,1])),torch.cat((self.store[2], labels[:,0]))
+        return torch.tensor(torch.sum(preds == labels[:,0]).item() / len(preds))
+        # def fit(epochs, lr, model, train_loader, val_loader, opt_func=torch.optim.SGD):
+
+
+
     def validation_epoch_end(self, outputs):
         """
         Takes the output of each epoch and takes the mean values. Returns a dictionary of those mean values.
@@ -365,12 +374,14 @@ class AttackTrainingClassification(nn.Module):
         epoch_loss = torch.stack(batch_losses).mean()  # Combine losses
         batch_accs = [x['val_acc'] for x in outputs]
         epoch_acc = torch.stack(batch_accs).mean()  # Combine accuracies
-        batch_unkn = self.end.Save_score
-        self.end.Save_score = []
-        if len(batch_unkn) != 0:
-            epoch_unkn = torch.stack(batch_unkn).mean()  # Combine Unknowns
-        else:
-            epoch_unkn = torch.tensor(0)
+
+        #Now unused unknown score for finding threhsolds
+        # batch_unkn = self.end.Save_score
+        # self.end.Save_score = []
+        # if len(batch_unkn) != 0:
+        #     epoch_unkn = torch.stack(batch_unkn).mean()  # Combine Unknowns
+        # else:
+        epoch_unkn = torch.tensor(0)
 
         return {'val_loss': epoch_loss.item(), 'val_acc': epoch_acc.item(), "val_avgUnknown": epoch_unkn.item()}
 
@@ -392,11 +403,21 @@ class AttackTrainingClassification(nn.Module):
             epoch- the number of epochs the model has trained.
 
         """
+        if Config.unit_test_mode:
+            return
         if not os.path.exists(path):
             os.mkdir(path)
-        torch.save(net.state_dict(), path + f"/Epoch{epoch:03d}{Config.parameters['OOD Type'][0]}.pth")
+        to_save = {
+            "model_state": net.state_dict(),
+            "parameter_keys": list(Config.parameters.keys()),
+            "parameters": Config.parameters,
+            "class_split": Config.class_split
+        }
+        to_save["parameter_keys"].remove("optimizer")
+        to_save["parameter_keys"].remove("Unknowns")
+        torch.save(to_save, path + f"/Epoch{epoch:03d}{Config.parameters['OOD Type'][0]}")
 
-    def loadPoint(net, path: str):
+    def loadPoint(net, path: str, deleteOld=True):
         """
         Loads the most trained model from the path. Note: will break if trying to load a model with different configs.
 
@@ -408,22 +429,47 @@ class AttackTrainingClassification(nn.Module):
         """
         if not os.path.exists(path):
             os.mkdir(path)
-        i = 999
-        epochFound = -1
-        while i >= 0:
-            if os.path.exists(path + f"/Epoch{i:03d}{Config.parameters['OOD Type'][0]}.pth"):
-                net.load_state_dict(torch.load(path + f"/Epoch{i:03d}{Config.parameters['OOD Type'][0]}.pth"))
-                print(f"Loaded  model /Epoch{i:03d}{Config.parameters['OOD Type'][0]}.pth")
-                epochFound = i
-                i = -1
-            i = i - 1
+        epochFound = AttackTrainingClassification.findloadEpoch(path)
         if epochFound == -1:
             print("No model to load found.")
+            return
+        
+        pathFound = AttackTrainingClassification.findloadPath(epochFound,path)
+        loaded = torch.load(pathFound)
+        net.load_state_dict(loaded["model_state"])
+        print(f"Loaded  model from {pathFound}")
+        for x in loaded["parameter_keys"]:
+            if loaded["parameters"][x][0] != Config.parameters[x][0]:
+                print(f"Warning: {x} has been changed from when model was created")
+        for x in loaded["class_split"]["unknowns_clss"]:
+            if not x in Config.class_split["unknowns_clss"]:
+                print(f"Warning: Model trained with {x} as an unknown.")
+        
+        oldPath = AttackTrainingClassification.findloadPath(epochFound-5,path)
+        if os.path.exists(oldPath):
+            os.remove(oldPath)
+
         return epochFound
 
+    @staticmethod
+    def findloadEpoch(path="Saves/models"):
+        """
+        Finds the highest existing epoch save for this model type.
+        returns -1 if none exists
+        """
+        i = 999
+        epochFound = -1
+        for i in range(1000,-1,-1):
+            if os.path.exists(path + f"/Epoch{i:03d}{Config.parameters['OOD Type'][0]}"):
+                return i
+        return -1
+
+    @staticmethod
+    def findloadPath(epoch:int, path="Saves/models"):
+        return path + f"/Epoch{epoch:03d}{Config.parameters['OOD Type'][0]}"
     
     #This loops through all the thresholds without resetting the model.
-    def thresholdTest(net,val_loader):
+    def thresholdTest(net,val_loader,measurement=FileHandling.addMeasurement):
         """
         This tests the results from val_loader at various thresholds and saves it to scoresAll.csv
         """
@@ -452,7 +498,7 @@ class AttackTrainingClassification(nn.Module):
             f1 = 2 * (precision * recall) / (precision + recall)
             #save the f1 score
             FileHandling.create_params_Fscore("",f1,x)
-            FileHandling.addMeasurement(f"Threshold {x} Fscore",f1)
+            measurement(f"Threshold {x} Fscore",f1)
 
             #Generate and save confusion matrix
             # if plots.name_override:

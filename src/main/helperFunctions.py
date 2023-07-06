@@ -24,7 +24,7 @@ def setrelabel():
     #This is the mask to apply to tensors to make them ignore unknown classes.
     global mask
     mask = torch.zeros(Config.parameters["CLASSES"][0])
-    for x in Config.helper_variables["knowns_clss"]:
+    for x in Config.class_split["knowns_clss"]:
         mask[x] = 1
     mask = mask==1 
 
@@ -32,7 +32,7 @@ def setrelabel():
     rerelabel = {Config.parameters["CLASSES"][0]:Config.parameters["CLASSES"][0]}
     temp = 0
     for x in range(Config.parameters["CLASSES"][0]):
-        if temp < len(Config.helper_variables["unknowns_clss"]) and x == Config.helper_variables["unknowns_clss"][temp]:
+        if temp < len(Config.class_split["unknowns_clss"]) and x == Config.class_split["unknowns_clss"][temp]:
             temp = temp+1
         else:
             relabel[x] = x-temp
@@ -42,13 +42,14 @@ setrelabel()
 
 def makeConsecutive(logits:torch.Tensor,labels:torch.Tensor):
     """
+    OUTDATED: USE renameClasses() AND renameClassesLabeled()
     This function renames all of the classes so that all of the known classes are consecutive. This makes them easier to work with
     I wish I had just made the model have x outputs where x is the number of knowns instead of c outputs where c is the number of classes
     """
     global mask
     loge = logits[mask]
     newlabels = labels.clone()
-    for x in Config.helper_variables["knowns_clss"]:
+    for x in Config.class_split["knowns_clss"]:
         newlabels[labels==x] = relabel[x]
     return loge, newlabels
 
@@ -73,6 +74,18 @@ def printconfmat(outputs:torch.Tensor,labels:torch.Tensor):
 
 
 
+def configMod_testRotate(stage=0, step=0):
+    if Config.loops2[stage] == "optimizer":
+        Config.parameters[Config.loops2[stage]] = Config.loops[stage][step]
+    elif Config.loops2[stage] == "Unknowns":
+        Config.class_split["unknowns_clss"] = Config.loops[stage][step]
+        Config.parameters["Unknowns"] = f"{len(Config.loops[stage][step])} Unknowns"
+        Config.class_split["knowns_clss"] = Config.loopOverUnknowns(Config.class_split["unknowns_clss"])
+        setrelabel()
+    elif Config.loops2[stage] == "None":
+        pass
+    else:
+        Config.parameters[Config.loops2[stage]][0] = Config.loops[stage][step]
 
 #Handels running the loop
 def testRotate(notes=(0,0,0)):
@@ -103,40 +116,20 @@ def testRotate(notes=(0,0,0)):
     if step+1 < len(Config.loops[stage]):
         step = step+1
 
-        if Config.loops2[stage] == "optimizer":
-            Config.parameters[Config.loops2[stage]] = Config.loops[stage][step]
-        elif Config.loops2[stage] == "Unknowns":
-            Config.helper_variables["unknowns_clss"] = Config.loops[stage][step]
-            Config.parameters["Unknowns"] = f"{len(Config.loops[stage][step])} Unknowns"
-            Config.helper_variables["knowns_clss"] = Config.loopOverUnknowns(Config.helper_variables["unknowns_clss"])
-            setrelabel()
-        elif Config.loops2[stage] == "None":
-            pass
-        else:
-            Config.parameters[Config.loops2[stage]][0] = Config.loops[stage][step]
+        configMod_testRotate(stage,step)
 
         return (stage,step,al)
 
     #reset this stage
     step = 0
 
-    if Config.loops2[stage] == "optimizer":
-        Config.parameters[Config.loops2[stage]] = Config.loops[stage][step]
-    elif Config.loops2[stage] == "Unknowns":
-        Config.helper_variables["unknowns_clss"] = Config.loops[stage][step]
-        Config.parameters["Unknowns"] = f"{len(Config.loops[stage][step])} Unknowns"
-        Config.helper_variables["knowns_clss"] = Config.loopOverUnknowns(Config.helper_variables["unknowns_clss"])
-        setrelabel()
-    elif Config.loops2[stage] == "None":
-            pass
-    else:
-        Config.parameters[Config.loops2[stage]][0] = Config.loops[stage][step]
+    configMod_testRotate(stage,step)
 
     #Go to next stage
     if stage+1 < len(Config.loops):
         stage = stage+1
         #Skip the next rotate algorithm step and just go to rotate step
-        return testRotate((stage,step,al))
+        return (stage,step,al)
 
     #Reset stage
     stage = 0
@@ -144,6 +137,7 @@ def testRotate(notes=(0,0,0)):
     if al+1 < len(Config.alg):
         al = al+1
         Config.parameters["OOD Type"][0] = Config.alg[al]
+        Config.algorithmSpecificSettings(Config.alg[al])
         return (stage,step,al)
     
 
@@ -172,16 +166,24 @@ def incrementLoop(notes=(0)):
     if notes >= len(Config.incGroups):
         Config.parameters["LOOP"][0] = False
         return False
-    Config.helper_variables["unknowns_clss"] = Config.incGroups[notes]
+    Config.class_split["unknowns_clss"] = Config.incGroups[notes]
     Config.parameters["Unknowns"] = f"{len(Config.incGroups[notes])} Unknowns"
-    Config.helper_variables["knowns_clss"] = Config.loopOverUnknowns(Config.incGroups[notes])
+    Config.class_split["knowns_clss"] = Config.loopOverUnknowns(Config.incGroups[notes])
     setrelabel()
 
     #Find diffrence with this code: https://stackoverflow.com/a/3462160
     FileHandling.incrementLoopModData(list(set(Config.incGroups[notes-1])-set(Config.incGroups[notes])))
     return notes
 
-
+#Resiliance loop
+def resilianceLoop():
+    current = Config.parameters["loopLevel"][0]
+    file = pd.read_csv("datasets/percentages.csv", index_col=None)
+    if current+1<len(file):
+        Config.parameters["loopLevel"][0] = current+1
+        Config.parameters["threshold"][0] = Config.thresholds[file["Threshold "].iloc[current+1]-1]
+    else:
+        Config.parameters["LOOP"][0] = 0
 
 #This puts the notes into a readable form
 #notes are how it keeps track of where in the loop it is.
@@ -199,7 +201,39 @@ def getcurrentlychanged(notes):
     if currentlyChanging == "None":
         return f"algorithm"
     currentSetting = Config.loops[notes[0]][notes[1]]
+    if notes[1] == 0:
+        currentSetting = "Default"
     return str(algorithm)+" "+str(currentlyChanging)+" "+str(currentSetting)
+
+#This puts the notes into a readable form
+#notes are how it keeps track of where in the loop it is.
+def getcurrentlychanged_Stage(notes):
+    """
+    getcurrentlychanged() turns the notes from the function testRotate() into a readable string to tag data with.
+
+    it takes one parameter:
+        -notes, a three integer tuple.
+    it outputs a string saying what algorithm is being used with what changing parameter and the current setting of that parameter
+    """
+
+    currentlyChanging = Config.loops2[notes[0]]
+    if currentlyChanging == "None":
+        return f"algorithm"
+    return str(currentlyChanging)
+
+def getcurrentlychanged_Step(notes):
+    """
+    getcurrentlychanged() turns the notes from the function testRotate() into a readable string to tag data with.
+
+    it takes one parameter:
+        -notes, a three integer tuple.
+    it outputs a string saying what algorithm is being used with what changing parameter and the current setting of that parameter
+    """
+
+    currentlyChanging = Config.loops[notes[0]][notes[1]]
+    if currentlyChanging == "None":
+        return f"Default"
+    return str(currentlyChanging)
 
 #This bit of code will loop through the entire loop and print all of the variations.
 def looptest():
@@ -215,7 +249,7 @@ def looptest():
     notes = (0,0,0)
     while notes:
         current = pd.DataFrame(Config.parameters)
-        current2 = pd.DataFrame(Config.helper_variables["unknowns_clss"])
+        current2 = pd.DataFrame(Config.class_split["unknowns_clss"])
         out = pd.concat([out,current.iloc[0]],axis=1)
         out2 = pd.concat([out2,current2],axis=1)
         print(getcurrentlychanged(notes))
@@ -255,7 +289,7 @@ def renameClasses(modelOut:torch.Tensor):
     lastval = -1
     label = list(range(Config.parameters["CLASSES"][0]))
     newout = []
-    remove = Config.helper_variables["unknowns_clss"] + Config.UnusedClasses
+    remove = Config.class_split["unknowns_clss"] + Config.UnusedClasses
     remove.sort()
     for val in remove:
         label.remove(val)
@@ -290,7 +324,7 @@ def renameClassesLabeled(modelOut:torch.Tensor, labels:torch.Tensor):
     lastval = -1
     label = list(range(Config.parameters["CLASSES"][0]))
     newout = []
-    remove = Config.helper_variables["unknowns_clss"] + Config.UnusedClasses
+    remove = Config.class_split["unknowns_clss"] + Config.UnusedClasses
     remove.sort()
     #print(Config.helper_variables["unknowns_clss"])
     for val in remove:
@@ -421,7 +455,7 @@ def getFoundUnknown(dat):
     recall = recall_score(y_tested_against,y_pred,average=None,zero_division=0)
     #if there are no unknowns:
     if not Config.parameters["CLASSES"][0] in y_tested_against:
-        return 1
+        return 0
 
     if (recall is float):
         return recall

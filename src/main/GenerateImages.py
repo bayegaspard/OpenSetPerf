@@ -1,7 +1,4 @@
-import torch.nn as nn
-import matplotlib.pyplot as plt
 from torch.utils.data import DataLoader
-from sklearn.metrics import (precision_score, recall_score, average_precision_score)
 import numpy as np
 import torch
 import time
@@ -40,7 +37,7 @@ def run_model(set,last=None,start=0):
     FileHandling.generateHyperparameters(root_path) # generate hyper parameters copy files if they did not exist.
 
     #This is an example of how we get the values from Config now.
-    knownVals = Config.helper_variables["knowns_clss"]
+    knownVals = Config.class_split["knowns_clss"]
 
     #This just helps translate the config strings into model types. It is mostly unnesisary.
     model_list = {"Convolutional":ModelStruct.Conv1DClassifier,"Fully_Connected":ModelStruct.FullyConnected}
