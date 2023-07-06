@@ -417,7 +417,7 @@ class AttackTrainingClassification(nn.Module):
         to_save["parameter_keys"].remove("Unknowns")
         torch.save(to_save, path + f"/Epoch{epoch:03d}{Config.parameters['OOD Type'][0]}")
 
-    def loadPoint(net, path: str):
+    def loadPoint(net, path: str, deleteOld=True):
         """
         Loads the most trained model from the path. Note: will break if trying to load a model with different configs.
 
@@ -429,26 +429,44 @@ class AttackTrainingClassification(nn.Module):
         """
         if not os.path.exists(path):
             os.mkdir(path)
-        i = 999
-        epochFound = -1
-        while i >= 0:
-            if os.path.exists(path + f"/Epoch{i:03d}{Config.parameters['OOD Type'][0]}"):
-                loaded = torch.load(path + f"/Epoch{i:03d}{Config.parameters['OOD Type'][0]}")
-                net.load_state_dict(loaded["model_state"])
-                print(f"Loaded  model from /Epoch{i:03d}{Config.parameters['OOD Type'][0]}")
-                for x in loaded["parameter_keys"]:
-                    if loaded["parameters"][x][0] != Config.parameters[x][0]:
-                        print(f"Warning: {x} has been changed from when model was created")
-                for x in loaded["class_split"]["unknowns_clss"]:
-                    if not x in Config.class_split["unknowns_clss"]:
-                        print(f"Warning: Model trained with {x} as an unknown.")
-                epochFound = i
-                i = -1
-            i = i - 1
+        epochFound = AttackTrainingClassification.findloadEpoch(path)
         if epochFound == -1:
             print("No model to load found.")
+            return
+        
+        pathFound = AttackTrainingClassification.findloadPath(epochFound,path)
+        loaded = torch.load(pathFound)
+        net.load_state_dict(loaded["model_state"])
+        print(f"Loaded  model from {pathFound}")
+        for x in loaded["parameter_keys"]:
+            if loaded["parameters"][x][0] != Config.parameters[x][0]:
+                print(f"Warning: {x} has been changed from when model was created")
+        for x in loaded["class_split"]["unknowns_clss"]:
+            if not x in Config.class_split["unknowns_clss"]:
+                print(f"Warning: Model trained with {x} as an unknown.")
+        
+        oldPath = AttackTrainingClassification.findloadPath(epochFound-5,path)
+        if os.path.exists(oldPath):
+            os.remove(oldPath)
+
         return epochFound
 
+    @staticmethod
+    def findloadEpoch(path="Saves/models"):
+        """
+        Finds the highest existing epoch save for this model type.
+        returns -1 if none exists
+        """
+        i = 999
+        epochFound = -1
+        for i in range(1000,-1,-1):
+            if os.path.exists(path + f"/Epoch{i:03d}{Config.parameters['OOD Type'][0]}"):
+                return i
+        return -1
+
+    @staticmethod
+    def findloadPath(epoch:int, path="Saves/models"):
+        return path + f"/Epoch{epoch:03d}{Config.parameters['OOD Type'][0]}"
     
     #This loops through all the thresholds without resetting the model.
     def thresholdTest(net,val_loader,measurement=FileHandling.addMeasurement):

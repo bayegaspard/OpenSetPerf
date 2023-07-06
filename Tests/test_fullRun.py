@@ -12,6 +12,7 @@ import torch
 import numpy as np
 import src.main.FileHandling as FileHandling
 import src.main.Dataload as Dataload
+import src.main.ModelStruct as ModelStruct
 from torch.utils.data import DataLoader
 
 main.Config.parameters["num_epochs"][0] = 1
@@ -69,7 +70,13 @@ def testLoadDataset():
         assert torch.all(x[0] == y[0])
     
 
-
+def testfindSave():
+    """Finds if the save exists"""
+    epochFound = ModelStruct.AttackTrainingClassification.findloadEpoch()
+    assert epochFound != -1 #CANNOT FIND MODEL
+        
+    pathFound = ModelStruct.AttackTrainingClassification.findloadPath(epochFound)
+    assert os.path.exists(pathFound) #The path is invalid.
 
 def testrunFromSave():
     """
