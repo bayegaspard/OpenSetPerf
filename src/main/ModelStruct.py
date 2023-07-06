@@ -409,7 +409,7 @@ class AttackTrainingClassification(nn.Module):
             os.mkdir(path)
         to_save = {
             "model_state": net.state_dict(),
-            "parameter_keys": Config.parameters.keys(),
+            "parameter_keys": list(Config.parameters.keys()),
             "parameters": Config.parameters,
             "class_split": Config.class_split
         }

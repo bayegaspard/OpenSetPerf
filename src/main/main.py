@@ -141,7 +141,7 @@ def run_model(measurement=FileHandling.addMeasurement, graphDefault=True):
 
 
 
-    runExistingModel(model,test_loader,"Test",history_final,class_names, graphDefault=graphDefault)
+    runExistingModel(model,test_loader,"Test",history_final,class_names, graphDefault=graphDefault,print_vals=True)
 
     
 
@@ -247,7 +247,7 @@ def run_model(measurement=FileHandling.addMeasurement, graphDefault=True):
 
     plt.close()
 
-def runExistingModel(model,data,name,history_final,class_names,measurement=FileHandling.addMeasurement,graphDefault = False):
+def runExistingModel(model,data,name,history_final,class_names,measurement=FileHandling.addMeasurement,graphDefault = False, print_vals = False):
     """
     Runs an existing and loaded model.
     
@@ -298,11 +298,12 @@ def runExistingModel(model,data,name,history_final,class_names,measurement=FileH
     score_list = [recall,precision,f1]
     FileHandling.write_hist_to_file(history_final,Config.parameters["num_epochs"][0],model.end.type)
     FileHandling.write_scores_to_file(score_list,Config.parameters["num_epochs"][0],model.end.type)
-    print("Type : ",model.end.type)
-    print(f"Now changing : {plots.name_override}")
-    print(f"F-Score : {f1*100:.2f}%")
-    print(f"Precision : {precision*100:.2f}%")
-    print(f"Recall : {recall*100:.2f}%")
+    if print_vals:
+        print("Type : ",model.end.type)
+        print(f"Now changing : {plots.name_override}")
+        print(f"F-Score : {f1*100:.2f}%")
+        print(f"Precision : {precision*100:.2f}%")
+        print(f"Recall : {recall*100:.2f}%")
 
 def loopType1(main=run_model,measurement=FileHandling.addMeasurement):
     """
