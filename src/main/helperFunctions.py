@@ -230,7 +230,7 @@ def getcurrentlychanged_Step(notes):
     it outputs a string saying what algorithm is being used with what changing parameter and the current setting of that parameter
     """
 
-    currentlyChanging = Config.loops[notes[1]][notes[0]]
+    currentlyChanging = Config.loops[notes[0]][notes[1]]
     if currentlyChanging == "None":
         return f"Default"
     return str(currentlyChanging)

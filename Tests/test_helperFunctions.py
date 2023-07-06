@@ -31,3 +31,4 @@ def testRemovedVals():
         newTensor[x] = torch.tensor(helperFunctions.rerelabel[newTensor[x].item()])
 
     assert torch.all(newTensor==tensor)
+

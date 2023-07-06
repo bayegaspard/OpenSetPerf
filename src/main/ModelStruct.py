@@ -413,6 +413,8 @@ class AttackTrainingClassification(nn.Module):
             "parameters": Config.parameters,
             "class_split": Config.class_split
         }
+        to_save["parameter_keys"].remove("optimizer")
+        to_save["parameter_keys"].remove("Unknowns")
         torch.save(to_save, path + f"/Epoch{epoch:03d}{Config.parameters['OOD Type'][0]}")
 
     def loadPoint(net, path: str):

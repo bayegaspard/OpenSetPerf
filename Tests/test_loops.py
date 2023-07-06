@@ -24,7 +24,7 @@ def testLoop1Uniqueness():
         pass
     def addtoLoopNames(itemDescription,item):
         global count
-        count= (count+1)%2
+        count= (count+1)%3
         if count ==1:
             global loopNames
             assert not item in loopNames
@@ -71,3 +71,21 @@ def testLoop3looping():
 
 def test_loop1HasValues():
     assert main.Config.parameters["OOD Type"][0] in main.Config.alg
+
+    global section
+    section = None
+    def nothing():
+        pass
+    def addtoLoopNames(itemDescription,item):
+        global section
+        if itemDescription == "Type of modification":
+            section = item
+        elif itemDescription == "Modification Level":
+            if not section is None:
+                global loopNames
+                if not section in ["optimizer","Unknowns"]:
+                    assert item == "Default" or item in str(main.Config.parameters[section][0])
+                section = None
+    
+    main.Config.parameters["LOOP"][0] = 1
+    main.loopType1(nothing,addtoLoopNames)
