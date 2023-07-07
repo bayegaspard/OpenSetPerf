@@ -69,6 +69,14 @@ def testLoadDataset():
     for x,y in zip(train1,train2):
         assert torch.all(x[0] == y[0])
     
+def testLoadDatasetfromSave():
+    main.Config.parameters["attemptLoad"][0] = 1
+    main.torch.manual_seed(1)
+    train1, test1, val1 = FileHandling.checkAttempLoad("")
+    main.torch.manual_seed(1)
+    train2, test2, val2 = FileHandling.checkAttempLoad("")
+    for x,y in zip(train1,train2):
+        assert torch.all(x[0] == y[0])
 
 def testfindSave():
     """Finds if the save exists"""

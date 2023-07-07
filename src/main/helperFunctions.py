@@ -453,16 +453,17 @@ def getFoundUnknown(dat):
     y_pred = y_pred.to(torch.int).tolist()
     y_tested_against = y_tested_against.to(torch.int).tolist()
     recall = recall_score(y_tested_against,y_pred,average=None,zero_division=0)
+    accuracy = precision_score(y_tested_against,y_pred,average=None,zero_division=0)
     #if there are no unknowns:
     if not Config.parameters["CLASSES"][0] in y_tested_against:
-        return 0
+        return 0,0
 
     if (recall is float):
-        return recall
+        return recall,accuracy
     elif (recall is None or len(recall)==0):
-        return 0
+        return 0,0
     else:
-        return recall[-1]
+        return recall[-1],accuracy[-1]
 def shuffleCSVs():
     """
     Shuffles the positions of data in all dataset CSVs just to make sure that we are getting random data

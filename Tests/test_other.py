@@ -15,20 +15,7 @@ from torch.utils.data import DataLoader
 import src.main.helperFunctions as helperFunctions
 from src.main.Config import parameters as parameters
 from src.main.Config import class_split as class_split 
+import src.main.GenerateImages as GenerateImages
 
-def testRemovedVals():
-    tensor = torch.tensor(list(range(parameters["CLASSES"][0])))
-    newTensor = tensor.clone()
-    newTensor = helperFunctions.renameClasses(newTensor)
-    for x in class_split["unknowns_clss"]:
-        assert not x in newTensor
-
-    tensor = newTensor.clone()
-    for x in range(len(newTensor)):
-        newTensor[x] = torch.tensor(helperFunctions.relabel[newTensor[x].item()])
-    assert newTensor.max() <= parameters["CLASSES"][0]-len(class_split["unknowns_clss"])
-    for x in range(len(newTensor)):
-        newTensor[x] = torch.tensor(helperFunctions.rerelabel[newTensor[x].item()])
-
-    assert torch.all(newTensor==tensor)
-
+def test_images():
+    GenerateImages.main(save=False)

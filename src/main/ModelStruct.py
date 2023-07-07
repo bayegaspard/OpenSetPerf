@@ -28,11 +28,18 @@ class ModdedParallel(nn.DataParallel):
 
 class AttackTrainingClassification(nn.Module):
     """This is the Default Model for the project"""
-    def __init__(self):
+    def __init__(self,numberOfFeatures=1504):
         super().__init__()
 
+        self.maxpooling = [4,2]
+        self.convolutional_channels = [32,64]
+        
+
         #This is the length of the packets in the dataset we are currently using.
-        fullyConnectedStart = 11904
+        self.fullyConnectedStart = ((numberOfFeatures)/(self.maxpooling[0])//1)-1
+        self.fullyConnectedStart =  ((self.fullyConnectedStart)/(self.maxpooling[1])//1)-1
+        self.fullyConnectedStart *= self.convolutional_channels[-1]
+        self.fullyConnectedStart = int(self.fullyConnectedStart)
 
         #There are 15 classes
         numClasses = Config.parameters["CLASSES"][0]
@@ -44,7 +51,7 @@ class AttackTrainingClassification(nn.Module):
             self.DOC_kernels = nn.ModuleList()
             for x in Config.DOC_kernels:
                 self.DOC_kernels.append(nn.Conv1d(1, 32, x,device=device))
-            fullyConnectedStart= 1501*len(Config.DOC_kernels)
+            self.fullyConnectedStart= numberOfFeatures*len(Config.DOC_kernels)
 
         #This (poorly made) menu switches between the diffrent options for activation functions.
         self.activation = nn.ReLU()
@@ -70,7 +77,7 @@ class AttackTrainingClassification(nn.Module):
 
 
         #We use two normal fully connected layers after the CNN specific layers (or substiute layers)
-        self.fc1 = nn.Linear(fullyConnectedStart, Config.parameters["Nodes"][0],device=device)
+        self.fc1 = nn.Linear(self.fullyConnectedStart, Config.parameters["Nodes"][0],device=device)
         self.fc2 = nn.Linear(Config.parameters["Nodes"][0], numClasses,device=device)
 
 
@@ -131,7 +138,7 @@ class AttackTrainingClassification(nn.Module):
         return x
         
 
-    def fit(self, epochs, lr, train_loader, test_loader,val_loader, opt_func, measurement=FileHandling.addMeasurement):
+    def fit(self, epochs, lr, train_loader, test_loader,val_loader, opt_func, measurement=FileHandling.addMeasurement, epoch_record_rate = 5):
         """
         Trains the model on the train_loader and evaluates it off of the val_loader. Also it stores all of the results in model.store.
         It also generates a new line of ScoresAll.csv that stores all of the data for this model. (note: if you are running two threads at once the data will be overriden)
@@ -148,7 +155,6 @@ class AttackTrainingClassification(nn.Module):
             history- a list of tuples, each containing:
                 val_loss - the loss from the validation stage
                 val_acc - the accuract from the validation  stage. Note: this accuracy is not used in the save.
-                val_avgUnknown - internal metric that is not used
                 epoch - the epoch that this data was taken
                 train_loss - the average training loss per batch of this epoch
         """
@@ -202,7 +208,8 @@ class AttackTrainingClassification(nn.Module):
                     self.savePoint(f"Saves/models", epoch+startingEpoch)
 
                 result['train_loss'] = torch.stack(train_losses).mean().item()
-                measurement(f"Epoch{epoch+startingEpoch} loss",result['train_loss'])
+                if epoch%epoch_record_rate == 0:
+                    measurement(f"Epoch{epoch+startingEpoch} loss",result['train_loss'])
                 result["epoch"] = epoch+startingEpoch
                 self.epoch_end(epoch+startingEpoch, result)
                 #print("result", result)
@@ -261,7 +268,6 @@ class AttackTrainingClassification(nn.Module):
             dictionary of:
                 val_loss - the loss from the validation stage
                 val_acc - the accuract from the validation  stage. Note: this accuracy is not used in the save.
-                val_avgUnknown - internal metric that is not used
         """
         self.eval()
         #self.savePoint("test", phase=Config.helper_variables["phase"])
@@ -285,11 +291,6 @@ class AttackTrainingClassification(nn.Module):
         # Y_test = labels
         # print("y-test from validation",Y_test)
         # print("y-pred from validation", Y_pred)
-        if out.ndim == 2:
-            unknowns = out[:, Config.parameters["CLASSES"][0]].mean()
-            test = torch.argmax(out, dim=1)
-        else:
-            unknowns = torch.zeros(out.shape)
 
         #This is just for datacollection.
         if self.los:
@@ -302,7 +303,7 @@ class AttackTrainingClassification(nn.Module):
         acc = self.accuracy(out, labels_extended)  # Calculate accuracy
         #FileHandling.write_batch_to_file(loss, self.batchnum, self.end.type, "Saves")
         #print("validation accuracy: ", acc)
-        return {'val_loss': loss.detach(), 'val_acc': acc, "val_avgUnknown": unknowns}
+        return {'val_loss': loss.detach(), 'val_acc': acc}
 
 
     @torch.no_grad()
@@ -317,7 +318,6 @@ class AttackTrainingClassification(nn.Module):
             A dictionary of all of the mean values from the run consisting of:
                 val_loss - the loss from the validation stage
                 val_acc - the accuract from the validation  stage
-                val_avgUnknown - internal metric that is not used
         """
         self.eval()
         self.batchnum = 0
@@ -368,22 +368,13 @@ class AttackTrainingClassification(nn.Module):
             dictionary of:
                 val_loss - the loss from the validation stage
                 val_acc - the accuract from the validation  stage
-                val_avgUnknown - internal metric that is not used
         """
         batch_losses = [x['val_loss'] for x in outputs]
         epoch_loss = torch.stack(batch_losses).mean()  # Combine losses
         batch_accs = [x['val_acc'] for x in outputs]
         epoch_acc = torch.stack(batch_accs).mean()  # Combine accuracies
 
-        #Now unused unknown score for finding threhsolds
-        # batch_unkn = self.end.Save_score
-        # self.end.Save_score = []
-        # if len(batch_unkn) != 0:
-        #     epoch_unkn = torch.stack(batch_unkn).mean()  # Combine Unknowns
-        # else:
-        epoch_unkn = torch.tensor(0)
-
-        return {'val_loss': epoch_loss.item(), 'val_acc': epoch_acc.item(), "val_avgUnknown": epoch_unkn.item()}
+        return {'val_loss': epoch_loss.item(), 'val_acc': epoch_acc.item()}
 
     def epoch_end(self, epoch, result):
         """
@@ -417,6 +408,10 @@ class AttackTrainingClassification(nn.Module):
         to_save["parameter_keys"].remove("Unknowns")
         torch.save(to_save, path + f"/Epoch{epoch:03d}{Config.parameters['OOD Type'][0]}")
 
+        oldPath = AttackTrainingClassification.findloadPath(epoch-5,path)
+        if os.path.exists(oldPath):
+            os.remove(oldPath)
+
     def loadPoint(net, path: str, deleteOld=True):
         """
         Loads the most trained model from the path. Note: will break if trying to load a model with different configs.
@@ -445,9 +440,7 @@ class AttackTrainingClassification(nn.Module):
             if not x in Config.class_split["unknowns_clss"]:
                 print(f"Warning: Model trained with {x} as an unknown.")
         
-        oldPath = AttackTrainingClassification.findloadPath(epochFound-5,path)
-        if os.path.exists(oldPath):
-            os.remove(oldPath)
+        
 
         return epochFound
 
@@ -500,23 +493,6 @@ class AttackTrainingClassification(nn.Module):
             FileHandling.create_params_Fscore("",f1,x)
             measurement(f"Threshold {x} Fscore",f1)
 
-            #Generate and save confusion matrix
-            # if plots.name_override:
-            #     if y > 0:
-            #         plots.name_override = plots.name_override.replace(f" Threshold:{thresh[y-1]}",f" Threshold:{x}")
-            #     else:
-            #         plots.name_override = plots.name_override+f" Threshold:{x}"
-            # else:
-            #     plots.name_override = f"Default_setting Threshold:{x}"
-
-            # class_names = Dataload.get_class_names(range(15))
-            # for x in Config.helper_variables["unknowns_clss"]["unknowns"]:
-            #     class_names[x] = class_names[x]+"*"
-            # class_names.append("*Unknowns")
-            #cnf_matrix = plots.confusionMatrix(y_true.copy(), y_pred.copy(), y_tested_against.copy()) 
-
-            #plots.plot_confusion_matrix(cnf_matrix, classes=class_names, normalize=True,
-            #                title='Confusion matrix', knowns = Config.helper_variables["knowns_clss"])
 
     def storeReset(self):
         """
@@ -536,14 +512,14 @@ class Conv1DClassifier(AttackTrainingClassification):
     def __init__(self):
         super().__init__()
         self.layer1 = nn.Sequential(
-            nn.Conv1d(1, 32, 3,device=device),
+            nn.Conv1d(1, self.convolutional_channels[0], 3,device=device),
             self.activation,
-            nn.MaxPool1d(4),
+            nn.MaxPool1d(self.maxpooling[0]),
             nn.Dropout(int(Config.parameters["Dropout"][0])))
         self.layer2 = nn.Sequential(
-            nn.Conv1d(32, 64, 3,device=device),
+            nn.Conv1d(32, self.convolutional_channels[1], 3,device=device),
             self.activation,
-            nn.MaxPool1d(2),
+            nn.MaxPool1d(self.maxpooling[1]),
             nn.Dropout(int(Config.parameters["Dropout"][0])))
 
         
@@ -554,14 +530,15 @@ class Conv1DClassifier(AttackTrainingClassification):
 
 
 class FullyConnected(AttackTrainingClassification):
-    def __init__(self):
-        super().__init__()
+    def __init__(self,numberOfFeatures=1504):
+        super().__init__(numberOfFeatures)
         self.layer1 = nn.Sequential(
-            nn.Linear(1504,12000,device=device),
+            #Sorry about the big block of math, trying to calculate how big the convolutional tensor is after the first layer
+            nn.Linear(numberOfFeatures,int(self.convolutional_channels[0]*(((numberOfFeatures)/(self.maxpooling[0])//1)-1)),device=device),
             self.activation,
             nn.Dropout(int(Config.parameters["Dropout"][0])))
         self.layer2 = nn.Sequential(
-            nn.Linear(12000,11904,device=device),
+            nn.Linear(int(self.convolutional_channels[0]*(((numberOfFeatures)/(self.maxpooling[0])//1)-1)),self.fullyConnectedStart,device=device),
             self.activation,
             nn.Dropout(int(Config.parameters["Dropout"][0])))
 

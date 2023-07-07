@@ -26,7 +26,7 @@ if __name__ == "__main__":
 opt_func = Config.parameters["optimizer"]
 device = GPU.get_default_device() # selects a device, cpu or gpu
 
-def run_model(set,last=None,start=0):
+def old_run_model(set,last=None,start=0):
     global fscores
 
 
@@ -83,16 +83,7 @@ def run_model(set,last=None,start=0):
 
     return turningPoint,model.store
     
-    
-
-    
-
-
-    
-
-    
-
-def staticDataset():
+def old_staticDataset():
     knowns, unknowns = FileHandling.getDatagroup()
 
     #These lines initialize the loaders for the datasets.
@@ -107,7 +98,7 @@ def staticDataset():
 
     return knownsset, unknownsset
 
-def main():
+def old_main():
     """
     The main function
     This is what is run to start the model.
@@ -128,7 +119,7 @@ def main():
     
     global set1
     global set2
-    set1, set2 = staticDataset()
+    set1, set2 = old_staticDataset()
     global fscores
     fscores = pd.DataFrame()
 
@@ -136,24 +127,24 @@ def main():
     names= ["Softmax Closedset","Softmax Openset","Openmax Openset","Energy Openset","COOL Openset","DOC Openset"]
 
     #Runs the model
-    turningPoint, last = run_model(set1)
-    run_model(set2,last=last,start=turningPoint)
+    turningPoint, last = old_run_model(set1)
+    old_run_model(set2,last=last,start=turningPoint)
     Config.parameters["OOD Type"][0] = "Open"
 
     #turningPoint, last = run_model(set1)
-    run_model(set2,last=last,start=turningPoint)
+    old_run_model(set2,last=last,start=turningPoint)
     Config.parameters["OOD Type"][0] = "Energy"
 
     #turningPoint, last = run_model(set1)
-    run_model(set2,last=last,start=turningPoint)
+    old_run_model(set2,last=last,start=turningPoint)
     Config.parameters["OOD Type"][0] = "COOL"
 
     #turningPoint, last = run_model(set1)
-    run_model(set2,last=last,start=turningPoint)
+    old_run_model(set2,last=last,start=turningPoint)
     Config.parameters["OOD Type"][0] = "DOC"
 
     #turningPoint, last = run_model(set1)
-    run_model(set2,last=last,start=turningPoint)
+    old_run_model(set2,last=last,start=turningPoint)
 
     fig = px.scatter(y=fscores.iloc[0])
     for x in range(len(fscores)):
@@ -166,8 +157,59 @@ def main():
     fig.show()
     fig.write_image("Saves/GeneratedImages.png")
     
+def traceLines(trace:plotly.graph_objs.Trace):
+    if trace.name == "Soft":
+        trace.update({"line":{"dash":'solid',"width":4,"color":"black"}})
+    elif trace.name == "iiMod":
+        trace.update({"line":{"dash":"dashdot","width":4,"color":"orange"}})
+    elif trace.name == "COOL":
+        trace.update({"line":{"dash":"longdash","width":4,"color":"purple"}})
+    elif trace.name == "DOC":
+        trace.update({"line":{"dash":"dash","width":4,"color":"blue"}})
+    elif trace.name == "Energy":
+        trace.update({"line":{"dash":"dot","width":4,"color":"yellow"}})
+    elif trace.name == "Open":
+        trace.update({"line":{"dash":"dot","width":4,"color":"green"}})
+    else:
+        trace.update({"line":{"dash":'solid',"width":4,"color":"red"}})
+    
+    if trace.name == "Soft":
+        trace.update({"marker":{"symbol":'circle',"size":8,"color":"black"}})
+    elif trace.name == "iiMod":
+        trace.update({"marker":{"symbol":'square',"size":8,"color":"orange"}})
+    elif trace.name == "COOL":
+        trace.update({"marker":{"symbol":'x',"size":8,"color":"purple"}})
+    elif trace.name == "DOC":
+        trace.update({"marker":{"symbol":'cross',"size":8,"color":"blue"}})
+    elif trace.name == "Energy":
+        trace.update({"marker":{"symbol":'diamond',"size":8,"color":"yellow"}})
+    elif trace.name == "Open":
+        trace.update({"marker":{"symbol":'star-open',"size":8,"color":"green"}})
+    else:
+        trace.update({"marker":{"symbol":'circle-x',"size":8,"color":"red"}})
 
+def main(save=True,show=False):
+    if not os.path.exists("Saves/images/"):
+        os.mkdir("Saves/images")
+    whole_table = pd.read_csv("Saves/Scoresall.csv")
+    for y in ["Test_F1","Val_F1","Test_Found_Unknowns"]:
+        for x in set(whole_table["Type of modification"]):
+            part_table = pd.pivot_table(whole_table[whole_table["Type of modification"]==x],values=y,index=["Modification Level"],columns=["OOD Type"],aggfunc=np.mean)
+            # print(part_table)
+            if x in ["Activation"]:
+                fig = px.scatter(part_table)
+            else:
+                fig = px.line(part_table,markers=True)
+            fig.update_layout(yaxis_title=y,xaxis_title=x,paper_bgcolor="rgba(0,0,0,0)",plot_bgcolor="rgba(0,0,0,0)",font={"size":18,"color":"rgba(0,0,0,255)"},legend_title_text='Algorithm')
+            fig.update_yaxes(range=[0, 1],gridcolor="rgba(200,200,200,50)",zerolinecolor="rgba(200,200,200,50)",zerolinewidth=1)
+            fig.update_xaxes(gridcolor="rgba(200,200,200,50)",zerolinecolor="rgba(200,200,200,50)",zerolinewidth=1,exponentformat='power')
+                
+            fig.for_each_trace(traceLines)
 
+            if show:
+                fig.show()
+            if save:
+                fig.write_image(f"Saves/images/{y}{x}.png",scale=4)
 
 if __name__ == '__main__':
     main()
