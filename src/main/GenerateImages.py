@@ -188,10 +188,20 @@ def traceLines(trace:plotly.graph_objs.Trace):
     else:
         trace.update({"marker":{"symbol":'circle-x',"size":8,"color":"red"}})
 
-def main(save=True,show=False):
+def main(save=True,show=False, minimumVersion=None):
+    if minimumVersion is None:
+        #Getting version number
+        #https://gist.github.com/sg-s/2ddd0fe91f6037ffb1bce28be0e74d4e
+        f = open("build_number.txt","r")
+        minimumVersion = f.read()
     if not os.path.exists("Saves/images/"):
         os.mkdir("Saves/images")
+    
     whole_table = pd.read_csv("Saves/Scoresall.csv")
+
+    whole_table = whole_table[whole_table["Version"]!="OLD"]
+    whole_table = whole_table[whole_table["Version"].astype(int)>=minimumVersion]
+
     for y in ["Test_F1","Val_F1","Test_Found_Unknowns"]:
         for x in set(whole_table["Type of modification"]):
             part_table = pd.pivot_table(whole_table[whole_table["Type of modification"]==x],values=y,index=["Modification Level"],columns=["OOD Type"],aggfunc=np.mean)
@@ -212,7 +222,7 @@ def main(save=True,show=False):
                 fig.write_image(f"Saves/images/{y}{x}.png",scale=4)
 
 if __name__ == '__main__':
-    main()
+    main(minimumVersion=408)
 
 
 
