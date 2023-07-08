@@ -159,34 +159,35 @@ def old_main():
     
 def traceLines(trace:plotly.graph_objs.Trace):
     if trace.name == "Soft":
-        trace.update({"line":{"dash":'solid',"width":4,"color":"black"}})
+        trace.update({"line":{"dash":'solid',"width":4}})
     elif trace.name == "iiMod":
-        trace.update({"line":{"dash":"dashdot","width":4,"color":"orange"}})
+        trace.update({"line":{"dash":"dashdot","width":4}})
     elif trace.name == "COOL":
-        trace.update({"line":{"dash":"longdash","width":4,"color":"purple"}})
+        trace.update({"line":{"dash":"longdash","width":4}})
     elif trace.name == "DOC":
-        trace.update({"line":{"dash":"dash","width":4,"color":"blue"}})
+        trace.update({"line":{"dash":"dash","width":4}})
     elif trace.name == "Energy":
-        trace.update({"line":{"dash":"dot","width":4,"color":"yellow"}})
+        trace.update({"line":{"dash":"dot","width":4}})
     elif trace.name == "Open":
-        trace.update({"line":{"dash":"dot","width":4,"color":"green"}})
+        trace.update({"line":{"dash":"dot","width":4}})
     else:
-        trace.update({"line":{"dash":'solid',"width":4,"color":"red"}})
+        trace.update({"line":{"dash":'solid',"width":4}})
     
     if trace.name == "Soft":
-        trace.update({"marker":{"symbol":'circle',"size":8,"color":"black"}})
+        trace.update({"marker":{"symbol":'circle',"size":8}})
     elif trace.name == "iiMod":
-        trace.update({"marker":{"symbol":'square',"size":8,"color":"orange"}})
+        trace.update({"marker":{"symbol":'square',"size":8}})
     elif trace.name == "COOL":
-        trace.update({"marker":{"symbol":'x',"size":8,"color":"purple"}})
+        trace.update({"marker":{"symbol":'x',"size":8}})
     elif trace.name == "DOC":
-        trace.update({"marker":{"symbol":'cross',"size":8,"color":"blue"}})
+        trace.update({"marker":{"symbol":'cross',"size":8}})
     elif trace.name == "Energy":
-        trace.update({"marker":{"symbol":'diamond',"size":8,"color":"yellow"}})
+        trace.update({"marker":{"symbol":'diamond',"size":8}})
     elif trace.name == "Open":
-        trace.update({"marker":{"symbol":'star-open',"size":8,"color":"green"}})
+        trace.update({"marker":{"symbol":'star-open',"size":8}})
     else:
-        trace.update({"marker":{"symbol":'circle-x',"size":8,"color":"red"}})
+        trace.update({"marker":{"symbol":'circle-x',"size":8}})
+
 
 def main(save=True,show=False, minimumVersion=None):
     if minimumVersion is None:
@@ -206,6 +207,7 @@ def main(save=True,show=False, minimumVersion=None):
         for x in set(whole_table["Type of modification"]):
             part_table = pd.pivot_table(whole_table[whole_table["Type of modification"]==x],values=y,index=["Modification Level"],columns=["OOD Type"],aggfunc=np.mean)
             # print(part_table)
+            
             if x in ["Activation"]:
                 fig = px.scatter(part_table)
             else:
