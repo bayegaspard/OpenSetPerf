@@ -202,16 +202,19 @@ def main(save=True,show=False, minimumVersion=None):
 
     whole_table = whole_table[whole_table["Version"]!="OLD"]
     whole_table = whole_table[whole_table["Version"].astype(int)>=minimumVersion]
+    whole_table["Unknowns"] = whole_table["Unknowns"].str.replace(" Unknowns","")
 
     for y in ["Test_F1","Val_F1","Test_Found_Unknowns"]:
         for x in set(whole_table["Type of modification"]):
-            part_table = pd.pivot_table(whole_table[whole_table["Type of modification"]==x],values=y,index=["Modification Level"],columns=["OOD Type"],aggfunc=np.mean)
+            part_table = pd.pivot_table(whole_table[whole_table["Type of modification"]==x],values=y,index=[f"{x}"],columns=["OOD Type"],aggfunc=np.mean)
             # print(part_table)
             
             if x in ["Activation"]:
                 fig = px.scatter(part_table)
-            else:
+            elif x in ["Datagrouping"]:
                 fig = px.line(part_table,markers=True)
+            else:
+                fig = px.line(part_table,markers=True,log_x=True)
             fig.update_layout(yaxis_title=y,xaxis_title=x,paper_bgcolor="rgba(0,0,0,0)",plot_bgcolor="rgba(0,0,0,0)",font={"size":18,"color":"rgba(0,0,0,255)"},legend_title_text='Algorithm')
             fig.update_yaxes(range=[0, 1],gridcolor="rgba(200,200,200,50)",zerolinecolor="rgba(200,200,200,50)",zerolinewidth=1)
             fig.update_xaxes(gridcolor="rgba(200,200,200,50)",zerolinecolor="rgba(200,200,200,50)",zerolinewidth=1,exponentformat='power')
