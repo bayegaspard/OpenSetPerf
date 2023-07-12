@@ -198,6 +198,7 @@ def traceLines(trace:plotly.graph_objs.Trace):
 
 def keepFirstThree(df:pd.DataFrame):
     df.drop_duplicates(inplace=True)
+    df["Version"] = pd.to_numeric(df["Version"])
     df.sort_values(by="Version",inplace=True,kind="mergesort")#I want a stable sort so I am using mergesort.
     final = pd.DataFrame()
     for x in range(3):
