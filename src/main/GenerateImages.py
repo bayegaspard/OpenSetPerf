@@ -157,6 +157,14 @@ def old_main():
     fig.show()
     fig.write_image("Saves/GeneratedImages.png")
     
+
+valueLocations = {
+    "Convolutional": "model",
+    "Fully_Connected": "model",
+    "Payload_data_CICIDS2017": "Dataset",
+    "Payload_data_UNSW": "Dataset"
+}
+
 def traceLines(trace:plotly.graph_objs.Trace):
     if trace.name == "Soft":
         trace.update({"line":{"dash":'solid',"width":4}})
@@ -188,8 +196,21 @@ def traceLines(trace:plotly.graph_objs.Trace):
     else:
         trace.update({"marker":{"symbol":'circle-x',"size":8}})
 
+def keepFirstThree(df:pd.DataFrame):
+    df.drop_duplicates(inplace=True)
+    df.sort_values(by="Version",inplace=True,kind="mergesort")#I want a stable sort so I am using mergesort.
+    final = pd.DataFrame()
+    for x in range(3):
+        # print(f"The length is {len(df)}")
+        temp = df.drop_duplicates(subset=["Currently Modifying","model","Dataset"],keep="last")
+        final = pd.concat([final,temp])
+        df = pd.concat([df,temp])
+        # print(f"The length is (should be more) {len(df)}")
+        df.drop_duplicates(inplace=True,keep=False)
+    return final
 
-def main(save=True,show=False, minimumVersion=None):
+
+def main(save=True,show=False, minimumVersion=None, bysection=False):
     if minimumVersion is None:
         #Getting version number
         #https://gist.github.com/sg-s/2ddd0fe91f6037ffb1bce28be0e74d4e
@@ -200,13 +221,36 @@ def main(save=True,show=False, minimumVersion=None):
     
     whole_table = pd.read_csv("Saves/Scoresall.csv")
 
-    whole_table = whole_table[whole_table["Version"]!="OLD"]
-    whole_table = whole_table[whole_table["Version"].astype(int)>=minimumVersion]
-    whole_table["Unknowns"] = whole_table["Unknowns"].str.replace(" Unknowns","")
+    whole_table = whole_table[whole_table["Version"]!="OLD"] #Sort out all unreadable versions
+    whole_table = whole_table[whole_table["Version"].astype(int)>=minimumVersion] #Only accept version numbers above value
+    whole_table["Unknowns"] = whole_table["Unknowns"].str.replace(" Unknowns","") #Remove unnessisary text
+    whole_table = whole_table[whole_table["Type of modification"]!="Default"] #Remove Defaults
+    whole_table = whole_table[whole_table["Type of modification"].notna()]  #Also remove defaluts
+
+    whole_table = keepFirstThree(whole_table)
+    
+
+
+    for z1 in ["Convolutional","Fully_Connected"]:
+        part_tabel = whole_table[whole_table[valueLocations[z1]]==z1].copy()
+        for z2 in ["Payload_data_CICIDS2017","Payload_data_UNSW"]:
+            part_tabel2 = part_tabel[part_tabel[valueLocations[z2]]==z2].copy()
+            if graphTabel(part_tabel2,show=show,save=bysection) == -1:
+                print(f"{z1}-{z2} was unable to find samples for graphs")
+
+    graphTabel(whole_table,show=show,save=save)
+
+    
+    
+
+def graphTabel(df:pd.DataFrame,show=False,save=True,extrapath=""):
+    if len(df) <2:
+        print("Dataframe not enough values")
+        return -1
 
     for y in ["Test_F1","Val_F1","Test_Found_Unknowns"]:
-        for x in set(whole_table["Type of modification"]):
-            part_table = pd.pivot_table(whole_table[whole_table["Type of modification"]==x],values=y,index=[f"{x}"],columns=["OOD Type"],aggfunc=np.mean)
+        for x in set(df["Type of modification"]):
+            part_table = pd.pivot_table(df[df["Type of modification"]==x],values=y,index=[f"{x}"],columns=["OOD Type"],aggfunc=np.mean)
             # print(part_table)
             
             if x in ["Activation"]:
@@ -224,7 +268,7 @@ def main(save=True,show=False, minimumVersion=None):
             if show:
                 fig.show()
             if save:
-                fig.write_image(f"Saves/images/{y}{x}.png",scale=4)
+                fig.write_image(f"Saves/images/{extrapath}{y}{x}.png",scale=4)
 
 if __name__ == '__main__':
     main(minimumVersion=408)

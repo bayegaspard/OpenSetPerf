@@ -154,9 +154,9 @@ optim = [opt_func["Adam"]]
 # alg.insert(0,parameters["OOD Type"][0])
 
 #This is an array to eaiser loop through everything.
-loops = [batch,datapoints_per_class,learning_rates,epochs,activation,["ClassChunk","Dendrogramlimit"]]
+loops = [batch,learning_rates,activation,["ClassChunk","Dendrogramlimit"],groups]
 # loops = [groups]
-loops2 = ["batch_size","MaxPerClass","learningRate","num_epochs","Activation","Datagrouping"]
+loops2 = ["batch_size","learningRate","Activation","Datagrouping","Unknowns"]
 # loops2 = ["Unknowns"]
 for i in range(len(loops)):
     if loops2[i] == "Unknowns":
@@ -210,11 +210,3 @@ if parameters["LOOP"][0] == 3:
 #https://gist.github.com/sg-s/2ddd0fe91f6037ffb1bce28be0e74d4e
 f = open("build_number.txt","r")
 parameters["Version"] = [f.read(),"The version number"]
-if __name__ == "__main__":
-    import main
-    print("WARNING RUNNING WITH ALGORITHM SPECIFIC THRESHOLDS")
-    use_alg_thesholds
-    use_alg_thesholds=True
-    algorithmSpecificSettings(parameters["OOD Type"][0])
-    main.main()
-
