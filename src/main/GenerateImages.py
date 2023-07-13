@@ -157,7 +157,7 @@ def old_main():
     fig.show()
     fig.write_image("Saves/GeneratedImages.png")
     
-
+#Tells what Config section each possibility maps to. (so that that specific column can be checked)
 valueLocations = {
     "Convolutional": "model",
     "Fully_Connected": "model",
@@ -166,6 +166,9 @@ valueLocations = {
 }
 
 def traceLines(trace:plotly.graph_objs.Trace):
+    """
+    Changes the trace lines so the graphs are consistant.
+    """
     if trace.name == "Soft":
         trace.update({"line":{"dash":'solid',"width":4}})
     elif trace.name == "iiMod":
@@ -197,6 +200,9 @@ def traceLines(trace:plotly.graph_objs.Trace):
         trace.update({"marker":{"symbol":'circle-x',"size":8}})
 
 def keepFirstThree(df:pd.DataFrame):
+    """
+    Keeps only the three latest values for any model/dataset pair. 
+    """
     df.drop_duplicates(inplace=True)
     df["Version"] = pd.to_numeric(df["Version"])
     df.sort_values(by="Version",inplace=True,kind="mergesort")#I want a stable sort so I am using mergesort.
