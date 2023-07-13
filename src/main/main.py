@@ -172,6 +172,7 @@ def run_model(measurement=FileHandling.addMeasurement, graphDefault=True):
                     model.end.cutoff = -model.end.cutoff
 
         runExistingModel(model,test_loader,"AUTOTHRESHOLD_Test",history_final,class_names)
+        runExistingModel(model,val_loader,"AUTOTHRESHOLD_Val",history_final,class_names)
 
         measurement("AUTOTHRESHOLD",model.end.cutoff)
         measurement("AUTOTHRESHOLD_Trained_on_length",len(model.end.rocData[0]))
@@ -185,6 +186,7 @@ def run_model(measurement=FileHandling.addMeasurement, graphDefault=True):
             if model.end.type == "Energy":
                 model.end.cutoff = -model.end.cutoff
             runExistingModel(model,test_loader,"AUTOTHRESHOLD2_Test",history_final,class_names)
+            runExistingModel(model,val_loader,"AUTOTHRESHOLD2_Val",history_final,class_names)
 
 
 

@@ -282,7 +282,7 @@ def graphTabel(df:pd.DataFrame,show=False,save=True,extrapath=""):
                 fig.write_image(f"Saves/images/{extrapath}{y}{x}.png",scale=4)
 
 if __name__ == '__main__':
-    main(minimumVersion=408)
+    main(minimumVersion=422)
 
 
 
