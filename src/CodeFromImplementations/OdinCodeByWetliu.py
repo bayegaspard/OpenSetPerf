@@ -2,6 +2,7 @@
 #I did not write these functions.
 #Line 26 and line 60 were changed because it is assuming that you have a GPU and I do not have a GPU so I removed ".cuda()"
 #Commented out line 69 and 70 because they appear to not be nessisary with the model I am using.
+#THIS IS NOW UNUSED. 
 import torch
 import numpy as np
 import torch.nn.functional as F

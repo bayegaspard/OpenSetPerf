@@ -2,7 +2,7 @@
 #this code is not mine, it was created by someone called ma-xu, and it reproduces the results of the paper "Towards Open Set Deep Networks" https://www.cv-foundation.org/openaccess/content_cvpr_2016/papers/Bendale_Towards_Open_Set_CVPR_2016_paper.pdf
 #Note: is this enough recognition that this is not my code?
 #Note: I added np.unique() to line 44 because it was having trouble generating weibull models when the model outputs a lot of identical responses. NOTE: I am not sure if this is allowed or not but it gets it to work better?
-
+#Note: I added an error message when it fails.
 
 import numpy as np
 import scipy.spatial.distance as spd

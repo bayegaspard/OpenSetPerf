@@ -49,9 +49,11 @@ class AttackTrainingClassification(nn.Module):
         #These are for DOC, it has a special model structure. Because of that we allow it to override what we have.
         if Config.parameters['OOD Type'][0] == "DOC":
             self.DOC_kernels = nn.ModuleList()
+            self.fullyConnectedStart=0
             for x in Config.DOC_kernels:
                 self.DOC_kernels.append(nn.Conv1d(1, 32, x,device=device))
-            self.fullyConnectedStart= numberOfFeatures*len(Config.DOC_kernels)
+                self.fullyConnectedStart-= x-1
+            self.fullyConnectedStart+= numberOfFeatures*len(Config.DOC_kernels)
 
         #This (poorly made) menu switches between the diffrent options for activation functions.
         self.activation = nn.ReLU()

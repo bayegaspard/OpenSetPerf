@@ -216,7 +216,7 @@ def main(save=True,show=False, minimumVersion=None, bysection=False):
         #Getting version number
         #https://gist.github.com/sg-s/2ddd0fe91f6037ffb1bce28be0e74d4e
         f = open("build_number.txt","r")
-        minimumVersion = f.read()
+        minimumVersion = int(f.read().strip())
     if not os.path.exists("Saves/images/"):
         os.mkdir("Saves/images")
     

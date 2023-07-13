@@ -1,4 +1,5 @@
 #code from https://github.com/yhenon/fitted-learning/blob/master/fitted_learning.py
+#From paper: https://arxiv.org/pdf/1609.02226
 import numpy as np
 
 def build_label(class_idx, n_classes, DOO):

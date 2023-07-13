@@ -50,7 +50,7 @@ def testrunDOC():
     DOC is being problematic.
     """
     main.Config.unit_test_mode = True
-    main.Config.parameters["OOD Type"][0] = "Energy"
+    main.Config.parameters["OOD Type"][0] = "DOC"
     main.run_model(graphDefault=False)
 
 def testrunOpen():

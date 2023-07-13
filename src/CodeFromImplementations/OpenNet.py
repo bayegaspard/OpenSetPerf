@@ -1,4 +1,5 @@
-#Our Implementation of https://arxiv.org/pdf/1802.04365.pdf
+#Our Implementation of "Learning a Neural-network-based Representation for Open Set Recognition" (https://arxiv.org/pdf/1802.04365.pdf)
+#All the equations are labeled with the number that they used in the paper. 
 import torch
 
 #TODO
@@ -133,13 +134,14 @@ def iimod(Z, means):
 
 #testing
 if __name__ == "__main__":
-    Config.class_split["knowns_clss"] = [0,1,2,3]
+    Config.class_split["knowns_clss"] = [0,1,2]
+    Config.parameters["CLASSES"][0] = 4
     test = torch.rand((4,4))
     testLabels = torch.tensor((0,1,2,2))
     print(f"Test tensor\n{test}")
-    means = class_means(test,testLabels)
+    means = class_means(test[:,:3],testLabels)
     print(f"Means\n{means}")
-    intra = intra_spread(test,means,testLabels)
+    intra = intra_spread(test[:,:3],means,testLabels)
     print(f"intra spread: {intra}")
     inter = inter_sparation(means)
     print(f"inter sparation: {inter}")
