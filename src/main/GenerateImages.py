@@ -214,6 +214,7 @@ def keepFirstThree(df:pd.DataFrame):
         df = pd.concat([df,temp])
         # print(f"The length is (should be more) {len(df)}")
         df.drop_duplicates(inplace=True,keep=False)
+    assert len(final)%3 ==0
     return final
 
 
@@ -242,6 +243,9 @@ def main(save=True,show=False, minimumVersion=None, bysection=False):
         part_tabel = whole_table[whole_table[valueLocations[z1]]==z1].copy()
         for z2 in ["Payload_data_CICIDS2017","Payload_data_UNSW"]:
             part_tabel2 = part_tabel[part_tabel[valueLocations[z2]]==z2].copy()
+            counts = part_tabel2["Currently Modifying"].value_counts()
+            if counts.min() != counts.max():
+                print(f"{z1}-{z2} has an unbalenced number of samples, {counts.min()}!={counts.max()}")
             if graphTabel(part_tabel2,show=show,save=bysection) == -1:
                 print(f"{z1}-{z2} was unable to find samples for graphs")
 
