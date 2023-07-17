@@ -14,6 +14,7 @@ import Dataload
 import ModelStruct
 import Config
 import helperFunctions
+import GenerateImages
 
 root_path = os.getcwd()
 
@@ -136,11 +137,6 @@ def run_model(measurement=FileHandling.addMeasurement, graphDefault=True):
 
 
 
-
-
-
-
-
     runExistingModel(model,test_loader,"Test",history_final,class_names, graphDefault=graphDefault,print_vals=True)
 
     
@@ -148,7 +144,6 @@ def run_model(measurement=FileHandling.addMeasurement, graphDefault=True):
 
     #AUTOTHRESHOLD
 
-    #This loops through a list of "Threshold" values because they do not require retraining the model.
     # if model.end.type != "Soft":
         # model.thresholdTest(test_loader)
         # roc = RocCurveDisplay.from_predictions(model.end.rocData[0],model.end.rocData[1],name=model.end.type)
@@ -177,6 +172,7 @@ def run_model(measurement=FileHandling.addMeasurement, graphDefault=True):
                     model.end.cutoff = -model.end.cutoff
 
         runExistingModel(model,test_loader,"AUTOTHRESHOLD_Test",history_final,class_names)
+        runExistingModel(model,val_loader,"AUTOTHRESHOLD_Val",history_final,class_names)
 
         measurement("AUTOTHRESHOLD",model.end.cutoff)
         measurement("AUTOTHRESHOLD_Trained_on_length",len(model.end.rocData[0]))
@@ -190,6 +186,7 @@ def run_model(measurement=FileHandling.addMeasurement, graphDefault=True):
             if model.end.type == "Energy":
                 model.end.cutoff = -model.end.cutoff
             runExistingModel(model,test_loader,"AUTOTHRESHOLD2_Test",history_final,class_names)
+            runExistingModel(model,val_loader,"AUTOTHRESHOLD2_Val",history_final,class_names)
 
 
 
@@ -201,45 +198,9 @@ def run_model(measurement=FileHandling.addMeasurement, graphDefault=True):
         #Use Softmax to test.
         model.end.type = "Soft"
         model.storeReset()
-        model.evaluate(val_loader)
-
-        #Validation values
-        f1, recall, precision, accuracy = helperFunctions.getFscore(model.store)
-        measurement("Soft_Val_F1",f1)
-        measurement("Soft_Val_Recall",recall)
-        measurement("Soft_Val_Precision",precision)
-        measurement("Soft_Val_Accuracy",accuracy)
-
-        if not Config.parameters["LOOP"][0] and graphDefault:
-            #More matrix stuff that we removed.
-            cnf_matrix = plots.confusionMatrix(model.store) 
-            plots.plot_confusion_matrix(cnf_matrix, classes=class_names, normalize=True,
-                        title=f'Soft Validation', knowns = knownVals)
+        runExistingModel(model,val_loader,"Soft_Val",history_final,class_names)
         model.storeReset()
-        model.evaluate(test_loader)
-
-        #Validation values
-        f1, recall, precision, accuracy = helperFunctions.getFscore(model.store)
-        measurement("Soft_Test_F1",f1)
-        measurement("Soft_Test_Recall",recall)
-        measurement("Soft_Test_Precision",precision)
-        measurement("Soft_Test_Accuracy",accuracy)
-
-        if not Config.parameters["LOOP"][0] and graphDefault:
-            #More matrix stuff that we removed.
-            cnf_matrix = plots.confusionMatrix(model.store) 
-            plots.plot_confusion_matrix(cnf_matrix, classes=class_names, normalize=True,
-                        title=f'Soft Test', knowns = knownVals)
-        model.storeReset()
-
-        #This selects what algorithm you are using.
-        model.end.type = Config.parameters["OOD Type"][0]
-
-
-        #This is the code to actually start showing the plots.
-        #Again, we do not want this activating while running overnight.
-        if not Config.parameters["LOOP"][0]:
-            plt.show()
+        runExistingModel(model,test_loader,"Soft_Test",history_final,class_names)
 
 
     
@@ -283,7 +244,9 @@ def runExistingModel(model,data,name,history_final,class_names,measurement=FileH
     measurement(f"{name}_Recall",recall)
     measurement(f"{name}_Precision",precision)
     measurement(f"{name}_Accuracy",accuracy)
-    measurement(f"{name}_Found_Unknowns",helperFunctions.getFoundUnknown(model.store))
+    unknowns_scores = helperFunctions.getFoundUnknown(model.store)
+    measurement(f"{name}_Found_Unknowns",unknowns_scores[0]) #recall
+    measurement(f"{name}_Unknowns_accuracy",unknowns_scores[1])
 
     FileHandling.create_params_Fscore(root_path,f1)
 
@@ -417,6 +380,7 @@ def main():
     loopType1(run_model,FileHandling.addMeasurement)
     loopType2(run_model,FileHandling.addMeasurement)
     loopType3(run_model,FileHandling.addMeasurement)
+    GenerateImages.main()
     
 
 

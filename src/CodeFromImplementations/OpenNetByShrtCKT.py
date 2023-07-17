@@ -1,5 +1,6 @@
 #Note: I have NO IDEA how to get this to work with our pytorch model nicely 
 #       because it is modifying how the model is trained.
+#NOTE: DECIDED TO WRITE MY OWN VERSION BASED ON THE PAPER
 import torch
 #https://arxiv.org/pdf/1802.04365.pdf
 #https://github.com/shrtCKT/opennet/blob/master/opennet/opennet.py

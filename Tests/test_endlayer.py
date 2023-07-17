@@ -140,3 +140,20 @@ def testConsecutaveDimentions_c():
     assert len(example_tensor[0]) != len(consecutive_tensor[0]) or len(Config.class_split["knowns_clss"])==Config.parameters["CLASSES"][0]
     assert consecutive_labels.max() < len(Config.class_split["knowns_clss"])
     assert torch.all(consecutive_tensor[consecutive_tensor.max(dim=1)[0].gt(0)].argmax(dim=1)==consecutive_labels[consecutive_tensor.max(dim=1)[0].gt(0),0])
+
+def testRemovedVals():
+    tensor = torch.tensor(list(range(Config.parameters["CLASSES"][0])))
+    newTensor = tensor.clone()
+    newTensor = helperFunctions.renameClasses(newTensor)
+    for x in Config.class_split["unknowns_clss"]:
+        assert not x in newTensor
+
+    tensor = newTensor.clone()
+    for x in range(len(newTensor)):
+        newTensor[x] = torch.tensor(helperFunctions.relabel[newTensor[x].item()])
+    assert newTensor.max() <= Config.parameters["CLASSES"][0]-len(Config.class_split["unknowns_clss"])
+    for x in range(len(newTensor)):
+        newTensor[x] = torch.tensor(helperFunctions.rerelabel[newTensor[x].item()])
+
+    assert torch.all(newTensor==tensor)
+

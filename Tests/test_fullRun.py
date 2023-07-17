@@ -50,7 +50,7 @@ def testrunDOC():
     DOC is being problematic.
     """
     main.Config.unit_test_mode = True
-    main.Config.parameters["OOD Type"][0] = "Energy"
+    main.Config.parameters["OOD Type"][0] = "DOC"
     main.run_model(graphDefault=False)
 
 def testrunOpen():
@@ -69,6 +69,14 @@ def testLoadDataset():
     for x,y in zip(train1,train2):
         assert torch.all(x[0] == y[0])
     
+def testLoadDatasetfromSave():
+    main.Config.parameters["attemptLoad"][0] = 1
+    main.torch.manual_seed(1)
+    train1, test1, val1 = FileHandling.checkAttempLoad("")
+    main.torch.manual_seed(1)
+    train2, test2, val2 = FileHandling.checkAttempLoad("")
+    for x,y in zip(train1,train2):
+        assert torch.all(x[0] == y[0])
 
 def testfindSave():
     """Finds if the save exists"""

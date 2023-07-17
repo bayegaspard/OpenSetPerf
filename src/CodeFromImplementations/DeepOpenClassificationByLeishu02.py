@@ -1,4 +1,5 @@
 #From https://github.com/leishu02/EMNLP2017_DOC
+#   That is from the paper: https://arxiv.org/pdf/1709.08716
 import numpy as np
 import torch
 import src.main.Config as Config
@@ -8,17 +9,22 @@ import src.main.helperFunctions as helperFunctions
 
 
 
-#my code
+#my code to link the other code to the same frame
 
 class modelstruct():
     def __init__(self,model):
         self.model = model
     
     def predict(self,numbers:np.ndarray):
+        #Just putting things in the form of tensorflow.
         num = torch.tensor(numbers)
         return self.model(num).detach().numpy()
 
 def muStandardsFromDataloader(seen,Dataloader,model):
+    """
+    The rest of the code stores the input data in a dataloader, 
+    the DOC code cannot read a dataloader so this transforms the data into a numpy array.
+    """
     #labelArray = np.zeros(shape=(len(Dataloader),1))
     labelArray = None
     with torch.no_grad():
@@ -35,17 +41,8 @@ def muStandardsFromDataloader(seen,Dataloader,model):
 
     return muStandards(seen,outputArray,labelArray)
 
+#End linking code
 
-# def runDOC(net,batch, mu_stds):
-#     model = modelstruct(net)
-
-#     seen_test_X,seen_test_y = batch
-#     seen_test_y = seen_test_y[:,1].detach()
-#     seen_test_X = seen_test_X.detach()
-#     unseen_test_X = seen_test_X[seen_test_y==15].numpy()
-#     unseen_test_y = seen_test_y[seen_test_y==15].numpy()
-#     seen_test_X = seen_test_X[seen_test_y!=15].numpy()
-#     seen_test_y = seen_test_y[seen_test_y!=15].numpy()
     
 def runDOC(test_X_pred_true, mu_stds, seen, saved_scores=[]):
     #test_X_pred = test_X_pred_true[:,seen]
@@ -75,7 +72,7 @@ def runDOC(test_X_pred_true, mu_stds, seen, saved_scores=[]):
         if max_value > threshold:
              test_y_pred.append(max_class)#predicted probability is greater than threshold, accept
         else:
-            #THE NEXT LINE HAS BEEN MODIFIED
+            #THE NEXT LINE HAS BEEN MODIFIED (to not hardcode the rejection value)
             test_y_pred.append(Config.parameters["CLASSES"][0])#otherwise, reject
 
     
@@ -83,8 +80,8 @@ def runDOC(test_X_pred_true, mu_stds, seen, saved_scores=[]):
     return test_y_pred
 
 def muStandards(seen, predictions, labels):
-    seen_train_X_pred = predictions
-    seen_train_y = labels[:,0]
+    seen_train_X_pred = predictions #Two lines that are getting things out of the format they are in from main.
+    seen_train_y = labels[:,0] #I really hope I am doing this correctly, the paper is difficult to read.
 
     #Start code by Leishu
 
