@@ -309,8 +309,11 @@ def loopType1(main=run_model,measurement=FileHandling.addMeasurement):
                 main()
                 measurement("Currently Modifying",plots.name_override)
                 measurement("Type of modification",helperFunctions.getcurrentlychanged_Stage(step))
-                measurement("Modification Level",helperFunctions.getcurrentlychanged_Step(step))
-                FileHandling.addMeasurement(plots.name_override,"Done",fileName="LoopRan.csv")
+                index = measurement("Modification Level",helperFunctions.getcurrentlychanged_Step(step))
+                if not index is None:
+                    FileHandling.addMeasurement(plots.name_override,index,fileName="LoopRan.csv")
+                else:
+                    FileHandling.addMeasurement(plots.name_override,"Done",fileName="LoopRan.csv")
 
 def loopType2(main=run_model,measurement=FileHandling.addMeasurement):
     """

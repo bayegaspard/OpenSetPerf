@@ -326,6 +326,7 @@ def create_loop_history(name:str,path=""):
     if Config.unit_test_mode:
         return
     params = pd.DataFrame([Config.loops],columns=Config.loops2)
+    params["Version"] = Config.parameters["Version"][0]
 
 
     if os.path.exists(os.path.join(path,"Saves",name)):
@@ -354,4 +355,5 @@ def addMeasurement(name:str,val,path="",fileName="Scoresall.csv"):
         total.at[total.last_valid_index(),"A spot has already been filled?"] = "An error has occured"
     total.at[total.last_valid_index(),name] = val
     total.to_csv(os.path.join(path,"Saves",fileName))
+    return total.last_valid_index()
 

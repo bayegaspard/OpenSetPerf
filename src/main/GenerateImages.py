@@ -218,7 +218,7 @@ def keepFirstThree(df:pd.DataFrame):
     return final
 
 
-def main(save=True,show=False, minimumVersion=None, bysection=False):
+def main(save=True,show=False, minimumVersion=None, bysection=False, latex=False):
     if minimumVersion is None:
         #Getting version number
         #https://gist.github.com/sg-s/2ddd0fe91f6037ffb1bce28be0e74d4e
@@ -249,12 +249,12 @@ def main(save=True,show=False, minimumVersion=None, bysection=False):
             if graphTabel(part_tabel2,show=show,save=bysection) == -1:
                 print(f"{z1}-{z2} was unable to find samples for graphs")
 
-    graphTabel(whole_table,show=show,save=save)
+    graphTabel(whole_table,show=show,save=save,latex=latex)
 
     
     
 
-def graphTabel(df:pd.DataFrame,show=False,save=True,extrapath=""):
+def graphTabel(df:pd.DataFrame,show=False,save=True,latex=False,extrapath=""):
     if len(df) <2:
         print("Dataframe not enough values")
         return -1
@@ -282,9 +282,11 @@ def graphTabel(df:pd.DataFrame,show=False,save=True,extrapath=""):
                     fig.show()
                 if save:
                     fig.write_image(f"Saves/images/{extrapath}{prefix}{y}{x}.png",scale=4)
+                if latex:
+                    part_table.to_latex(f"Saves/images/{extrapath}{prefix}{y}{x}",float_format="%.2f")
 
 if __name__ == '__main__':
-    main(minimumVersion=422)
+    main(minimumVersion=422, latex=True)
 
 
 
