@@ -279,6 +279,7 @@ def loopType1(main=run_model,measurement=FileHandling.addMeasurement):
     """
     #If it is loop type 1 (changing parameters loop):
     if Config.parameters["LOOP"][0] == 1:
+        FileHandling.create_loop_history(name="LoopRan.csv")
         step = (0,0,0) #keeps track of what is being updated.
         measurement("Currently Modifying","Default")
         measurement("Type of modification","Default")
@@ -309,6 +310,7 @@ def loopType1(main=run_model,measurement=FileHandling.addMeasurement):
                 measurement("Currently Modifying",plots.name_override)
                 measurement("Type of modification",helperFunctions.getcurrentlychanged_Stage(step))
                 measurement("Modification Level",helperFunctions.getcurrentlychanged_Step(step))
+                FileHandling.addMeasurement(plots.name_override,"Done",fileName="LoopRan.csv")
 
 def loopType2(main=run_model,measurement=FileHandling.addMeasurement):
     """

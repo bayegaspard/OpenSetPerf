@@ -136,6 +136,11 @@ epochs = [1,10,100,150]
 # alg.remove("DOC")
 # alg.remove("iiMod")
 
+#it causes problems if you dont start at the start of the loop.
+if parameters["LOOP"][0] == 1:
+    parameters["OOD Type"][0] = alg[0]
+
+
 #Optimizer has been removed from the list of things we are changing
 optim = [opt_func["Adam"], opt_func["SGD"], opt_func["RMSprop"]]
 optim = [opt_func["Adam"]]

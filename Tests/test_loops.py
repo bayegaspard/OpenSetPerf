@@ -33,6 +33,7 @@ def testLoop1Uniqueness():
     
     main.Config.parameters["LOOP"][0] = 1
     main.loopType1(nothing,addtoLoopNames)
+    main.FileHandling.addMeasurement("For Unit Test","True",fileName="LoopRan.csv")
 
 def testLoop2Uniqueness():
     """
