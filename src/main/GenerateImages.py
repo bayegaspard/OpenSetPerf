@@ -219,11 +219,22 @@ def keepFirstThree(df:pd.DataFrame):
 
 
 def main(save=True,show=False, minimumVersion=None, bysection=False, latex=False):
+    """
+    Creates pivot tables based on the data in Scoresall.csv. It then displays the data in up to three different ways.
+    MinimumVersion deturmines what rows of the datatable to use based on the Version column. 
+    If no version is specified then the current version of the code base is used.
+
+    If Save is true then main() creates graphs based on the data and saves the graphs in Saves/images/
+    If Show is true then main() opens the graphs made by Save and shows them in an internet window
+    If latex is true then main() will save the pivot table as a latex table in Saves/images/
+
+    """
     if minimumVersion is None:
         #Getting version number
         #https://gist.github.com/sg-s/2ddd0fe91f6037ffb1bce28be0e74d4e
         f = open("build_number.txt","r")
         minimumVersion = int(f.read().strip())
+
     if not os.path.exists("Saves/images/"):
         os.mkdir("Saves/images")
     
@@ -249,6 +260,9 @@ def main(save=True,show=False, minimumVersion=None, bysection=False, latex=False
             if graphTabel(part_tabel2,show=show,save=bysection) == -1:
                 print(f"{z1}-{z2} was unable to find samples for graphs")
 
+
+    whole_table[whole_table[valueLocations["Convolutional"]]=="Convolutional"]
+    whole_table[whole_table[valueLocations["Payload_data_CICIDS2017"]]=="Payload_data_CICIDS2017"]
     graphTabel(whole_table,show=show,save=save,latex=latex)
 
     
@@ -272,7 +286,10 @@ def graphTabel(df:pd.DataFrame,show=False,save=True,latex=False,extrapath=""):
                     fig = px.line(part_table,markers=True)
                 else:
                     fig = px.line(part_table,markers=True,log_x=True)
-                fig.update_layout(yaxis_title=y,xaxis_title=x,paper_bgcolor="rgba(0,0,0,0)",plot_bgcolor="rgba(0,0,0,0)",font={"size":18,"color":"rgba(0,0,0,255)"},legend_title_text='Algorithm')
+                xaxis = x
+                if xaxis == "MaxPerClass":
+                    xaxis = "Datapoints per class"
+                fig.update_layout(yaxis_title=y,xaxis_title=xaxis,paper_bgcolor="rgba(0,0,0,0)",plot_bgcolor="rgba(0,0,0,0)",font={"size":18,"color":"rgba(0,0,0,255)"},legend_title_text='Algorithm')
                 fig.update_yaxes(range=[0, 1],gridcolor="rgba(200,200,200,50)",zerolinecolor="rgba(200,200,200,50)",zerolinewidth=1)
                 fig.update_xaxes(gridcolor="rgba(200,200,200,50)",zerolinecolor="rgba(200,200,200,50)",zerolinewidth=1,exponentformat='power')
                     
