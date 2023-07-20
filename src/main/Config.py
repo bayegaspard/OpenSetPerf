@@ -74,6 +74,7 @@ parameters = {
     "SchedulerStep": [0.8,"This is how big a step the scheduler takes, leave 0 for no step"]
 }
 
+#Argparse tutorial: https://docs.python.org/3/howto/argparse.html 
 parser = argparse.ArgumentParser()
 for x in parameters.keys():
     if x in ["batch_size","num_workers","MaxPerClass","num_epochs","Degree of Overcompleteness","Number of Layers","Nodes","SchedulerStepSize"]:
@@ -84,8 +85,8 @@ for x in parameters.keys():
         parser.add_argument(f"--{x}",choices=[True,False],default=parameters[x][0],help=parameters[x][1],required=False)
     if x in ["LOOP"]:
         parser.add_argument(f"--{x}",choices=[0,1,2,3],default=parameters[x][0],help=parameters[x][1],required=False)
-    if x in ["model","OOD Type","Datagrouping","Activation"]:
-        parser.add_argument(f"--{x}",choices=parameters[x][2],default=parameters[x][0],help=parameters[x][1],required=False)
+    if x in ["model","OOD Type","Datagrouping","Activation","Dataset"]:
+        parser.add_argument(f"--{x}",choices=parameters[x].pop(),default=parameters[x][0],help=parameters[x][1],required=False)
 args = parser.parse_args()
 for x in args._get_kwargs():
     parameters[x[0]][0] = x[1]
