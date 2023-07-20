@@ -1,6 +1,9 @@
 import torch
 import pandas as pd
 import os
+import argparse
+
+
 
 #This config file is mainly used as global variables for the rest of the program.
 #It should only be modified by the loop commands in helperfunctions
@@ -40,7 +43,7 @@ class_split = {
 #Here are all of the paremeters for the model.
 parameters = {
     #These parameters are orginized like this:
-    #"ParamName":[Value,"Description"]
+    #"ParamName":[Value,"Description",[possible values]]
     #for a parameter called "ParamName" with a value of Value
     "batch_size":[100000, "Number of items per batch"],
     "num_workers":[14, "Number of threads working on building batches"],
@@ -51,10 +54,10 @@ parameters = {
     "num_epochs":[150,"Number of times it trains on the whole trainset"],
     "learningRate":[0.01, "a modifier for training"],
     "threshold":[0.5,"When to declare something to be unknown"],
-    "model":["Convolutional","Model type [Fully_Connected,Convolutional]"],
-    "OOD Type":["Soft","type of out of distribution detection [Soft,Open,Energy,COOL,DOC,iiMod]"],
+    "model":["Convolutional","Model type",["Fully_Connected","Convolutional"]],
+    "OOD Type":["Soft","type of out of distribution detection", ["Soft","Open","Energy","COOL","DOC","iiMod"]],
     "Dropout":[0.01,"percent of nodes that are skipped per run, larger numbers for more complex models [0,1)"],
-    "Datagrouping":["Dendrogramlimit","Datagroup type [ClassChunk,Dendrogramlimit]"],
+    "Datagrouping":["Dendrogramlimit","Datagroup type", ["ClassChunk","Dendrogramlimit"]],
     "optimizer":opt_func["Adam"],
     "Unknowns":"refer to unknowns.CSV",
     "CLASSES":[15,"Number of classes, do not change"],
@@ -62,14 +65,32 @@ parameters = {
     "Degree of Overcompleteness": [3,"Parameter for Fitted Learning"],
     "Number of Layers": [2,"Number of layers to add to the base model"],
     "Nodes": [512,"The number of nodes per added layer"],
-    "Activation": ["Leaky","The type of activation function to use"],
+    "Activation": ["Leaky","The type of activation function to use",["ReLU", "Tanh", "Sigmoid","Leaky"]],
     "LOOP": [1,"This is a parameter that determines if we want to loop over the algorithms.\n "\
     "0: no loop, 1:loop through variations of algorithms,thresholds,learning rates, groups and numbers of epochs, \n"\
     "2: Loop while adding more unknowns into the training data (making them knowns) without resetting the model"],
-    "Dataset": ["Payload_data_CICIDS2017", "This is what dataset we are using, [Payload_data_CICIDS2017,Payload_data_UNSW]"],
+    "Dataset": ["Payload_data_CICIDS2017", "This is what dataset we are using,", ["Payload_data_CICIDS2017","Payload_data_UNSW"]],
     "SchedulerStepSize": [10, "This is how often the scheduler takes a step, 3 means every third epoch"],
     "SchedulerStep": [0.8,"This is how big a step the scheduler takes, leave 0 for no step"]
 }
+
+parser = argparse.ArgumentParser()
+for x in parameters.keys():
+    if x in ["batch_size","num_workers","MaxPerClass","num_epochs","Degree of Overcompleteness","Number of Layers","Nodes","SchedulerStepSize"]:
+        parser.add_argument(f"--{x}",type=int,default=parameters[x][0],help=parameters[x][1],required=False)
+    if x in ["testlength","learningRate","threshold","Dropout","Temperature","SchedulerStep"]:
+        parser.add_argument(f"--{x}",type=float,default=parameters[x][0],help=parameters[x][1],required=False)
+    if x in ["attemptLoad","Mix unknowns and validation"]:
+        parser.add_argument(f"--{x}",choices=[True,False],default=parameters[x][0],help=parameters[x][1],required=False)
+    if x in ["LOOP"]:
+        parser.add_argument(f"--{x}",choices=[0,1,2,3],default=parameters[x][0],help=parameters[x][1],required=False)
+    if x in ["model","OOD Type","Datagrouping","Activation"]:
+        parser.add_argument(f"--{x}",choices=parameters[x][2],default=parameters[x][0],help=parameters[x][1],required=False)
+args = parser.parse_args()
+for x in args._get_kwargs():
+    parameters[x[0]][0] = x[1]
+    
+
 
 DOC_kernels = [3,4,5]
 
