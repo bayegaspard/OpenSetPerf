@@ -16,6 +16,7 @@ import src.main.ModelStruct as ModelStruct
 from torch.utils.data import DataLoader
 
 main.Config.parameters["num_epochs"][0] = 1
+main.Config.parameters["num_workers"][0] = 0
 main.Config.parameters["MaxPerClass"][0] = 10
 main.Config.parameters["LOOP"][0] = 0
 

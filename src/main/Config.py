@@ -1,9 +1,13 @@
 import torch
 import pandas as pd
 import os
+import sys
 import argparse
 
 
+#TODO: Rework config so that it is less janky and uses less bad practices of global variables. 
+# Possibly by moving HelperFunctions Loop functions to outside of the program 
+# and just using the command line parser for the individual sections.
 
 #This config file is mainly used as global variables for the rest of the program.
 #It should only be modified by the loop commands in helperfunctions
@@ -68,7 +72,8 @@ parameters = {
     "Activation": ["Leaky","The type of activation function to use",["ReLU", "Tanh", "Sigmoid","Leaky"]],
     "LOOP": [1,"This is a parameter that determines if we want to loop over the algorithms.\n "\
     "0: no loop, 1:loop through variations of algorithms,thresholds,learning rates, groups and numbers of epochs, \n"\
-    "2: Loop while adding more unknowns into the training data (making them knowns) without resetting the model"],
+    "2: Loop while adding more unknowns into the training data (making them knowns) without resetting the model, \n"\
+    "3: Loop through different data distributions without training the model."],
     "Dataset": ["Payload_data_CICIDS2017", "This is what dataset we are using,", ["Payload_data_CICIDS2017","Payload_data_UNSW"]],
     "SchedulerStepSize": [10, "This is how often the scheduler takes a step, 3 means every third epoch"],
     "SchedulerStep": [0.8,"This is how big a step the scheduler takes, leave 0 for no step"]
@@ -84,12 +89,15 @@ for x in parameters.keys():
     if x in ["attemptLoad","Mix unknowns and validation"]:
         parser.add_argument(f"--{x}",choices=[True,False],default=parameters[x][0],help=parameters[x][1],required=False)
     if x in ["LOOP"]:
-        parser.add_argument(f"--{x}",choices=[0,1,2,3],default=parameters[x][0],help=parameters[x][1],required=False)
+        parser.add_argument(f"--{x}",type=int,choices=[0,1,2,3],default=parameters[x][0],help=parameters[x][1],required=False)
     if x in ["model","OOD Type","Datagrouping","Activation","Dataset"]:
         parser.add_argument(f"--{x}",choices=parameters[x].pop(),default=parameters[x][0],help=parameters[x][1],required=False)
-args = parser.parse_args()
-for x in args._get_kwargs():
-    parameters[x[0]][0] = x[1]
+if "pytest" not in sys.modules: #The argument parser appears to have issues with the pytest tests. I have no idea why.
+    args = parser.parse_args()
+    for x in args._get_kwargs():
+        parameters[x[0]][0] = x[1]
+
+
     
 
 
@@ -237,3 +245,5 @@ if parameters["LOOP"][0] == 3:
 #https://gist.github.com/sg-s/2ddd0fe91f6037ffb1bce28be0e74d4e
 f = open("build_number.txt","r")
 parameters["Version"] = [f.read(),"The version number"]
+
+
