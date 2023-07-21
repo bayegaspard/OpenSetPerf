@@ -19,7 +19,7 @@ Saves/unknown/*
 !Saves/roc/
 !Saves/models
 Saves/models/*
-!Saves/Scoresall.csv
+!Saves/Scoresall-ArchivedForPaper.csv
 *.json
 src/CodeFromImplementations/Ignore.py
 !datasets/percentages.csv

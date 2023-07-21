@@ -467,6 +467,8 @@ class AttackTrainingClassification(nn.Module):
     def thresholdTest(net,val_loader,measurement=FileHandling.addMeasurement):
         """
         This tests the results from val_loader at various thresholds and saves it to scoresAll.csv
+
+        No longer used in favor of the ROC score.
         """
         net.end.type = Config.parameters["OOD Type"][0]
         net.loadPoint("Saves/models")
@@ -519,7 +521,7 @@ class Conv1DClassifier(AttackTrainingClassification):
             nn.MaxPool1d(self.maxpooling[0]),
             nn.Dropout(int(Config.parameters["Dropout"][0])))
         self.layer2 = nn.Sequential(
-            nn.Conv1d(32, self.convolutional_channels[1], 3,device=device),
+            nn.Conv1d(self.convolutional_channels[0], self.convolutional_channels[1], 3,device=device),
             self.activation,
             nn.MaxPool1d(self.maxpooling[1]),
             nn.Dropout(int(Config.parameters["Dropout"][0])))
