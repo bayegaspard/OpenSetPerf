@@ -9,6 +9,10 @@ This is a description of how to modify the hyperparameters in the `Config.py` fi
 - That key links to another dictionary and inside that dictionary there is one key called `"unknowns"`
 - To add classes to the unknowns you can simply add numbers 0 to 14 in the associated array. The key to which classes are which number cann be found in line 10 of the file `Dataload.py`.
 
+### Alternatively
+
+- When the code is run with `python src/main/main.py` you can modify the parameters by adding arguments. See `python src/main/main.py -h` for details.
+
 ### Steps to modify the hyperparameters
 
 - First you need to open the file `Config.py`
@@ -41,3 +45,6 @@ This is a description of how to modify the hyperparameters in the `Config.py` fi
     - Nodes - The number of nodes in the added layers. This also is the number of nodes before the last layer so it has an effect even if the number of layers is zero. Default is 256.
     - Activation - This is the activation function to use. Currently the only option is ReLU but if you are using bigger models you should add leakyReLU.
     - LOOP - This is a hyper-hyperparameter that if it is 1 the model loops over all of the algorithms in order and saves the values.
+    - Dataset - This is a hyperparameter that selects which dataset to use. Currently can only be "Payload_data_CICIDS2017" or "Payload_data_UNSW"
+    - SchedulerStepSize - This states the number of epochs that are run with the current learning rate before it is reduced.
+    - SchedulerStep - This is the multiplier for the leaerning rate every `SchedulerStepSize` epochs.
