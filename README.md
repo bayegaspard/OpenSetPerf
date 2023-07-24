@@ -52,6 +52,7 @@ source opensetperf/bin/activate
       - `EndLayer.py` - This file works with the folder `CodeFromImplementations` to implement each of the diffrent algorithms.
       - `plots.py` - This file generates 4 png files of diffrent matplotlib graphs.
       - `GPU.py` - This file helps run the model on diffrent GPUs or move tensors from one GPU to the CPU.
+      - `GenerateImages` - This file reads the save file and generates images in `Saves/images/` to visualize the data.
       - `helperFunctions.py` - This file contains all other functions that are not contained in another file.
 
   - `CodeFromImplementations`
@@ -69,7 +70,8 @@ source opensetperf/bin/activate
   - It has many diffrent types of files such as:
     - Data/DataTest - This saves the specific dataloaders from the last time the model was run including the train/test split as to not contaiminate the model if it is run again.
     - Scoresall.csv - This file saves the model state and all standard metrics from the model. 
-    - EpochXXX - These save the hyperparameters of the pytorch model at each of the epochs. NOTE: If you decrease the number of epochs in the model it will not delete the old epoch files which may cause problems.
+    - models - This file stores the most trained models for each of the algorithms
+    - images - this is a folder that stores graphical representations of the `Scoresall.csv`
     - ROC_data - these are files that store the reciever operator characteristic data. It can be used to inform about the settings of threshold. The first line is false positives, the second is true positives, and the third is thesholds to acheve those positives.
   - The following files are still generated but are not used:
     - fscore - this saves the Config parameters and the associated f-score that those parameters got to.
@@ -79,6 +81,7 @@ source opensetperf/bin/activate
     - hyperparam - saves the Config of the last time the file was run.
     - unknown - saves which classes were unknown from the last time the file was run.
     - batch - saves information about each batch that has been run. NOTE: this file can break if it is saved to too many times, you may need to delete it and allow it to regenerate.
+    
 
 - `datasets`
   - We place the NIDS dataset in this folder.
@@ -88,4 +91,7 @@ source opensetperf/bin/activate
   - This is a number that is included in `Saves/Scoresall.csv` to inform about which version of the code was used to generate the outputs.
 
 - `threeRuns.sh`
-  - This is a simple and small shell script to run the model three times. 
+  - This is a simple and small shell script to run the model three times.
+
+### Data Used:
+  -The data located at `Saves/Scoresall-ArchivedForPaper.csv` is the data generated for a paper. Not all of the data in the file was used for the paper as some of it is old. Look at the Version column, the values of version numbers grater than or equal to 422 were used with the `src/main/Generateimages.py` file to create the data for the paper. 
