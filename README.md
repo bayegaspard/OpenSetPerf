@@ -82,6 +82,13 @@ source opensetperf/bin/activate
     - unknown - saves which classes were unknown from the last time the file was run.
     - batch - saves information about each batch that has been run. NOTE: this file can break if it is saved to too many times, you may need to delete it and allow it to regenerate.
     
+- `Tests`
+  - This is a folder of pytest tests to ensure the model works properly.
+  - test_endlayer.py - Tests that the endlayer outputs correctly given a valid input.
+  - test_fullRun.py - Runs thw whole model on minimial settings with No-save mode so that it does not mess up the save file.
+  - test_LongTests.py - Runs the code on the whole loop. Takes a long time so it is not tested. Does not work.
+  - test_loops.py - tests if the loop functions in main.py work.
+  - test_other.py - tests things not in the other catagoies.
 
 - `datasets`
   - We place the NIDS dataset in this folder.
