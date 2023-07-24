@@ -5,6 +5,18 @@ import sys
 import argparse
 
 
+if __name__ != "Config":
+    # if "Config" in sys.modules:
+    #     class doubleImport(ImportError):
+    #         """
+    #         Config was imported using a different path after it has already been imported.
+    #         This causes problems when Config is modified.
+    #         """
+    #         pass
+    #     raise doubleImport
+    print(f"A POSSIBLE PROBLEM HAS OCCURED, Config was loaded improperly, from {__name__} instead of directly\
+    this might break some global variables by having two copies",file=sys.stderr)
+
 #TODO: Rework config so that it is less janky and uses less bad practices of global variables. 
 # Possibly by moving HelperFunctions Loop functions to outside of the program 
 # and just using the command line parser for the individual sections.

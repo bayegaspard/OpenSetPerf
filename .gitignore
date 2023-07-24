@@ -26,3 +26,4 @@ src/CodeFromImplementations/Ignore.py
 test concat scores.py
 test copy.py
 test concat duplication problems.py
+log.txt
