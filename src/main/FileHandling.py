@@ -300,7 +300,7 @@ def create_params_Fscore(path, score, threshold = None):
     
     hist.to_csv(os.path.join(path,"Saves","fscore.csv"),index=False)
 
-def create_params_All(path=""):
+def create_params_All(path="",name="Scoresall.csv"):
     """
     Generates a new line of the file scoresAll.csv that we use to store the scores from the run.
     The new line contains all of the Config values that we are using.
@@ -313,16 +313,32 @@ def create_params_All(path=""):
     params = pd.DataFrame(Config.parameters,columns=Config.parameters.keys())
 
 
-    if os.path.exists(os.path.join(path,"Saves","Scoresall.csv")):
-        hist = pd.read_csv(os.path.join(path,"Saves","Scoresall.csv"),index_col=0)
+    if os.path.exists(os.path.join(path,"Saves",name)):
+        hist = pd.read_csv(os.path.join(path,"Saves",name),index_col=0)
         hist = pd.concat([hist,params.iloc[[0]]],axis=0,ignore_index=True)
     else:
         hist = params.iloc[[0]]
     
     #hist = hist.transpose()
-    hist.to_csv(os.path.join(path,"Saves","Scoresall.csv"))
+    hist.to_csv(os.path.join(path,"Saves",name))
 
-def addMeasurement(name:str,val,path=""):
+def create_loop_history(name:str,path=""):
+    if Config.unit_test_mode:
+        return
+    params = pd.DataFrame([Config.loops],columns=Config.loops2)
+    params["Version"] = Config.parameters["Version"][0]
+
+
+    if os.path.exists(os.path.join(path,"Saves",name)):
+        hist = pd.read_csv(os.path.join(path,"Saves",name),index_col=0)
+        hist = pd.concat([hist,params.iloc[[0]]],axis=0,ignore_index=True)
+    else:
+        hist = params.iloc[[0]]
+    
+    #hist = hist.transpose()
+    hist.to_csv(os.path.join(path,"Saves",name))
+
+def addMeasurement(name:str,val,path="",fileName="Scoresall.csv"):
     """
     Adds a measurement to the LATEST line in the Scoresall.csv file. This may cause problems if you are running two versions at once.
     we reccomend only running one version at once. 
@@ -333,10 +349,11 @@ def addMeasurement(name:str,val,path=""):
     """
     if Config.unit_test_mode:
         return
-    total = pd.read_csv(os.path.join(path,"Saves","Scoresall.csv"),index_col=0)
+    total = pd.read_csv(os.path.join(path,"Saves",fileName),index_col=0)
     #print(f"last valid index = {total.last_valid_index()} item name= {name}, item value={val}")
     if name in total and not (pd.isnull(total.at[total.last_valid_index(),name]) or name in ["Number Of Failures"]):
         total.at[total.last_valid_index(),"A spot has already been filled?"] = "An error has occured"
     total.at[total.last_valid_index(),name] = val
-    total.to_csv(os.path.join(path,"Saves","Scoresall.csv"))
+    total.to_csv(os.path.join(path,"Saves",fileName))
+    return total.last_valid_index()
 

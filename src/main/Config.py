@@ -1,6 +1,25 @@
 import torch
 import pandas as pd
 import os
+import sys
+import argparse
+
+
+if __name__ != "Config":
+    # if "Config" in sys.modules:
+    #     class doubleImport(ImportError):
+    #         """
+    #         Config was imported using a different path after it has already been imported.
+    #         This causes problems when Config is modified.
+    #         """
+    #         pass
+    #     raise doubleImport
+    print(f"A POSSIBLE PROBLEM HAS OCCURED, Config was loaded improperly, from {__name__} instead of directly\
+    this might break some global variables by having two copies",file=sys.stderr)
+
+#TODO: Rework config so that it is less janky and uses less bad practices of global variables. 
+# Possibly by moving HelperFunctions Loop functions to outside of the program 
+# and just using the command line parser for the individual sections.
 
 #This config file is mainly used as global variables for the rest of the program.
 #It should only be modified by the loop commands in helperfunctions
@@ -40,7 +59,7 @@ class_split = {
 #Here are all of the paremeters for the model.
 parameters = {
     #These parameters are orginized like this:
-    #"ParamName":[Value,"Description"]
+    #"ParamName":[Value,"Description",[possible values]]
     #for a parameter called "ParamName" with a value of Value
     "batch_size":[100000, "Number of items per batch"],
     "num_workers":[14, "Number of threads working on building batches"],
@@ -51,10 +70,10 @@ parameters = {
     "num_epochs":[150,"Number of times it trains on the whole trainset"],
     "learningRate":[0.01, "a modifier for training"],
     "threshold":[0.5,"When to declare something to be unknown"],
-    "model":["Convolutional","Model type [Fully_Connected,Convolutional]"],
-    "OOD Type":["Soft","type of out of distribution detection [Soft,Open,Energy,COOL,DOC,iiMod]"],
+    "model":["Convolutional","Model type",["Fully_Connected","Convolutional"]],
+    "OOD Type":["Soft","type of out of distribution detection", ["Soft","Open","Energy","COOL","DOC","iiMod"]],
     "Dropout":[0.01,"percent of nodes that are skipped per run, larger numbers for more complex models [0,1)"],
-    "Datagrouping":["Dendrogramlimit","Datagroup type [ClassChunk,Dendrogramlimit]"],
+    "Datagrouping":["Dendrogramlimit","Datagroup type", ["ClassChunk","Dendrogramlimit"]],
     "optimizer":opt_func["Adam"],
     "Unknowns":"refer to unknowns.CSV",
     "CLASSES":[15,"Number of classes, do not change"],
@@ -62,14 +81,37 @@ parameters = {
     "Degree of Overcompleteness": [3,"Parameter for Fitted Learning"],
     "Number of Layers": [2,"Number of layers to add to the base model"],
     "Nodes": [512,"The number of nodes per added layer"],
-    "Activation": ["Leaky","The type of activation function to use"],
+    "Activation": ["Leaky","The type of activation function to use",["ReLU", "Tanh", "Sigmoid","Leaky"]],
     "LOOP": [1,"This is a parameter that determines if we want to loop over the algorithms.\n "\
     "0: no loop, 1:loop through variations of algorithms,thresholds,learning rates, groups and numbers of epochs, \n"\
-    "2: Loop while adding more unknowns into the training data (making them knowns) without resetting the model"],
-    "Dataset": ["Payload_data_CICIDS2017", "This is what dataset we are using, [Payload_data_CICIDS2017,Payload_data_UNSW]"],
+    "2: Loop while adding more unknowns into the training data (making them knowns) without resetting the model, \n"\
+    "3: Loop through different data distributions without training the model."],
+    "Dataset": ["Payload_data_CICIDS2017", "This is what dataset we are using,", ["Payload_data_CICIDS2017","Payload_data_UNSW"]],
     "SchedulerStepSize": [10, "This is how often the scheduler takes a step, 3 means every third epoch"],
     "SchedulerStep": [0.8,"This is how big a step the scheduler takes, leave 0 for no step"]
 }
+
+#Argparse tutorial: https://docs.python.org/3/howto/argparse.html 
+parser = argparse.ArgumentParser()
+for x in parameters.keys():
+    if x in ["batch_size","num_workers","MaxPerClass","num_epochs","Degree of Overcompleteness","Number of Layers","Nodes","SchedulerStepSize"]:
+        parser.add_argument(f"--{x}",type=int,default=parameters[x][0],help=parameters[x][1],required=False)
+    if x in ["testlength","learningRate","threshold","Dropout","Temperature","SchedulerStep"]:
+        parser.add_argument(f"--{x}",type=float,default=parameters[x][0],help=parameters[x][1],required=False)
+    if x in ["attemptLoad","Mix unknowns and validation"]:
+        parser.add_argument(f"--{x}",choices=[True,False],default=parameters[x][0],help=parameters[x][1],required=False)
+    if x in ["LOOP"]:
+        parser.add_argument(f"--{x}",type=int,choices=[0,1,2,3],default=parameters[x][0],help=parameters[x][1],required=False)
+    if x in ["model","OOD Type","Datagrouping","Activation","Dataset"]:
+        parser.add_argument(f"--{x}",choices=parameters[x].pop(),default=parameters[x][0],help=parameters[x][1],required=False)
+if "pytest" not in sys.modules: #The argument parser appears to have issues with the pytest tests. I have no idea why.
+    args = parser.parse_args()
+    for x in args._get_kwargs():
+        parameters[x[0]][0] = x[1]
+
+
+    
+
 
 DOC_kernels = [3,4,5]
 
@@ -103,7 +145,7 @@ thresholds = [0.1,1,10]
 thresholds = [30,20,15,5]
 learning_rates = [0.1,0.01,0.001,0.0001]
 activation = ["ReLU", "Tanh", "Sigmoid","Leaky"]
-groups = [[2],[2,3],[2,3,4],[2,3,4,5],[2,3,4,5,6],[2,3,4,5,6,7],[1,2,3,4,5,6,7],[1,2,3,4,5,6,7,8]]
+groups = [[],[2],[2,3],[2,3,4],[2,3,4,5],[2,3,4,5,6],[2,3,4,5,6,7],[1,2,3,4,5,6,7],[1,2,3,4,5,6,7,8]]
 #groups = [[7,8,9]]
 if parameters["Dataset"][0] == "Payload_data_CICIDS2017":
     incGroups = [[2,3,4,5,6,7,8,9,10,11,12,13,14],[3,4,5,6,7,8,9,10,11,12,13,14],[4,5,6,7,8,9,10,11,12,13,14],[5,6,7,8,9,10,11,12,13,14],[6,7,8,9,10,11,12,13,14],[7,8,9,10,11,12,13,14],[8,9,10,11,12,13,14],[9,10,11,12,13,14],[10,11,12,13,14],[11,12,13,14],[12,13,14],[13,14],[14]] 
@@ -135,6 +177,11 @@ epochs = [1,10,100,150]
 # alg.remove("COOL")
 # alg.remove("DOC")
 # alg.remove("iiMod")
+
+#it causes problems if you dont start at the start of the loop.
+if parameters["LOOP"][0] == 1:
+    parameters["OOD Type"][0] = alg[0]
+
 
 #Optimizer has been removed from the list of things we are changing
 optim = [opt_func["Adam"], opt_func["SGD"], opt_func["RMSprop"]]
@@ -210,3 +257,5 @@ if parameters["LOOP"][0] == 3:
 #https://gist.github.com/sg-s/2ddd0fe91f6037ffb1bce28be0e74d4e
 f = open("build_number.txt","r")
 parameters["Version"] = [f.read(),"The version number"]
+
+

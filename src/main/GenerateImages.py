@@ -218,12 +218,23 @@ def keepFirstThree(df:pd.DataFrame):
     return final
 
 
-def main(save=True,show=False, minimumVersion=None, bysection=False):
+def main(save=True,show=False, minimumVersion=None, bysection=False, latex=False):
+    """
+    Creates pivot tables based on the data in Scoresall.csv. It then displays the data in up to three different ways.
+    MinimumVersion deturmines what rows of the datatable to use based on the Version column. 
+    If no version is specified then the current version of the code base is used.
+
+    If Save is true then main() creates graphs based on the data and saves the graphs in Saves/images/
+    If Show is true then main() opens the graphs made by Save and shows them in an internet window
+    If latex is true then main() will save the pivot table as a latex table in Saves/images/
+
+    """
     if minimumVersion is None:
         #Getting version number
         #https://gist.github.com/sg-s/2ddd0fe91f6037ffb1bce28be0e74d4e
         f = open("build_number.txt","r")
         minimumVersion = int(f.read().strip())
+
     if not os.path.exists("Saves/images/"):
         os.mkdir("Saves/images")
     
@@ -249,40 +260,50 @@ def main(save=True,show=False, minimumVersion=None, bysection=False):
             if graphTabel(part_tabel2,show=show,save=bysection) == -1:
                 print(f"{z1}-{z2} was unable to find samples for graphs")
 
-    graphTabel(whole_table,show=show,save=save)
+
+    whole_table[whole_table[valueLocations["Convolutional"]]=="Convolutional"]
+    whole_table[whole_table[valueLocations["Payload_data_CICIDS2017"]]=="Payload_data_CICIDS2017"]
+    graphTabel(whole_table,show=show,save=save,latex=latex)
 
     
     
 
-def graphTabel(df:pd.DataFrame,show=False,save=True,extrapath=""):
+def graphTabel(df:pd.DataFrame,show=False,save=True,latex=False,extrapath=""):
     if len(df) <2:
         print("Dataframe not enough values")
         return -1
 
-    for y in ["Test_F1","Val_F1","Test_Found_Unknowns"]:
-        for x in set(df["Type of modification"]):
-            part_table = pd.pivot_table(df[df["Type of modification"]==x],values=y,index=[f"{x}"],columns=["OOD Type"],aggfunc=np.mean)
-            # print(part_table)
-            
-            if x in ["Activation"]:
-                fig = px.scatter(part_table)
-            elif x in ["Datagrouping","Unknowns"]:
-                fig = px.line(part_table,markers=True)
-            else:
-                fig = px.line(part_table,markers=True,log_x=True)
-            fig.update_layout(yaxis_title=y,xaxis_title=x,paper_bgcolor="rgba(0,0,0,0)",plot_bgcolor="rgba(0,0,0,0)",font={"size":18,"color":"rgba(0,0,0,255)"},legend_title_text='Algorithm')
-            fig.update_yaxes(range=[0, 1],gridcolor="rgba(200,200,200,50)",zerolinecolor="rgba(200,200,200,50)",zerolinewidth=1)
-            fig.update_xaxes(gridcolor="rgba(200,200,200,50)",zerolinecolor="rgba(200,200,200,50)",zerolinewidth=1,exponentformat='power')
-                
-            fig.for_each_trace(traceLines)
+    for prefix in ["","AUTOTHRESHOLD_","AUTOTHRESHOLD2_"]:
+        for y in [f"Test_F1",f"Val_F1",f"Test_Found_Unknowns"]:
+            for x in set(df["Type of modification"]):
 
-            if show:
-                fig.show()
-            if save:
-                fig.write_image(f"Saves/images/{extrapath}{y}{x}.png",scale=4)
+                part_table = pd.pivot_table(df[df["Type of modification"]==x],values=f"{prefix}{y}",index=[f"{x}"],columns=["OOD Type"],aggfunc=np.mean)
+                # print(part_table)
+                
+                if x in ["Activation"]:
+                    fig = px.scatter(part_table)
+                elif x in ["Datagrouping","Unknowns"]:
+                    fig = px.line(part_table,markers=True)
+                else:
+                    fig = px.line(part_table,markers=True,log_x=True)
+                xaxis = x
+                if xaxis == "MaxPerClass":
+                    xaxis = "Datapoints per class"
+                fig.update_layout(yaxis_title=y,xaxis_title=xaxis,paper_bgcolor="rgba(0,0,0,0)",plot_bgcolor="rgba(0,0,0,0)",font={"size":18,"color":"rgba(0,0,0,255)"},legend_title_text='Algorithm')
+                fig.update_yaxes(range=[0, 1],gridcolor="rgba(200,200,200,50)",zerolinecolor="rgba(200,200,200,50)",zerolinewidth=1)
+                fig.update_xaxes(gridcolor="rgba(200,200,200,50)",zerolinecolor="rgba(200,200,200,50)",zerolinewidth=1,exponentformat='power')
+                    
+                fig.for_each_trace(traceLines)
+
+                if show:
+                    fig.show()
+                if save:
+                    fig.write_image(f"Saves/images/{extrapath}{prefix}{y}{x}.png",scale=4)
+                if latex:
+                    part_table.to_latex(f"Saves/images/{extrapath}{prefix}{y}{x}",float_format="%.2f")
 
 if __name__ == '__main__':
-    main(minimumVersion=422)
+    main(minimumVersion=422, latex=True)
 
 
 

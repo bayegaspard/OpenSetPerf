@@ -273,12 +273,17 @@ def loopType1(main=run_model,measurement=FileHandling.addMeasurement):
     Tests if loop type 1 is true and if it is runs loop type 1.
     Note, this should be run after the model is run for the first time.
 
+    Loop 1 loops through the changes found the Config.loops and Config.loops2 arrays. 
+    (loops2 is the names for the values in loops, could have made it a dictionary)
+    If a value is not being changed it is assumed to be the default which is in position 0 of the specific array in loops.
+
     parameters:
         main - the main function to run, this should be run_model unless being tested.
         measurement - Function that is passed the results from the model in the form of (type_of_data,value_of_data)
     """
     #If it is loop type 1 (changing parameters loop):
     if Config.parameters["LOOP"][0] == 1:
+        FileHandling.create_loop_history(name="LoopRan.csv")
         step = (0,0,0) #keeps track of what is being updated.
         measurement("Currently Modifying","Default")
         measurement("Type of modification","Default")
@@ -308,12 +313,20 @@ def loopType1(main=run_model,measurement=FileHandling.addMeasurement):
                 main()
                 measurement("Currently Modifying",plots.name_override)
                 measurement("Type of modification",helperFunctions.getcurrentlychanged_Stage(step))
-                measurement("Modification Level",helperFunctions.getcurrentlychanged_Step(step))
+                index = measurement("Modification Level",helperFunctions.getcurrentlychanged_Step(step))
+                if not index is None:
+                    FileHandling.addMeasurement(plots.name_override,index,fileName="LoopRan.csv")
+                else:
+                    FileHandling.addMeasurement(plots.name_override,"Done",fileName="LoopRan.csv")
 
 def loopType2(main=run_model,measurement=FileHandling.addMeasurement):
     """
     Tests if loop type 2 is true and if it is runs loop type 2.
     Note, this should be run after the model is run for the first time.
+
+    Loop 2 will train a model on a specific set of classes 
+    and then slowly introduce new classes into the training set from the unknown set.
+    This should tell us how well the model retrains after something new is added.
 
     parameters:
         main - the main function to run, this should be run_model unless being tested.
@@ -338,6 +351,10 @@ def loopType3(main=run_model,measurement=FileHandling.addMeasurement):
     """
     Tests if loop type 3 is true and if it is runs loop type 3.
     Note, this should be run after the model is run for the first time.
+
+    Loop type 3 runs through each line of the percentages file (found in Datasets)
+    and makes a dataloader of the percentage mix of classes specified in the file.
+    Such as 25% class 1, 12% class 2... and so forth. 
 
     parameters:
         main - the main function to run, this should be run_model unless being tested.
