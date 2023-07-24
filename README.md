@@ -88,4 +88,7 @@ source opensetperf/bin/activate
   - This is a number that is included in `Saves/Scoresall.csv` to inform about which version of the code was used to generate the outputs.
 
 - `threeRuns.sh`
-  - This is a simple and small shell script to run the model three times. 
+  - This is a simple and small shell script to run the model three times.
+
+### Data Used:
+  -The data located at `Saves/Scoresall-ArchivedForPaper.csv` is the data generated for a paper. Not all of the data in the file was used for the paper as some of it is old. Look at the Version column, the values of version numbers grater than or equal to 422 were used with the `src/main/Generateimages.py` file to create the data for the paper. 
