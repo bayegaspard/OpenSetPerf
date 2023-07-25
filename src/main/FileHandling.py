@@ -91,10 +91,13 @@ def checkAttempLoad(root_path=""):
         return train, test, val
 
     if Config.parameters["attemptLoad"][0] and os.path.exists(os.path.join(root_path,"Saves","Data.pt")):
-        train = torch.load(os.path.join(root_path,"Saves","Data.pt"))
-        test = torch.load(os.path.join(root_path,"Saves","DataTest.pt"))
-        val = torch.load(os.path.join(root_path,"Saves","DataVal.pt"))
-        print("Loading from data and test checkpoint ...")
+        try:
+            train = torch.load(os.path.join(root_path,"Saves","Data.pt"))
+            test = torch.load(os.path.join(root_path,"Saves","DataTest.pt"))
+            val = torch.load(os.path.join(root_path,"Saves","DataVal.pt"))
+            print("Loading from data and test checkpoint ...")
+        except ModuleNotFoundError:
+            print("Dataset outdated and failed to load.")
 
     else:
         #test = unknowns
@@ -129,8 +132,14 @@ def incrementLoopModData(changed:list):
     
     trainGroup, testGroup = torch.utils.data.random_split(known,[len(known) - int(len(known) * Config.parameters["testlength"][0]),int(len(known) * Config.parameters["testlength"][0])]) 
 
-    train = torch.utils.data.ConcatDataset([torch.load(os.path.join("","Saves","Data.pt")),trainGroup])
-    val = torch.utils.data.ConcatDataset([torch.load(os.path.join("","Saves","DataVal.pt")),testGroup])
+    try:
+        train = torch.utils.data.ConcatDataset([torch.load(os.path.join("","Saves","Data.pt")),trainGroup])
+        val = torch.utils.data.ConcatDataset([torch.load(os.path.join("","Saves","DataVal.pt")),testGroup])
+    except ModuleNotFoundError:
+        train = trainGroup
+        val = testGroup
+        import sys
+        print("Dataset outdated and failed to load.",file=sys.stderr)
     test = torch.utils.data.ConcatDataset([val,unknowns])
 
     torch.save(train,os.path.join("Saves","Data.pt"))
