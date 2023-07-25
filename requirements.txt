@@ -11,3 +11,4 @@ sklearn
 bokeh
 plotly
 kaleido
+pytest

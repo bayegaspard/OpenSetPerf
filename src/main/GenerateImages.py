@@ -269,6 +269,14 @@ def main(save=True,show=False, minimumVersion=None, bysection=False, latex=False
     
 
 def graphTabel(df:pd.DataFrame,show=False,save=True,latex=False,extrapath=""):
+    """
+    This function creates a series of tables based on different pivot tables created from the dataframe df.
+
+
+    If Save is true then main() creates graphs based on the data and saves the graphs in Saves/images/
+    If Show is true then main() opens the graphs made by Save and shows them in an internet window
+    If latex is true then main() will save the pivot table as a latex table in Saves/images/
+    """
     if len(df) <2:
         print("Dataframe not enough values")
         return -1
