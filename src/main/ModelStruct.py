@@ -429,19 +429,23 @@ class AttackTrainingClassification(nn.Module):
         epochFound = AttackTrainingClassification.findloadEpoch(path)
         if epochFound == -1:
             print("No model to load found.")
-            return
+            return -1
         
         pathFound = AttackTrainingClassification.findloadPath(epochFound,path)
         loaded = torch.load(pathFound)
-        net.load_state_dict(loaded["model_state"])
+        
         print(f"Loaded  model from {pathFound}")
         for x in loaded["parameter_keys"]:
             if loaded["parameters"][x][0] != Config.parameters[x][0]:
-                print(f"Warning: {x} has been changed from when model was created")
+                if not x in ["model","CLASSES","Degree of Overcompleteness","Number of Layers","Nodes"]:
+                    print(f"Warning: {x} has been changed from when model was created")
+                else:
+                    print(f"Critital mismatch for model {x} is different from loaded version. No load can occur")
+                    return -1
         for x in loaded["class_split"]["unknowns_clss"]:
             if not x in Config.class_split["unknowns_clss"]:
                 print(f"Warning: Model trained with {x} as an unknown.")
-        
+        net.load_state_dict(loaded["model_state"])
         
 
         return epochFound
