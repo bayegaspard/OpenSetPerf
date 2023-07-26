@@ -369,6 +369,22 @@ def loopType3(main=run_model,measurement=FileHandling.addMeasurement):
             measurement(f"Row of percentages", Config.parameters['loopLevel'])
             main()
 
+def loopType4(main=run_model,measurement=FileHandling.addMeasurement):
+    """
+    Loop type 4 runs thrugh every line of datasets/hyperparamList.csv and changes any valid Config parameters to match.
+    This means that you can predefine specific lists of hyperparameters to loop through. 
+
+    parameters:
+        main - the main function to run, this should be run_model unless being tested.
+        measurement - Function that is passed the results from the model in the form of (type_of_data,value_of_data)
+    """
+    if Config.parameters["LOOP"][0] == 4:
+        row = 0
+        while Config.parameters["LOOP"][0]:
+            row = helperFunctions.definedLoops(row=row)
+            measurement(f"Row of defined hyperparameter csv: ", row)
+            main()
+
 def main():
     """
     The main function
@@ -397,6 +413,7 @@ def main():
     loopType1(run_model,FileHandling.addMeasurement)
     loopType2(run_model,FileHandling.addMeasurement)
     loopType3(run_model,FileHandling.addMeasurement)
+    loopType4(run_model,FileHandling.addMeasurement)
     GenerateImages.main()
     
 

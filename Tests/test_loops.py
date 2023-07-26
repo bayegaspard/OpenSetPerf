@@ -69,6 +69,17 @@ def testLoop3looping():
     main.Config.parameters["LOOP"][0] = 3
     main.loopType3(nothing,nothing2)
 
+def testLoop4looping():
+    """
+    Tests if loop 3 works properly
+    """
+    def nothing():
+        pass
+    def nothing2(item1,item2):
+        pass
+    main.Config.parameters["loopLevel"] = [0,"testing"]
+    main.Config.parameters["LOOP"][0] = 4
+    main.loopType4(nothing,nothing2)
 
 def test_loop1HasValues():
     assert main.Config.parameters["OOD Type"][0] in main.Config.alg

@@ -274,6 +274,21 @@ class NoExamples(Exception):
     pass
 
 
+def definedLoops(path="datasets/hyperparamList.csv",row=0):
+    """
+    This function is for LOOP 4 where the function loops through a predefined sequence of hyperparameters.
+    """
+    hyperparamsFile = pd.read_csv(path)
+    if len(hyperparamsFile)>row:
+        hyperparams = hyperparamsFile.iloc[row]
+        for x in Config.parameters.keys():
+            if x in hyperparams.keys() and x not in ["Unknowns"]:
+                Config.parameters[x][0] = hyperparams[x]
+        return row+1
+    Config.parameters["LOOP"][0] = 0
+    return row
+
+
 #The two rename classes are to reorginize things so that the numbers for classes are consecutive, some of the algorithms need that.
 def renameClasses(modelOut:torch.Tensor):
     """
