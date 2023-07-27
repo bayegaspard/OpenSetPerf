@@ -25,10 +25,12 @@ if __name__ != "Config":
 #It should only be modified by the loop commands in helperfunctions
 
 
-def loopOverUnknowns(unknownlist):
+def loopOverUnknowns(unknownlist=False):
     """
     Given a list of unknowns (integers 0-14) this will create a list of knowns (the inverted list).
     """
+    if unknownlist == False:
+        unknownlist = parameters["Unknowns_clss"][0]
     knownVals = list(range(parameters["CLASSES"][0]))
     notused = unknownlist + UnusedClasses
     notused.sort()
@@ -36,19 +38,20 @@ def loopOverUnknowns(unknownlist):
         if un in knownVals:
             knownVals.remove(un)
     
-    if len(class_split["unknowns_clss"]) > parameters["CLASSES"][0] -3:
+    if len(unknownlist) > parameters["CLASSES"][0] -3:
         print("Too many unknowns, some algorithms might not work")
     if len(knownVals)<2:
         print("Too few knowns, things might break")
-    parameters["Unknowns"] = f"{len(class_split['unknowns_clss'])} Unknowns"
-    
+    parameters["Unknowns"] = f"{len(unknownlist)} Unknowns"
+    parameters["Unknowns_clss"] = [unknownlist,"Values used for testing"]
+    parameters["Knowns_clss"] = [knownVals,"Values used for training"]
     return knownVals
 
 #This is the diffrent optimization functions
 opt_func = {"Adam":torch.optim.Adam,"SGD":torch.optim.SGD, "RMSprop":torch.optim.RMSprop}
 
 
-#I do not know why this is diffrent than the parameters dictionary
+#I do not know why this is diffrent than the parameters dictionary. EDIT: Now it is being removed for that reason.
 class_split = {
     #This is the only important value in this dictionary and it lists the diffrent values to consider unkowns.
     #Mappings are at the top of Dataload.py
@@ -75,14 +78,14 @@ parameters = {
     "Dropout":[0.01,"percent of nodes that are skipped per run, larger numbers for more complex models [0,1)"],
     "Datagrouping":["Dendrogramlimit","Datagroup type", ["ClassChunk","Dendrogramlimit"]],
     "optimizer":opt_func["Adam"],
-    "Unknowns":"refer to unknowns.CSV",
+    "Unknowns":[[7,8,9],"refer to unknowns.CSV"],
     "CLASSES":[15,"Number of classes, do not change"],
     "Temperature":[1,"Energy OOD scaling parameter"],
     "Degree of Overcompleteness": [3,"Parameter for Fitted Learning"],
     "Number of Layers": [2,"Number of layers to add to the base model"],
     "Nodes": [512,"The number of nodes per added layer"],
     "Activation": ["Leaky","The type of activation function to use",["ReLU", "Tanh", "Sigmoid","Leaky"]],
-    "LOOP": [1,"This is a parameter that determines if we want to loop over the algorithms.\n "\
+    "LOOP": [4,"This is a parameter that determines if we want to loop over the algorithms.\n "\
     "0: no loop, 1:loop through variations of algorithms,thresholds,learning rates, groups and numbers of epochs, \n"\
     "2: Loop while adding more unknowns into the training data (making them knowns) without resetting the model, \n"\
     "3: Loop through different data distributions without training the model.\n"\
@@ -91,6 +94,8 @@ parameters = {
     "SchedulerStepSize": [10, "This is how often the scheduler takes a step, 3 means every third epoch"],
     "SchedulerStep": [0.8,"This is how big a step the scheduler takes, leave 0 for no step"]
 }
+parameters["Unknowns_clss"] = [[7,8,9],"Class indexes used as unknowns."]
+
 
 #Argparse tutorial: https://docs.python.org/3/howto/argparse.html 
 parser = argparse.ArgumentParser()
@@ -131,7 +136,7 @@ if parameters["Datagrouping"][0] == "DendrogramChunk":
 
 
 #Add a value to the dictionary that is the inverse of the unknowns
-class_split["knowns_clss"] = loopOverUnknowns(class_split["unknowns_clss"])
+loopOverUnknowns()
 
 
 #This is for saving the original number of epochs
@@ -208,7 +213,7 @@ loops2 = ["batch_size","learningRate","Activation","Datagrouping","Unknowns"]
 # loops2 = ["Unknowns"]
 for i in range(len(loops)):
     if loops2[i] == "Unknowns":
-        loops[i].insert(0,class_split["unknowns_clss"])
+        loops[i].insert(0,parameters["Unknowns_clss"][0])
     elif loops2[i] == "optimizer":
         loops[i].insert(0,parameters[loops2[i]])
     elif loops2[i] == "None":
@@ -218,9 +223,9 @@ for i in range(len(loops)):
 
 #Override the unknowns because model is kept
 if parameters["LOOP"][0] == 2:
-    class_split["unknowns_clss"] = incGroups[0]
+    parameters["Unknowns_clss"][0] = incGroups[0]
     parameters["Unknowns"] = f"{incGroups[0]} Unknowns"
-    class_split["knowns_clss"] = loopOverUnknowns(class_split["unknowns_clss"])
+    parameters["Knowns_clss"][0] = loopOverUnknowns()
 
 
 #This controls all of the save data (so that we can run small tests without changing the nice files.)

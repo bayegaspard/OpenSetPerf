@@ -73,10 +73,14 @@ def testLoop4looping():
     """
     Tests if loop 3 works properly
     """
+    global rowNumber
+    rowNumber = 0
     def nothing():
         pass
     def nothing2(item1,item2):
-        pass
+        global rowNumber
+        assert rowNumber == item2
+        rowNumber+=1
     main.Config.parameters["loopLevel"] = [0,"testing"]
     main.Config.parameters["LOOP"][0] = 4
     main.loopType4(nothing,nothing2)

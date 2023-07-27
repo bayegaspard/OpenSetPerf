@@ -403,8 +403,7 @@ class AttackTrainingClassification(nn.Module):
         to_save = {
             "model_state": net.state_dict(),
             "parameter_keys": list(Config.parameters.keys()),
-            "parameters": Config.parameters,
-            "class_split": Config.class_split
+            "parameters": Config.parameters
         }
         to_save["parameter_keys"].remove("optimizer")
         to_save["parameter_keys"].remove("Unknowns")
@@ -442,8 +441,8 @@ class AttackTrainingClassification(nn.Module):
                 else:
                     print(f"Critital mismatch for model {x} is different from loaded version. No load can occur")
                     return -1
-        for x in loaded["class_split"]["unknowns_clss"]:
-            if not x in Config.class_split["unknowns_clss"]:
+        for x in loaded["parameters"]["Unknowns_clss"]:
+            if not x in Config.parameters["Unknowns_clss"][0]:
                 print(f"Warning: Model trained with {x} as an unknown.")
         net.load_state_dict(loaded["model_state"])
         

@@ -42,7 +42,7 @@ def run_model(measurement=FileHandling.addMeasurement, graphDefault=True):
     FileHandling.generateHyperparameters(root_path) # generate hyper parameters copy files if they did not exist.
 
     #This is an example of how we get the values from Config now.
-    knownVals = Config.class_split["knowns_clss"]
+    knownVals = Config.parameters["Knowns_clss"][0]
 
     #This just helps translate the config strings into model types. It is mostly unnesisary.
     model_list = {"Convolutional":ModelStruct.Conv1DClassifier,"Fully_Connected":ModelStruct.FullyConnected}
@@ -109,7 +109,7 @@ def run_model(measurement=FileHandling.addMeasurement, graphDefault=True):
     class_names = Dataload.get_class_names(knownVals) #+ Dataload.get_class_names(unknownVals)
     class_names.append("Unknown")
     class_names = Dataload.get_class_names(range(Config.parameters["CLASSES"][0]))
-    for x in Config.class_split["unknowns_clss"]:
+    for x in Config.parameters["Unknowns_clss"][0]:
         class_names[x] = class_names[x]+"*"
     class_names.append("*Unknowns")
     #print("class names", class_names)
@@ -253,7 +253,7 @@ def runExistingModel(model,data,name,history_final,class_names,measurement=FileH
     if not Config.parameters["LOOP"][0] and graphDefault:
         #More matrix stuff that we removed.
         cnf_matrix = plots.confusionMatrix(model.store) 
-        plots.plot_confusion_matrix(cnf_matrix, classes=class_names, normalize=True, title=f'{Config.parameters["OOD Type"][0]} Test', knowns = Config.class_split["knowns_clss"])
+        plots.plot_confusion_matrix(cnf_matrix, classes=class_names, normalize=True, title=f'{Config.parameters["OOD Type"][0]} Test', knowns = Config.parameters["Knowns_clss"][0])
 
 
     
@@ -343,7 +343,7 @@ def loopType2(main=run_model,measurement=FileHandling.addMeasurement):
                 plt.clf()
                 plots.name_override = f"Incremental with {Config.parameters['Unknowns']} unknowns"
                 plt.figure(figsize=(4,4))
-                print(f"unknowns: {Config.class_split['unknowns_clss']}")
+                print(f"unknowns: {Config.parameters['Unknowns_clss'][0]}")
                 main()
                 measurement("Currently Modifying",plots.name_override)
 
@@ -381,8 +381,9 @@ def loopType4(main=run_model,measurement=FileHandling.addMeasurement):
     if Config.parameters["LOOP"][0] == 4:
         row = 0
         while Config.parameters["LOOP"][0]:
-            row = helperFunctions.definedLoops(row=row)
             measurement(f"Row of defined hyperparameter csv: ", row)
+            row = helperFunctions.definedLoops(row=row)
+            plots.name_override = f"Predefined loop row {row}"
             main()
 
 def main():

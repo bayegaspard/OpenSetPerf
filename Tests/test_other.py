@@ -14,7 +14,6 @@ import src.main.Dataload as Dataload
 from torch.utils.data import DataLoader
 import src.main.helperFunctions as helperFunctions
 from src.main.Config import parameters as parameters
-from src.main.Config import class_split as class_split 
 import src.main.GenerateImages as GenerateImages
 
 def test_images():

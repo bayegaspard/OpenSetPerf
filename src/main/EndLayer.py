@@ -69,7 +69,7 @@ class EndLayers():
         if temp is None:
             temp = float(param["Temperature"][0])
         if classes is None:
-            classes = len(Config.class_split["knowns_clss"])
+            classes = len(Config.parameters["Knowns_clss"][0])
 
         class argsc():
             def __init__(self):
@@ -90,7 +90,7 @@ class EndLayers():
                 lastval = -1
                 label = list(range(Config.parameters["CLASSES"][0]))
                 newout = []
-                for val in Config.class_split["unknowns_clss"]:
+                for val in Config.parameters["Unknowns_clss"][0]:
                     label.remove(val)
                     if val > lastval+1:
                         newout.append(modelOut[:,lastval+1:val])
@@ -228,11 +228,11 @@ class EndLayers():
             if self.weibulInfo is None:
                 return
             else:
-                self.docMu = DOC.muStandardsFromDataloader(Config.class_split["knowns_clss"],self.weibulInfo["loader"],self.weibulInfo["net"])
+                self.docMu = DOC.muStandardsFromDataloader(Config.parameters["Knowns_clss"][0],self.weibulInfo["loader"],self.weibulInfo["net"])
                 self.Save_score = [torch.tensor(self.docMu)[:,1]]
         
         self.rocData[1] = []
-        newPredictions = DOC.runDOC(percentages.detach().cpu().numpy(),self.docMu,Config.class_split["knowns_clss"],self.rocData[1])
+        newPredictions = DOC.runDOC(percentages.detach().cpu().numpy(),self.docMu,Config.parameters["Knowns_clss"][0],self.rocData[1])
         newPredictions = torch.tensor(newPredictions)
         for x in range(len(newPredictions)):
             newPredictions[x] = torch.tensor(helperFunctions.rerelabel[newPredictions[x].item()])
