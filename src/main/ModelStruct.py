@@ -9,6 +9,7 @@ from EndLayer import EndLayers
 import GPU
 import FileHandling
 import helperFunctions
+import numpy as np
 from sklearn.metrics import (precision_score, recall_score, average_precision_score)
 
 device = GPU.get_default_device()
@@ -101,6 +102,7 @@ class AttackTrainingClassification(nn.Module):
 
         self.los = False
         self.mode = None
+        self.keep_batch_saves = False
 
         
     # Specify how the data passes in the neural network
@@ -130,6 +132,9 @@ class AttackTrainingClassification(nn.Module):
 
         x = self.flatten(x)
         x = self.activation(self.fc1(x))
+        if self.keep_batch_saves:
+            self.batch_saves_fucnt("Average of layer Fully_Connected_1 Node 0",x.permute(1,0).mean(dim=1)[0].item())
+            self.batch_saves_fucnt("Average of layer Fully_Connected_1 Total",x.mean().item())
         x = self.addedLayers(x)
         x = self.dropout(x)
         if self.end.type != "COOL":
@@ -184,6 +189,9 @@ class AttackTrainingClassification(nn.Module):
                 train_losses = []
                 num = 0
                 for batch in train_loader:
+                    if self.keep_batch_saves:
+                        self.batch_saves_start()
+                        self.batch_saves_fucnt("Kind","Training")
                     self.train()
                     #print("Batch")
                     # batch = to_device(batch,device)
@@ -276,6 +284,10 @@ class AttackTrainingClassification(nn.Module):
         data, labels_extended = batch
         self.batchnum += 1
         labels = labels_extended[:,0]
+
+        if self.keep_batch_saves:
+            self.batch_saves_start()
+            self.batch_saves_fucnt("Kind","Testing")
         
         out = self(data)  # Generate predictions
         #zeross = GPU.to_device(torch.zeros(len(out),1),device)
@@ -305,6 +317,29 @@ class AttackTrainingClassification(nn.Module):
         acc = self.accuracy(out, labels_extended)  # Calculate accuracy
         #FileHandling.write_batch_to_file(loss, self.batchnum, self.end.type, "Saves")
         #print("validation accuracy: ", acc)
+
+        if self.keep_batch_saves:
+            self.batch_saves_fucnt(f"Average unknown threshold possibilities",self.end.rocData[1].numpy().mean().item())
+            self.batch_saves_fucnt("Accuracy",acc.item())
+            # torch.Tensor.bincount(minlength=Config.parameters["CLASSES"][0])
+            sampleCounts = labels.bincount(minlength=Config.parameters["CLASSES"][0]+1)
+            guessCounts = out.argmax(dim=-1).bincount(minlength=Config.parameters["CLASSES"][0]+1)
+            # for i in range(Config.parameters["CLASSES"][0]):
+            #     self.batch_saves_fucnt(f"Samples of class {i}",sampleCounts[i].item())
+            #     self.batch_saves_fucnt(f"Guesses of class {i}",guessCounts[i].item())
+                # if guessCounts[i].item()!=0:
+                #     self.batch_saves_fucnt(f"Samples/Guesses of class {i}",sampleCounts[i].item()/guessCounts[i].item())
+            mask = torch.concat([helperFunctions.mask,torch.tensor([False])])
+            self.batch_saves_fucnt(f"Samples of known classes",sampleCounts[mask].sum().item())
+            self.batch_saves_fucnt(f"Guesses of known classes",guessCounts[mask].sum().item())
+            if guessCounts[mask].sum().item()!=0:
+                self.batch_saves_fucnt(f"Samples/Guesses of known classes",sampleCounts[mask].sum().item()/guessCounts[mask].sum().item())
+            mask = mask==False
+            self.batch_saves_fucnt(f"Samples of unknown classes",sampleCounts[mask].sum().item())
+            self.batch_saves_fucnt(f"Guesses of unknown classes",guessCounts[mask].sum().item())
+            if guessCounts[mask].sum().item()!=0:
+                self.batch_saves_fucnt(f"Samples/Guesses of unknown classes",sampleCounts[mask].sum().item()/guessCounts[mask].sum().item())
+
         return {'val_loss': loss.detach(), 'val_acc': acc}
 
 
@@ -507,7 +542,15 @@ class AttackTrainingClassification(nn.Module):
         """
         self.store = GPU.to_device(torch.tensor([]), device), GPU.to_device(torch.tensor([]), device), GPU.to_device(torch.tensor([]), device)
     
-    
+    def batchSaveMode(self,function=FileHandling.addMeasurement,start_function=FileHandling.create_params_All):
+        def funct2():
+            start_function(name="BatchSaves.csv")
+        self.batch_saves_start = funct2
+        self.keep_batch_saves = True
+        def funct(name,val):
+            function(name,val,fileName="BatchSaves.csv")
+        self.batch_saves_fucnt = funct
+        self.eval()
         
 
 

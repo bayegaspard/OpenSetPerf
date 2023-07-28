@@ -289,7 +289,7 @@ def definedLoops(path="datasets/hyperparamList.csv",row=0):
                     Config.parameters[x][0] = Config.parameters[x][0].item()
                 if x == "Unknowns_clss":
                     # str.removesuffix("]").removeprefix("[").split(sep=",")
-                    Config.parameters[x][0] = [int(x) for x in Config.parameters[x][0].removesuffix("]").removeprefix("[").split(sep=",")]
+                    Config.parameters[x][0] = [int(y) for y in Config.parameters[x][0].removesuffix("]").removeprefix("[").split(sep=",")]
         Config.loopOverUnknowns()
         return row+1
     Config.parameters["LOOP"][0] = 0
