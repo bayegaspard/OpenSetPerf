@@ -79,6 +79,7 @@ parameters = {
     "Datagrouping":["Dendrogramlimit","Datagroup type", ["ClassChunk","Dendrogramlimit"]],
     "optimizer":opt_func["Adam"],
     "Unknowns":["UNUSED"],
+    "Unknowns_clss": [[7,8,9],"Class indexes used as unknowns."],
     "CLASSES":[15,"Number of classes, do not change"],
     "Temperature":[1,"Energy OOD scaling parameter"],
     "Degree of Overcompleteness": [3,"Parameter for Fitted Learning"],
@@ -92,7 +93,7 @@ parameters = {
     "4: Loop through predefined hyperparameters found in datasets/hyperparamList.csv"],
     "Dataset": ["Payload_data_CICIDS2017", "This is what dataset we are using,", ["Payload_data_CICIDS2017","Payload_data_UNSW"]],
     "SchedulerStepSize": [10, "This is how often the scheduler takes a step, 3 means every third epoch"],
-    "SchedulerStep": [0.8,"This is how big a step the scheduler takes, leave 0 for no step"]
+    "SchedulerStep": [0.9,"This is how big a step the scheduler takes, leave 0 for no step"]
 }
 
 
