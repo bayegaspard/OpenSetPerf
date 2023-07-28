@@ -131,7 +131,10 @@ class AttackTrainingClassification(nn.Module):
         
 
         x = self.flatten(x)
-        x = self.activation(self.fc1(x))
+        x = self.fc1(x)
+        if self.keep_batch_saves:
+            self.batch_saves_fucnt("Difference after Fully_Connected_1",x.max().item()-x.min().item())
+        x = self.activation(x)
         if self.keep_batch_saves:
             self.batch_saves_fucnt("Average of layer Fully_Connected_1 Node 0",x.permute(1,0).mean(dim=1)[0].item())
             self.batch_saves_fucnt("Average of layer Fully_Connected_1 Total",x.mean().item())
@@ -319,7 +322,7 @@ class AttackTrainingClassification(nn.Module):
         #print("validation accuracy: ", acc)
 
         if self.keep_batch_saves:
-            self.batch_saves_fucnt(f"Average unknown threshold possibilities",self.end.rocData[1].numpy().mean().item())
+            self.batch_saves_fucnt(f"Average unknown threshold possibilities",self.end.rocData[1].mean().item())
             self.batch_saves_fucnt("Accuracy",acc.item())
             # torch.Tensor.bincount(minlength=Config.parameters["CLASSES"][0])
             sampleCounts = labels.bincount(minlength=Config.parameters["CLASSES"][0]+1)

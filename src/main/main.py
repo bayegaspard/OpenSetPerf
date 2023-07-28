@@ -92,13 +92,13 @@ def run_model(measurement=FileHandling.addMeasurement, graphDefault=True):
     if Config.parameters["LOOP"][0] == 2:
         model.loadPoint("Saves")
 
-    model.batchSaveMode()
 
     #This array stores the 'history' data, I am not sure what data that is
     history_final = []
     #This gives important information to the endlayer for some of the algorithms
     model.end.prepWeibull(train_loader,device,model)
 
+    model.batchSaveMode()
 
     starttime = time.time()
     #Model.fit is what actually runs the model. It outputs some kind of history array?
