@@ -322,7 +322,10 @@ class AttackTrainingClassification(nn.Module):
         #print("validation accuracy: ", acc)
 
         if self.keep_batch_saves:
-            self.batch_saves_fucnt(f"Average unknown threshold possibilities",self.end.rocData[1].mean().item())
+            if isinstance(self.end.rocData[1],torch.Tensor):
+                self.batch_saves_fucnt(f"Average unknown threshold possibilities",self.end.rocData[1].mean().item())
+            else:
+                self.batch_saves_fucnt(f"Average unknown threshold possibilities",np.array(self.end.rocData[1]).mean().item())
             self.batch_saves_fucnt("Accuracy",acc.item())
             # torch.Tensor.bincount(minlength=Config.parameters["CLASSES"][0])
             sampleCounts = labels.bincount(minlength=Config.parameters["CLASSES"][0]+1)

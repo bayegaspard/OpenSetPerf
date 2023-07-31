@@ -51,14 +51,6 @@ def loopOverUnknowns(unknownlist=False):
 opt_func = {"Adam":torch.optim.Adam,"SGD":torch.optim.SGD, "RMSprop":torch.optim.RMSprop}
 
 
-#I do not know why this is diffrent than the parameters dictionary. EDIT: Now it is being removed for that reason.
-class_split = {
-    #This is the only important value in this dictionary and it lists the diffrent values to consider unkowns.
-    #Mappings are at the top of Dataload.py
-    "unknowns_clss": [7,8,9], #Overriden if loop=2
-}
-
-
 #Here are all of the paremeters for the model.
 parameters = {
     #These parameters are orginized like this:
