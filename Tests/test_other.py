@@ -18,3 +18,23 @@ import src.main.GenerateImages as GenerateImages
 
 def test_images():
     GenerateImages.main(save=False)
+
+def test_validation():
+    train, test, val = FileHandling.checkAttempLoad("")
+    val = DataLoader(val, parameters["batch_size"][0], shuffle=True, num_workers=0, pin_memory=False)
+    for batch in val:
+        for x in parameters["Unknowns_clss"][0]:
+            assert x not in batch[1][1]
+        for x in batch[1]:
+            assert x[1] in parameters["Knowns_clss"][0]
+
+def test_testing_dataset():
+    FileHandling.Config.parameters["Mix unknowns and validation"][0] = 0
+    FileHandling.Config.unit_test_mode = True
+    train, test, val = FileHandling.checkAttempLoad("")
+    test = DataLoader(test, parameters["batch_size"][0], shuffle=True, num_workers=0, pin_memory=False)
+    for batch in test:
+        for x in parameters["Knowns_clss"][0]:
+            assert x not in batch[1][1]
+        for x in batch[1]:
+            assert x[1] in parameters["Unknowns_clss"][0]

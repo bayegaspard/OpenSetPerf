@@ -97,7 +97,7 @@ for x in parameters.keys():
     if x in ["testlength","learningRate","threshold","Dropout","Temperature","SchedulerStep"]:
         parser.add_argument(f"--{x}",type=float,default=parameters[x][0],help=parameters[x][1],required=False)
     if x in ["attemptLoad","Mix unknowns and validation"]:
-        parser.add_argument(f"--{x}",choices=[True,False],default=parameters[x][0],help=parameters[x][1],required=False)
+        parser.add_argument(f"--{x}",type=int,choices=[1,0],default=parameters[x][0],help=parameters[x][1],required=False)
     if x in ["LOOP"]:
         parser.add_argument(f"--{x}",type=int,choices=[0,1,2,3,4],default=parameters[x][0],help=parameters[x][1],required=False)
     if x in ["model","OOD Type","Datagrouping","Activation","Dataset"]:

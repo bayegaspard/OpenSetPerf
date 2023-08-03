@@ -2,6 +2,7 @@ from torch import nn
 import torch
 from torch.nn import functional as F
 import os
+from tqdm import tqdm
 
 ### user defined functions
 import Config
@@ -9,6 +10,8 @@ from EndLayer import EndLayers
 import GPU
 import FileHandling
 import helperFunctions
+
+
 import numpy as np
 from sklearn.metrics import (precision_score, recall_score, average_precision_score)
 
@@ -184,7 +187,7 @@ class AttackTrainingClassification(nn.Module):
             FileHandling.create_params_All()
         # torch.cuda.empty_cache()
         if epochs > 0:
-            for epoch in range(epochs):
+            for epoch in tqdm(range(epochs)):
                 self.end.resetvals()
                 self.storeReset()
                 # Training Phase
@@ -270,7 +273,7 @@ class AttackTrainingClassification(nn.Module):
         # print("loss from training step ... ", loss)
         return loss
 
-    def validation_step(self, batch):
+    def evaluate_batch(self, batch):
         """
         Takes a batch from the validation loader and evaluates it using the endlayer.
 
@@ -350,7 +353,7 @@ class AttackTrainingClassification(nn.Module):
 
 
     @torch.no_grad()
-    def evaluate(self, validationset):
+    def evaluate(self, testset):
         """
         Evaluates the given dataset on this model.
         
@@ -364,8 +367,8 @@ class AttackTrainingClassification(nn.Module):
         """
         self.eval()
         self.batchnum = 0
-        outputs = [self.validation_step(batch) for batch in validationset]  ### reverted bac
-        return self.validation_epoch_end(outputs)
+        outputs = [self.evaluate_batch(batch) for batch in testset]  ### reverted bac
+        return self.evaluation_epoch_end(outputs)
 
     def accuracy(self, outputs:torch.Tensor, labels):
         """
@@ -403,7 +406,7 @@ class AttackTrainingClassification(nn.Module):
 
 
 
-    def validation_epoch_end(self, outputs):
+    def evaluation_epoch_end(self, outputs):
         """
         Takes the output of each epoch and takes the mean values. Returns a dictionary of those mean values.
 
@@ -472,7 +475,7 @@ class AttackTrainingClassification(nn.Module):
             return -1
         
         pathFound = AttackTrainingClassification.findloadPath(epochFound,path)
-        loaded = torch.load(pathFound)
+        loaded = torch.load(pathFound,map_location=GPU.get_default_device())
         
         print(f"Loaded  model from {pathFound}")
         for x in loaded["parameter_keys"]:

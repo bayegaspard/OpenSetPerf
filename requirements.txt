@@ -12,3 +12,4 @@ bokeh
 plotly
 kaleido
 pytest
+tqdm
