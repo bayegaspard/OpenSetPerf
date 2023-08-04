@@ -620,11 +620,12 @@ class ClusterLimitDataset(ClusterDivDataset):
         
 from torch.utils.data import TensorDataset, DataLoader
 import copy
+import tqdm
 #Try to store all of the data in memory instead?
 def recreateDL(dl:torch.utils.data.DataLoader,shuffle=True):
     xList= []
     yList= []
-    for xs,ys in dl:
+    for xs,ys in tqdm.tqdm(dl,desc="Loading Dataloader into memory"):
         #https://github.com/pytorch/pytorch/issues/11201#issuecomment-486232056
         xList.append(copy.deepcopy(xs))
         del(xs)

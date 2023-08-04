@@ -187,51 +187,53 @@ class AttackTrainingClassification(nn.Module):
             FileHandling.create_params_All()
         # torch.cuda.empty_cache()
         if epochs > 0:
-            for epoch in tqdm(range(epochs)):
-                self.end.resetvals()
-                self.storeReset()
-                # Training Phase
-                self.train()
-                train_losses = []
-                num = 0
-                for batch in train_loader:
-                    if self.keep_batch_saves:
-                        self.batch_saves_start()
-                        self.batch_saves_fucnt("Kind","Training")
+            with tqdm(range(epochs)) as tqdmEpoch:
+                for epoch in tqdmEpoch:
+                    self.end.resetvals()
+                    self.storeReset()
+                    # Training Phase
                     self.train()
-                    #print("Batch")
-                    # batch = to_device(batch,device)
-                    # batch = DeviceDataLoader(batch, device)
-                    loss = self.training_step(batch)
+                    train_losses = []
+                    num = 0
+                    for batch in train_loader:
+                        if self.keep_batch_saves:
+                            self.batch_saves_start()
+                            self.batch_saves_fucnt("Kind","Training")
+                        self.train()
+                        #print("Batch")
+                        # batch = to_device(batch,device)
+                        # batch = DeviceDataLoader(batch, device)
+                        loss = self.training_step(batch)
 
-                    #FileHandling.write_batch_to_file(loss, num, self.end.type, "train")
-                    train_losses.append(loss.detach())
-                    self.end.trainMod(batch,self)
-                    #print(loss)
-                    loss.backward()
-                    optimizer.step()
-                    optimizer.zero_grad()
-                    num += 1
+                        #FileHandling.write_batch_to_file(loss, num, self.end.type, "train")
+                        train_losses.append(loss.detach())
+                        self.end.trainMod(batch,self)
+                        #print(loss)
+                        loss.backward()
+                        optimizer.step()
+                        optimizer.zero_grad()
+                        num += 1
 
-                if not sch is None:
-                    sch.step()
-                
+                    if not sch is None:
+                        sch.step()
+                    
 
-                # Validation phase
-                result = self.evaluate(val_loader)
+                    # Validation phase
+                    result = self.evaluate(val_loader)
 
-                if epoch > epochs-5 or result['val_acc'] > 0.7:
-                    self.savePoint(f"Saves/models", epoch+startingEpoch)
+                    if epoch > epochs-5 or result['val_acc'] > 0.7:
+                        self.savePoint(f"Saves/models", epoch+startingEpoch)
 
-                result['train_loss'] = torch.stack(train_losses).mean().item()
-                if epoch%epoch_record_rate == 0:
-                    measurement(f"Epoch{epoch+startingEpoch} loss",result['train_loss'])
-                result["epoch"] = epoch+startingEpoch
-                self.epoch_end(epoch+startingEpoch, result)
-                #print("result", result)
+                    result['train_loss'] = torch.stack(train_losses).mean().item()
+                    if epoch%epoch_record_rate == 0:
+                        measurement(f"Epoch{epoch+startingEpoch} loss",result['train_loss'])
+                    result["epoch"] = epoch+startingEpoch
+                    tqdmEpoch.set_postfix({"Epoch":epoch+startingEpoch, "train_loss": result['train_loss'], "val_loss": result['val_loss'], "val_acc": result['val_acc']})
+                    # self.epoch_end(epoch+startingEpoch, result)
+                    #print("result", result)
 
-                history.append(result)
-                self.los.collect()
+                    history.append(result)
+                    self.los.collect()
         else:
             # Validation phase
             epoch = self.loadPoint("Saves/models")
