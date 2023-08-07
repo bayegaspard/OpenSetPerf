@@ -1,11 +1,12 @@
 import pandas as pd
 import torch
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, IterableDataset
 import numpy as np
 import os
 import time
 import Config
 from sklearn.cluster import AgglomerativeClustering
+from itertools import filterfalse
 
 #List of conversions:
 if Config.parameters["Dataset"][0] == "Payload_data_CICIDS2017":
@@ -15,7 +16,7 @@ elif Config.parameters["Dataset"][0] == "Payload_data_UNSW":
 else:
     print("ERROR, Dataset not implemented")
 #PROTOCOLS = {"udp":0,"tcp":1}
-PROTOCOLS = {"udp":0,"tcp":1,"others":2,"ospf":3,"sctp":4,"gre":5,"swipe":6,"mobile":7,"sun-nd":8,"sep":9,"unas":10,"pim":11,"secure-vmtp":12,"pipe":13,"etherip":14,"ib":15,"ax.25":16,"ipip":17,"sps":18,"iplt":19,"hmp":20,"ggp":21,"ipv6":22,"rdp":23,"rsvp":24,"sccopmce":25,"egp":26,"vmtp":27,"snp":28,"crtp":29,"emcon":30,"nvp":31,"fire":32,"crudp":33,"gmtp":34,"dgp":35,"micp":36,"leaf-2":37,"arp":38,"fc":39,"icmp":40}
+PROTOCOLS = {"udp":0,"tcp":1,"others":2,"ospf":3,"sctp":4,"gre":5,"swipe":6,"mobile":7,"sun-nd":8,"sep":9,"unas":10,"pim":11,"secure-vmtp":12,"pipe":13,"etherip":14,"ib":15,"ax.25":16,"ipip":17,"sps":18,"iplt":19,"hmp":20,"ggp":21,"ipv6":22,"rdp":23,"rsvp":24,"sccopmce":25,"egp":26,"vmtp":27,"snp":28,"crtp":29,"emcon":30,"nvp":31,"fire":32,"crudp":33,"gmtp":34,"dgp":35,"micp":36,"leaf-2":37,"arp":38,"fc":39,"icmp":40,"other":41}
 LISTCLASS = {CLASSLIST[x]:x for x in range(Config.parameters["CLASSES"][0])}
 CHUNKSIZE = 10000
 
@@ -617,6 +618,139 @@ class ClusterLimitDataset(ClusterDivDataset):
 
 
         
+
+
+#https://pytorch.org/docs/stable/data.html#torch.utils.data.IterableDataset
+class DatasetWithFlows(IterableDataset):
+    def __init__(self, path="", use:list=None, unknownData=False):
+        """
+        initializes the dataloader. NOTE: DatasetWithFlows does not work with LOOP == 2
+        
+        parameters: 
+            use is the list of integers corrispoding with the class dictionary above that you want to load.
+            Unknown Data is if the dataset should only give unknown labels.
+            path is unused
+        
+        If you want to make a dataloader that only reads benign data:
+          train = Dataload.DatasetWithFlows(use=[0])
+        The name of the dataset is taken from Config
+        """
+        super(DatasetWithFlows).__init__()
+        from nids_datasets import Dataset as Data_set_with_flows
+        from nids_datasets import DatasetInfo
+        
+        self.unknownData=unknownData
+        if Config.parameters["Dataset"][0] == "Payload_data_CICIDS2017":
+            self.dataset_name = 'CIC-IDS2017'
+        elif Config.parameters["Dataset"][0] == "Payload_data_CICIDS2017":
+            self.dataset_name = 'UNSW-NB15'
+        else:
+            raise ValueError("Invalid name of dataset")
+        self.df = Data_set_with_flows(dataset=self.dataset_name,subset=["Payload-Bytes"],files="all")
+        self.dfInfo = DatasetInfo(self.dataset_name)
+        self.listOfCounts = self.dfInfo.sum()
+        percentages = self.dfInfo/self.listOfCounts
+        # print(percentages)
+        #https://stackoverflow.com/a/35125872
+        self.filecounts = -((-percentages * Config.parameters["MaxPerClass"][0])//1)
+        # print(self.filecounts)
+        self.use = [CLASSLIST[x] for x in use]
+        if 'Web Attack – Sql Injection' in self.use:
+            self.use[self.use.index('Web Attack – Sql Injection')] = 'Web Attack – SQL Injection'
+        for name in self.use:
+            self.filecounts[name] *=0
+        self.n_shards = 18
+
+    def __iter__(self):
+        """
+        Returns an iterator over the data
+        """
+        worker_info = torch.utils.data.get_worker_info()
+        if not worker_info is None:
+            if worker_info.id >= 18:
+                import sys
+                print("Too many workers, the flows dataset can only have 18 workers maximum. Some data will be repeated",file=sys.stderr)
+            #https://stackoverflow.com/a/4260304
+            files_to_acces = [x+1 for x in range(18) if x%worker_info.num_workers == worker_info.id%18]
+            self.filecounts = self.filecounts.iloc[files_to_acces].sum()
+        else:
+            files_to_acces = None
+            self.filecounts = self.filecounts.sum()
+        #https://docs.python.org/3/library/itertools.html#itertools.filterfalse
+        return map(self.process_data,filterfalse(self.check_invalid,self.df.read(files=files_to_acces,stream=True)))
+    
+
+    def dictionaryprocess(self,x:dict) -> tuple([torch.Tensor,torch.Tensor]):
+        """
+        This separates the data from the labels
+        
+        parameters:
+            x - dictionary to turn into tensors.
+        
+        returns:
+            tuple containing:
+                data - torch tensor of data values for a label
+                label - the true class of the item in integer form.
+        """
+        true_label = x["attack_label"]
+        # index = x["index"]
+        flow_id = x["flow_id"]
+        data = x.copy()
+        data.pop("attack_label")
+        data.pop("flow_id")
+        data = torch.tensor([int(val[1]) if val[1] is not None else 0 for val in data.items()])
+
+        true_label = torch.tensor(int(true_label),dtype=torch.long)    #The int is because the loss function is expecting ints
+        # index = torch.tensor(int(index),dtype=torch.long)
+        flow_id = torch.tensor(int(flow_id),dtype=torch.long)
+        true_label.unsqueeze_(0)              #This is to allow it to be two dimentional
+        # index.unsqueeze_(0)
+        flow_id.unsqueeze_(0)
+        if self.unknownData:
+            obsficated_label = torch.tensor(Config.parameters["CLASSES"][0],dtype=torch.long).unsqueeze_(0)    #unknowns are marked as unknown
+        else:
+            obsficated_label = groupDoS(true_label.clone())
+        true_label = torch.cat([obsficated_label,true_label,flow_id], dim=0)
+
+
+        return (data,true_label)
+    
+    def process_data(self,item:dict) -> tuple([torch.Tensor,torch.Tensor]):
+        """
+        This method removes all non-numeric columns from the dictionary and then runs dictionary process to turn it into tensors.
+
+        parameters:
+            item - a dictionary containing all of the values of the data.
+        returns:
+            tuple containing:
+                data - torch tensor of data values for a label
+                label - the true class of the item in integer form.
+
+        """
+        item["protocol"] = protocalConvert(item["protocol"])
+        if item["attack_label"] == 'Web Attack – SQL Injection':
+            item["attack_label"] = LISTCLASS['Web Attack – Sql Injection']
+        else:
+            item["attack_label"] = classConvert(item["attack_label"])
+        for a,x in enumerate(item.pop("destination_ip").split(sep='.')):
+            item[f"destination_ip_pt{a}"] = x
+        for a,x in enumerate(item.pop("source_ip").split(sep='.')):
+            item[f"source_ip_pt{a}"] = x
+        return self.dictionaryprocess(item)
+
+    def check_invalid(self,item:dict) -> bool:
+        """
+        Checks if this row should be thrown out.
+        #TODO: Modify to keep count of classes to limit the number of samples.
+
+
+        """
+        if self.filecounts[item["attack_label"]] <=0:
+            return True
+        
+        self.filecounts[item["attack_label"]]-= 1
+        return False
+
         
 from torch.utils.data import TensorDataset, DataLoader
 import copy
