@@ -7,6 +7,8 @@ import time
 import Config
 from sklearn.cluster import AgglomerativeClustering
 from itertools import filterfalse
+import tqdm
+
 
 #List of conversions:
 if Config.parameters["Dataset"][0] == "Payload_data_CICIDS2017":
@@ -619,10 +621,9 @@ class ClusterLimitDataset(ClusterDivDataset):
 
         
 
-
 #https://pytorch.org/docs/stable/data.html#torch.utils.data.IterableDataset
 class DatasetWithFlows(IterableDataset):
-    def __init__(self, path="", use:list=None, unknownData=False):
+    def __init__(self, path="", use:list=None, unknownData=False, state_worker_loads = False):
         """
         initializes the dataloader. NOTE: DatasetWithFlows does not work with LOOP == 2
         
@@ -637,8 +638,8 @@ class DatasetWithFlows(IterableDataset):
         """
         super(DatasetWithFlows).__init__()
         from nids_datasets import Dataset as Data_set_with_flows
-        from nids_datasets import DatasetInfo
         
+        self.state_worker_loads = state_worker_loads
         self.unknownData=unknownData
         if Config.parameters["Dataset"][0] == "Payload_data_CICIDS2017":
             self.dataset_name = 'CIC-IDS2017'
@@ -647,38 +648,63 @@ class DatasetWithFlows(IterableDataset):
         else:
             raise ValueError("Invalid name of dataset")
         self.df = Data_set_with_flows(dataset=self.dataset_name,subset=["Payload-Bytes"],files="all")
-        self.dfInfo = DatasetInfo(self.dataset_name)
-        self.listOfCounts = self.dfInfo.sum()
-        percentages = self.dfInfo/self.listOfCounts
-        # print(percentages)
-        #https://stackoverflow.com/a/35125872
-        self.filecounts = -((-percentages * Config.parameters["MaxPerClass"][0])//1)
-        # print(self.filecounts)
+        
         self.use = [CLASSLIST[x] for x in use]
+        self.notuse = [CLASSLIST[x] for x in range(Config.parameters["CLASSES"][0]) if CLASSLIST[x] not in self.use]
         if 'Web Attack – Sql Injection' in self.use:
             self.use[self.use.index('Web Attack – Sql Injection')] = 'Web Attack – SQL Injection'
-        for name in self.use:
-            self.filecounts[name] *=0
+        if 'Web Attack – Sql Injection' in self.notuse:
+            self.notuse[self.notuse.index('Web Attack – Sql Injection')] = 'Web Attack – SQL Injection'
+
+        self.files_to_acces = None
+
+        self.initializeCounts()
+        print(self.filecounts)
         self.n_shards = 18
+        
 
     def __iter__(self):
         """
         Returns an iterator over the data
         """
-        worker_info = torch.utils.data.get_worker_info()
-        if not worker_info is None:
-            if worker_info.id >= 18:
-                import sys
-                print("Too many workers, the flows dataset can only have 18 workers maximum. Some data will be repeated",file=sys.stderr)
-            #https://stackoverflow.com/a/4260304
-            files_to_acces = [x+1 for x in range(18) if x%worker_info.num_workers == worker_info.id%18]
-            self.filecounts = self.filecounts.iloc[files_to_acces].sum()
-        else:
-            files_to_acces = None
-            self.filecounts = self.filecounts.sum()
+        self.initializeCounts()
+        self.filecounts = self.filecounts.sum()
         #https://docs.python.org/3/library/itertools.html#itertools.filterfalse
-        return map(self.process_data,filterfalse(self.check_invalid,self.df.read(files=files_to_acces,stream=True)))
+        return map(self.process_data,filterfalse(self.check_invalid,self.df.read(files=[x+1 for x in self.files_to_acces],stream=True)))
+        #For some reason the files are 1 indexed.
     
+    def initializeCounts(self):
+        from nids_datasets import DatasetInfo
+        self.dfInfo = DatasetInfo(self.dataset_name)
+        self.dfInfo.drop(columns="total",inplace=True)
+        self.listOfCounts = self.dfInfo.sum()
+        percentages = self.dfInfo/self.listOfCounts
+        # print(percentages)
+        #https://stackoverflow.com/a/35125872
+        self.filecounts = -((-percentages * Config.parameters["MaxPerClass"][0])//1)
+        for name in self.notuse:
+            self.filecounts[name] *=0
+        # print(self.filecounts.sum())
+        # print(self.filecounts.sum(axis=1))
+        if self.files_to_acces is None:
+            self.files_to_acces = [x for x,a in enumerate(self.filecounts.sum(axis=1)) if a>0]
+        self.filecounts = self.filecounts.iloc[self.files_to_acces]
+
+    @staticmethod
+    def worker_init_fn(id):
+        worker_info = torch.utils.data.get_worker_info()
+        self = worker_info.dataset
+        if worker_info.id >= len(self.files_to_acces):
+                import sys
+                print(f"Too many workers, the flows dataset can only have {len(self.files_to_acces)} workers maximum. The data will be repeated",file=sys.stderr)
+
+        #https://stackoverflow.com/a/4260304
+        self.files_to_acces = [x for x in self.files_to_acces if x%worker_info.num_workers == worker_info.id%18]
+        self.initializeCounts()
+        # self.filecounts = self.filecounts.iloc[self.files_to_acces].sum()
+        if self.state_worker_loads is True:
+            print(f"Worker {worker_info.id}, with id {id}, is handling files {self.files_to_acces} and has {self.filecounts.sum().sum()} items")
+
 
     def dictionaryprocess(self,x:dict) -> tuple([torch.Tensor,torch.Tensor]):
         """
@@ -746,9 +772,15 @@ class DatasetWithFlows(IterableDataset):
 
         """
         if self.filecounts[item["attack_label"]] <=0:
+            if self.filecounts.sum() <= 0:
+                print(f"Worker {torch.utils.data.get_worker_info().id} has stopped.")
+                raise StopIteration
             return True
         
         self.filecounts[item["attack_label"]]-= 1
+        if torch.utils.data.get_worker_info().id == 5:
+            print(f"Worker {torch.utils.data.get_worker_info().id} has {self.filecounts.sum()} items left.")
+        assert torch.utils.data.get_worker_info().dataset is self
         return False
 
         
@@ -769,3 +801,15 @@ def recreateDL(dl:torch.utils.data.DataLoader,shuffle=True):
     yList = torch.cat(yList)
     combinedList = TensorDataset(xList,yList)
     return DataLoader(combinedList, Config.parameters["batch_size"][0], shuffle=shuffle, num_workers=Config.parameters["num_workers"][0],pin_memory=False)
+
+
+
+if __name__ == "__main__":
+    from torch.utils.data import TensorDataset, DataLoader
+    import copy
+    import tqdm
+    t = DataLoader(DatasetWithFlows(use=[0,1,2,3,4,5],unknownData=False,state_worker_loads=True), Config.parameters["batch_size"][0], num_workers=5,pin_memory=True,worker_init_fn=DatasetWithFlows.worker_init_fn)
+    startTime = time.time()
+    for b,a in tqdm.tqdm(enumerate(t)):
+        pass
+    print(f"Finished in:{time.time()-startTime}")

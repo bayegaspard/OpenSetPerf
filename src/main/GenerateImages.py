@@ -214,7 +214,8 @@ def keepFirstThree(df:pd.DataFrame):
         df = pd.concat([df,temp])
         # print(f"The length is (should be more) {len(df)}")
         df.drop_duplicates(inplace=True,keep=False)
-    assert len(final)%3 ==0
+    if len(final)%3 !=0:
+        print("Some values don't have three runs.")
     return final
 
 
