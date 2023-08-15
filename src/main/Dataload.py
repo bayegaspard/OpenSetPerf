@@ -707,6 +707,10 @@ class DatasetWithFlows(IterableDataset):
         if self.files_to_acces is None:
             self.files_to_acces = [x for x,a in enumerate(self.filecounts.sum(axis=1)) if a>0]
         self.filecounts = self.filecounts.iloc[self.files_to_acces]
+        self.length = self.filecounts.sum().sum()
+
+    def __len__(self):
+        return int(self.length)
 
     @staticmethod
     def worker_init_fn(id):

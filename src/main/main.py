@@ -39,9 +39,9 @@ def run_model(measurement=None, graphDefault=False):
         measurement = FileHandling.Score_saver()
     #This refreshes all of the copies of the Config files, the copies can be used to find the current config if something breaks.
     #At this point these copies are mostly redundent.
-    FileHandling.refreshFiles(root_path)
+    # FileHandling.refreshFiles(root_path)
 
-    FileHandling.generateHyperparameters(root_path) # generate hyper parameters copy files if they did not exist.
+    # FileHandling.generateHyperparameters(root_path) # generate hyper parameters copy files if they did not exist.
 
     #This is an example of how we get the values from Config now.
     knownVals = Config.parameters["Knowns_clss"][0]

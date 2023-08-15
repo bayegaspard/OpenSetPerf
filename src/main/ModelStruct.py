@@ -195,7 +195,7 @@ class AttackTrainingClassification(nn.Module):
         self.los = helperFunctions.LossPerEpoch("TestingDuringTrainEpochs.csv")
         # torch.cuda.empty_cache()
         if epochs > 0:
-            with tqdm(range(epochs)) as tqdmEpoch:
+            with tqdm(range(epochs),desc="Running epochs ") as tqdmEpoch:
                 for epoch in tqdmEpoch:
                     self.end.resetvals()
                     self.storeReset()
@@ -237,7 +237,8 @@ class AttackTrainingClassification(nn.Module):
                         measurement(f"Epoch{epoch+startingEpoch} loss",result['train_loss'])
                     #This seems like it would be slow, TODO: Write this better.
                     if hasattr(measurement,"writer") and measurement.writer is not None:
-                        measurement.writer.add_scalar("Epoch Loss",result['train_loss'],global_step=epoch+startingEpoch)
+                        for x in result.keys():
+                            measurement.writer.add_scalar(f"Epoch {x}",result[x],global_step=epoch+startingEpoch)
                     result["epoch"] = epoch+startingEpoch
                     tqdmEpoch.set_postfix({"Epoch":epoch+startingEpoch, "train_loss": result['train_loss'], "val_loss": result['val_loss'], "val_acc": result['val_acc']})
                     # self.epoch_end(epoch+startingEpoch, result)

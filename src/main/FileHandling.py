@@ -81,6 +81,7 @@ def checkAttempLoad(root_path=""):
         return train, test, val
 
     if Config.parameters["attemptLoad"][0] and os.path.exists(os.path.join(root_path,"Saves","Data.pt")):
+        print("Found prior dataset to load")
         try:
             train = torch.load(os.path.join(root_path,"Saves","Data.pt"))
             test = torch.load(os.path.join(root_path,"Saves","DataTest.pt"))
@@ -91,6 +92,7 @@ def checkAttempLoad(root_path=""):
 
     else:
         #test = unknowns
+        print("Saving data. Use -attemptLoad 1 to use saved data and model")
         torch.save(train,os.path.join(root_path,"Saves","Data.pt"))
         torch.save(test,os.path.join(root_path,"Saves","DataTest.pt"))
         torch.save(val,os.path.join(root_path,"Saves","DataVal.pt"))
