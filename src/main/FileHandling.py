@@ -50,18 +50,9 @@ def getDatagroup():
             knowns set - torch dataloader using the classes in config knowns_clss
             unknown set - torch dataloader using the classes in congfig unknowns_clss
     """
-    groupType = Config.parameters["Datagrouping"][0]
-    if groupType == "ClassChunk":
-        train = Dataload.ClassDivDataset(os.path.join("datasets",Config.parameters["Dataset"][0]), use=Config.parameters["Knowns_clss"][0])
-        unknowns = Dataload.ClassDivDataset(os.path.join("datasets",Config.parameters["Dataset"][0]), use=Config.parameters["Unknowns_clss"][0], unknownData=True)
-    elif groupType == "Dendrogramlimit":
-        train = Dataload.ClusterLimitDataset(os.path.join("datasets",Config.parameters["Dataset"][0]), use=Config.parameters["Knowns_clss"][0])
-        unknowns = Dataload.ClusterLimitDataset(os.path.join("datasets",Config.parameters["Dataset"][0]), use=Config.parameters["Unknowns_clss"][0], unknownData=True)
-    elif groupType == "DendrogramChunk":
-        train = Dataload.ClusterDivDataset(os.path.join("datasets",Config.parameters["Dataset"][0]), use=Config.parameters["Knowns_clss"][0])
-        unknowns = Dataload.ClusterDivDataset(os.path.join("datasets",Config.parameters["Dataset"][0]), use=Config.parameters["Unknowns_clss"][0], unknownData=True)
-    else:
-        raise ValueError("Invalid Dataloader type")
+    groupType = Config.parameters["Dataloader_Variation"][0]
+    train = Dataload.DataloaderTypes[groupType](os.path.join("datasets",Config.parameters["Dataset"][0]), use=Config.parameters["Knowns_clss"][0])
+    unknowns = Dataload.DataloaderTypes[groupType](os.path.join("datasets",Config.parameters["Dataset"][0]), use=Config.parameters["Unknowns_clss"][0], unknownData=True)
     return train,unknowns
 
 # def readFromFiles(path):
@@ -117,17 +108,11 @@ def incrementLoopModData(changed:list):
     returns:
         Nothing, the changed datasets are saved in the Saves/Data*.pt files
     """
-    if Config.parameters["Datagrouping"][0] == "ClassChunk":
-        known = Dataload.ClassDivDataset(os.path.join("datasets",Config.parameters["Dataset"][0]), use=changed)
-        unknowns = Dataload.ClassDivDataset(os.path.join("datasets",Config.parameters["Dataset"][0]), use=Config.parameters["Unknowns_clss"][0], unknownData=True)
-    elif Config.parameters["Datagrouping"][0] == "Dendrogramlimit":
-        known = Dataload.ClusterLimitDataset(os.path.join("datasets",Config.parameters["Dataset"][0]), use=changed)
-        unknowns = Dataload.ClusterLimitDataset(os.path.join("datasets",Config.parameters["Dataset"][0]), use=Config.parameters["Unknowns_clss"][0], unknownData=True)
-    elif Config.parameters["Datagrouping"][0] == "DendrogramChunk":
-        known = Dataload.ClusterDivDataset(os.path.join("datasets",Config.parameters["Dataset"][0]), use=changed)
-        unknowns = Dataload.ClusterDivDataset(os.path.join("datasets",Config.parameters["Dataset"][0]), use=Config.parameters["Unknowns_clss"][0], unknownData=True)
-    else:
-        raise ValueError("Invalid Dataloader type")
+
+    groupType = Config.parameters["Dataloader_Variation"][0]
+    known = Dataload.DataloaderTypes[groupType](os.path.join("datasets",Config.parameters["Dataset"][0]), use=changed)
+    unknowns = Dataload.DataloaderTypes[groupType](os.path.join("datasets",Config.parameters["Dataset"][0]), use=Config.parameters["Unknowns_clss"][0], unknownData=True)
+
     
     trainGroup, testGroup = torch.utils.data.random_split(known,[len(known) - int(len(known) * Config.parameters["testlength"][0]),int(len(known) * Config.parameters["testlength"][0])]) 
 
@@ -308,60 +293,142 @@ def create_params_Fscore(path, score, threshold = None):
     
     hist.to_csv(os.path.join(path,"Saves","fscore.csv"),index=False)
 
-def create_params_All(path="",name="Scoresall.csv"):
-    """
-    Generates a new line of the file scoresAll.csv that we use to store the scores from the run.
-    The new line contains all of the Config values that we are using.
-    If the file does not exist this creates the file.
+class Score_saver():
 
-    you can change the path with the path parameter.
-    """
-    if Config.unit_test_mode:
-        return
-    params = pd.DataFrame(Config.parameters,columns=Config.parameters.keys())
+    def __init__(self,path=""):
+        self.writer = None
+        self.path = path #unused at the moment
+        if Config.save_as_tensorboard:
+            self.tensorboard_start()
+        self.create_params_All()
+        
 
+    def __call__(self,name:str,val,path="",fileName="Scoresall.csv"):
+        self.addMeasurement(name,val,path,fileName)
 
-    if os.path.exists(os.path.join(path,"Saves",name)):
-        hist = pd.read_csv(os.path.join(path,"Saves",name),index_col=0)
-        hist = pd.concat([hist,params.iloc[[0]]],axis=0,ignore_index=True)
-    else:
-        hist = params.iloc[[0]]
-    
-    #hist = hist.transpose()
-    hist.to_csv(os.path.join(path,"Saves",name))
+    def create_params_All(self,path="",name="Scoresall.csv"):
+        """
+        Generates a new line of the file scoresAll.csv that we use to store the scores from the run.
+        The new line contains all of the Config values that we are using.
+        If the file does not exist this creates the file.
 
-def create_loop_history(name:str,path=""):
-    if Config.unit_test_mode:
-        return
-    params = pd.DataFrame([Config.loops],columns=Config.loops2)
-    params["Version"] = Config.parameters["Version"][0]
+        you can change the path with the path parameter.
+        """
+        if Config.unit_test_mode:
+            return
+        params = pd.DataFrame(Config.parameters,columns=Config.parameters.keys())
 
 
-    if os.path.exists(os.path.join(path,"Saves",name)):
-        hist = pd.read_csv(os.path.join(path,"Saves",name),index_col=0)
-        hist = pd.concat([hist,params.iloc[[0]]],axis=0,ignore_index=True)
-    else:
-        hist = params.iloc[[0]]
-    
-    #hist = hist.transpose()
-    hist.to_csv(os.path.join(path,"Saves",name))
+        if os.path.exists(os.path.join(path,"Saves",name)):
+            hist = pd.read_csv(os.path.join(path,"Saves",name),index_col=0)
+            hist = pd.concat([hist,params.iloc[[0]]],axis=0,ignore_index=True)
+        else:
+            hist = params.iloc[[0]]
+        
+        #hist = hist.transpose()
+        hist.to_csv(os.path.join(path,"Saves",name))
 
-def addMeasurement(name:str,val,path="",fileName="Scoresall.csv"):
-    """
-    Adds a measurement to the LATEST line in the Scoresall.csv file. This may cause problems if you are running two versions at once.
-    we reccomend only running one version at once. 
+    def create_loop_history(self,name:str,path=""):
+        if Config.unit_test_mode:
+            return
+        params = pd.DataFrame([Config.loops],columns=Config.loops2)
+        params["Version"] = Config.parameters["Version"][0]
 
-    parameters:
-        name - measurement name
-        val - measurement value
-    """
-    if Config.unit_test_mode:
-        return
-    total = pd.read_csv(os.path.join(path,"Saves",fileName),index_col=0)
-    #print(f"last valid index = {total.last_valid_index()} item name= {name}, item value={val}")
-    if name in total and not (pd.isnull(total.at[total.last_valid_index(),name]) or name in ["Number Of Failures"]):
-        total.at[total.last_valid_index(),"A spot has already been filled?"] = "An error has occured"
-    total.at[total.last_valid_index(),name] = val
-    total.to_csv(os.path.join(path,"Saves",fileName))
-    return total.last_valid_index()
 
+        if os.path.exists(os.path.join(path,"Saves",name)):
+            hist = pd.read_csv(os.path.join(path,"Saves",name),index_col=0)
+            hist = pd.concat([hist,params.iloc[[0]]],axis=0,ignore_index=True)
+        else:
+            hist = params.iloc[[0]]
+        
+        #hist = hist.transpose()
+        hist.to_csv(os.path.join(path,"Saves",name))
+
+    def addMeasurement(self,name:str,val,path="",fileName="Scoresall.csv",step=0):
+        """
+        Adds a measurement to the LATEST line in the Scoresall.csv file. This may cause problems if you are running two versions at once.
+        we reccomend only running one version at once. 
+
+        parameters:
+            name - measurement name
+            val - measurement value
+
+        returns:
+            Last valid index in the CSV
+        """
+        if Config.unit_test_mode:
+            return
+        if self.writer is not None:
+            if not isinstance(val, str):
+                self.writer.add_scalar(name,val,step)
+            else:
+                self.writer.add_text(name,val,step)
+        total = pd.read_csv(os.path.join(path,"Saves",fileName),index_col=0)
+        #print(f"last valid index = {total.last_valid_index()} item name= {name}, item value={val}")
+        if name in total and not (pd.isnull(total.at[total.last_valid_index(),name]) or name in ["Number Of Failures"]):
+            total.at[total.last_valid_index(),"A spot has already been filled?"] = f"An error has occured. {name} already has a value"
+            import sys
+            print(f"Something tried to save to a file position ({name}) that has already been filled. \n This might be caused by running the model twice.",file=sys.stderr)
+        total.at[total.last_valid_index(),name] = val
+        total.to_csv(os.path.join(path,"Saves",fileName))
+        return total.last_valid_index()
+
+    @staticmethod
+    def create_loop_history_(name:str,path=""):
+        if Config.unit_test_mode:
+            return
+        params = pd.DataFrame([Config.loops],columns=Config.loops2)
+        params["Version"] = Config.parameters["Version"][0]
+
+
+        if os.path.exists(os.path.join(path,"Saves",name)):
+            hist = pd.read_csv(os.path.join(path,"Saves",name),index_col=0)
+            hist = pd.concat([hist,params.iloc[[0]]],axis=0,ignore_index=True)
+        else:
+            hist = params.iloc[[0]]
+        
+        #hist = hist.transpose()
+        hist.to_csv(os.path.join(path,"Saves",name))
+
+    @staticmethod
+    def addMeasurement_(name:str,val,path="",fileName="Scoresall.csv"):
+        """
+        Adds a measurement to the LATEST line in the Scoresall.csv file. This may cause problems if you are running two versions at once.
+        we reccomend only running one version at once. 
+
+        parameters:
+            name - measurement name
+            val - measurement value
+
+        returns:
+            Last valid index in the CSV
+        """
+        if Config.unit_test_mode:
+            return
+        total = pd.read_csv(os.path.join(path,"Saves",fileName),index_col=0)
+        #print(f"last valid index = {total.last_valid_index()} item name= {name}, item value={val}")
+        if name in total and not (pd.isnull(total.at[total.last_valid_index(),name]) or name in ["Number Of Failures"]):
+            total.at[total.last_valid_index(),"A spot has already been filled?"] = f"An error has occured. {name}-already has a value"
+            import sys
+            print(f"Something tried to save to a file position ({name})-that has already been filled. \n This might be caused by running the model twice.",file=sys.stderr)
+        total.at[total.last_valid_index(),name] = val
+        total.to_csv(os.path.join(path,"Saves",fileName))
+        return total.last_valid_index()
+
+    def tensorboard_start(self):
+        from torch.utils.tensorboard import SummaryWriter
+        self.writer = SummaryWriter()
+        self.writer.add_hparams({x:str(Config.parameters[x][0]) for x in Config.parameters.keys() if x not in ["optimizer"]},{})
+        self.writer.add_hparams({x:str(Config.parameters[x]) for x in Config.parameters.keys() if x in ["optimizer"]},{})
+        
+    def tensorboard_True(self):
+        if self.writer is None:
+            return False
+        return True
+
+    def start(self):
+        if not self.writer is None:
+            self.writer.close()
+            self.writer = None
+        self.tensorboard_start()
+        self.create_params_All()

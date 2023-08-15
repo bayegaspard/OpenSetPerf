@@ -91,18 +91,34 @@ def testrunFromSave():
     """
     Tests if saves work and if they result in the same answer if given the same seed.
     """
-    global vals
-    vals = {}
-    def addtoLoopNames(itemDescription,item):
-        global vals
-        assert isinstance(itemDescription,str)
-        vals[itemDescription] = item
-    def checkifinloop(itemDescription,item):
-        global vals
-        assert item==(vals[itemDescription]) or (item is np.nan and vals[itemDescription] is np.nan)
+    class historyCheck(FileHandling.Score_saver):
+        def __init__(self):
+            self.writer = None
+            self.level = 0
+            self.vals = {}
+        
+        def __call__(self,itemDescription,item, fileName=""):
+            if fileName == "BatchSaves.csv":
+                #Obviously the batches are going to be different.
+                return
+            if self.level == 0:
+                self.addtoLoopNames(itemDescription,item)
+            else:
+                self.checkifinloop(itemDescription,item)
+        def addtoLoopNames(self,itemDescription,item):
+            assert isinstance(itemDescription,str)
+            self.vals[itemDescription] = item
+        def checkifinloop(self,itemDescription,item):
+            assert (item==(self.vals[itemDescription])) or (item is np.nan and self.vals[itemDescription] is np.nan)
+    
     main.Config.unit_test_mode = True
+    main.Config.parameters["num_workers"][0] = 0
+    main.Config.parameters["MaxPerClass"][0] = 10
+    main.Config.parameters["LOOP"][0] = 0
     main.Config.parameters["num_epochs"][0] = 0
+    measurement = historyCheck()
     main.torch.manual_seed(1)
-    main.run_model(addtoLoopNames,graphDefault=False)
+    main.run_model(measurement,graphDefault=False)
+    measurement.level = 1
     main.torch.manual_seed(1)
-    main.run_model(checkifinloop,graphDefault=False)
+    main.run_model(measurement,graphDefault=False)

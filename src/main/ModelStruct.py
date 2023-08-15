@@ -47,7 +47,7 @@ class AttackTrainingClassification(nn.Module):
 
         #There are 15 classes
         numClasses = Config.parameters["CLASSES"][0]
-        if Config.parameters['Datagrouping'][0] == "DendrogramChunk":
+        if Config.parameters['Dataloader_Variation'][0] == "Old_Cluster":
             numClasses = numClasses*32
         
         #These are for DOC, it has a special model structure. Because of that we allow it to override what we have.
@@ -107,16 +107,23 @@ class AttackTrainingClassification(nn.Module):
         self.mode = None
         self.keep_batch_saves = False
 
+
+        if False:
+            #I am wondering if passing the direct feature vectors to the last layer will help identify specific points, 
+            # such as port id numbers.
+            #The thought is that the port id numbers get distorted over the course of the model and need to be re-added later.
+            self.fc2 = nn.Linear(Config.parameters["Nodes"][0]+numberOfFeatures, numClasses,device=device)
+            self.COOL = nn.Linear(Config.parameters["Nodes"][0]+numberOfFeatures, numClasses*self.end.DOO,device=device)
         
     # Specify how the data passes in the neural network
-    def forward(self, x: torch.Tensor):
+    def forward(self, x_before_model: torch.Tensor):
         """Runs the model through all the standard layers
         
         also uses the Compettitive Overcomplete Output Layer alternative layer if the setting is for COOL.
         """
         # x = to_device(x, device)
-        x = x.float()
-        x = x.unsqueeze(1)
+        x_before_model = x_before_model.float()
+        x = x_before_model.unsqueeze(1)
         
         if self.mode == None:
             self.mode = self.end.type
@@ -143,6 +150,7 @@ class AttackTrainingClassification(nn.Module):
             self.batch_saves_fucnt("Average of layer Fully_Connected_1 Total",x.mean().item())
         x = self.addedLayers(x)
         x = self.dropout(x)
+        # x = torch.concat([x,x_before_model],dim=-1)
         if self.end.type != "COOL":
             x = self.fc2(x)
         else:
@@ -151,7 +159,7 @@ class AttackTrainingClassification(nn.Module):
         return x
         
 
-    def fit(self, epochs, lr, train_loader, test_loader,val_loader, opt_func, measurement=FileHandling.addMeasurement, epoch_record_rate = 5):
+    def fit(self, epochs, lr, train_loader, test_loader,val_loader, opt_func, measurement=None, epoch_record_rate = 5):
         """
         Trains the model on the train_loader and evaluates it off of the val_loader. Also it stores all of the results in model.store.
         It also generates a new line of ScoresAll.csv that stores all of the data for this model. (note: if you are running two threads at once the data will be overriden)
@@ -171,6 +179,8 @@ class AttackTrainingClassification(nn.Module):
                 epoch - the epoch that this data was taken
                 train_loss - the average training loss per batch of this epoch
         """
+        if measurement is None:
+            measurement = FileHandling.Score_saver()
         if Config.parameters["attemptLoad"][0] == 1:
             startingEpoch = self.loadPoint("Saves/models")
             #If it cannot find a model to load because of some error, the epoch number starts at -1 to avoid overwriting a possilby working model
@@ -183,8 +193,6 @@ class AttackTrainingClassification(nn.Module):
         else:
             sch = None
         self.los = helperFunctions.LossPerEpoch("TestingDuringTrainEpochs.csv")
-        if measurement == FileHandling.addMeasurement:
-            FileHandling.create_params_All()
         # torch.cuda.empty_cache()
         if epochs > 0:
             with tqdm(range(epochs)) as tqdmEpoch:
@@ -227,13 +235,16 @@ class AttackTrainingClassification(nn.Module):
                     result['train_loss'] = torch.stack(train_losses).mean().item()
                     if epoch%epoch_record_rate == 0:
                         measurement(f"Epoch{epoch+startingEpoch} loss",result['train_loss'])
+                    #This seems like it would be slow, TODO: Write this better.
+                    if hasattr(measurement,"writer") and measurement.writer is not None:
+                        measurement.writer.add_scalar("Epoch Loss",result['train_loss'],global_step=epoch+startingEpoch)
                     result["epoch"] = epoch+startingEpoch
                     tqdmEpoch.set_postfix({"Epoch":epoch+startingEpoch, "train_loss": result['train_loss'], "val_loss": result['val_loss'], "val_acc": result['val_acc']})
                     # self.epoch_end(epoch+startingEpoch, result)
                     #print("result", result)
 
                     history.append(result)
-                    self.los.collect()
+                    self.los.collect(measurement)
         else:
             # Validation phase
             epoch = self.loadPoint("Saves/models")
@@ -481,7 +492,9 @@ class AttackTrainingClassification(nn.Module):
         
         print(f"Loaded  model from {pathFound}")
         for x in loaded["parameter_keys"]:
-            if loaded["parameters"][x][0] != Config.parameters[x][0]:
+
+            # assert x in Config.parameters.keys() #Make sure that the model loaded actually has all of the needed values
+            if x in Config.parameters.keys() and loaded["parameters"][x][0] != Config.parameters[x][0]:
                 if not x in ["model","CLASSES","Degree of Overcompleteness","Number of Layers","Nodes"]:
                     print(f"Warning: {x} has been changed from when model was created")
                 else:
@@ -513,12 +526,14 @@ class AttackTrainingClassification(nn.Module):
         return path + f"/Epoch{epoch:03d}{Config.parameters['OOD Type'][0]}"
     
     #This loops through all the thresholds without resetting the model.
-    def thresholdTest(net,val_loader,measurement=FileHandling.addMeasurement):
+    def thresholdTest(net,val_loader,measurement=None):
         """
         This tests the results from val_loader at various thresholds and saves it to scoresAll.csv
 
         No longer used in favor of the ROC score.
         """
+        if measurement is None:
+            measurement = FileHandling.Score_saver()
         net.end.type = Config.parameters["OOD Type"][0]
         net.loadPoint("Saves/models")
         thresh = Config.thresholds
@@ -553,7 +568,14 @@ class AttackTrainingClassification(nn.Module):
         """
         self.store = GPU.to_device(torch.tensor([]), device), GPU.to_device(torch.tensor([]), device), GPU.to_device(torch.tensor([]), device)
     
-    def batchSaveMode(self,function=FileHandling.addMeasurement,start_function=FileHandling.create_params_All):
+    def batchSaveMode(self,function=None,start_function=None):
+        """
+        This wraps the saving scores so that the values recorded are piped to a specific file.
+        """
+        if function is None:
+            function = FileHandling.Score_saver()
+        if start_function is None:
+            start_function = function.create_params_All
         def funct2():
             start_function(name="BatchSaves.csv")
         self.batch_saves_start = funct2

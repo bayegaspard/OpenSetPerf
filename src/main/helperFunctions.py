@@ -400,7 +400,7 @@ class LossPerEpoch():
         locations = predicted!=target
         self.loss += locations.sum().item()
 
-    def collect(self):
+    def collect(self,measurement):
         """
         Collect() gets the data gathered by the addloss() function and resets the stored loss to zero.
         The data is then stored in the file Saves/Scoresall.csv in the most recent line under "Number Of Failures"
@@ -418,7 +418,7 @@ class LossPerEpoch():
 
         #hist = pd.concat([hist,param],axis=1)
         #hist.to_csv(os.path.join("Saves",self.name))
-        FileHandling.addMeasurement("Number Of Failures",self.loss)
+        measurement("Number Of Failures",self.loss)
         self.loss = 0
 
 def getFscore(dat):

@@ -1,6 +1,6 @@
 import pandas as pd
 import torch
-from torch.utils.data import Dataset, IterableDataset
+from torch.utils.data import Dataset, IterableDataset,TensorDataset, DataLoader
 import numpy as np
 import os
 import time
@@ -8,7 +8,7 @@ import Config
 from sklearn.cluster import AgglomerativeClustering
 from itertools import filterfalse
 import tqdm
-
+import copy
 
 #List of conversions:
 if Config.parameters["Dataset"][0] == "Payload_data_CICIDS2017":
@@ -59,6 +59,24 @@ def to_device(data, device):
     if isinstance(data, (list,tuple)):
         return [to_device(x, device) for x in data]
     return data.to(device, non_blocking=True)
+
+
+
+#Try to store all of the data in memory instead?
+def recreateDL(dl:torch.utils.data.DataLoader,shuffle=True):
+    xList= []
+    yList= []
+    for xs,ys in tqdm.tqdm(dl,desc="Loading Dataloader into memory"):
+        #https://github.com/pytorch/pytorch/issues/11201#issuecomment-486232056
+        xList.append(copy.deepcopy(xs))
+        del(xs)
+        yList.append(copy.deepcopy(ys))
+        del(ys)
+    xList = torch.cat(xList)
+    yList = torch.cat(yList)
+    combinedList = TensorDataset(xList,yList)
+    return DataLoader(combinedList, Config.parameters["batch_size"][0], shuffle=shuffle, num_workers=Config.parameters["num_workers"][0],pin_memory=False)
+
 
 device = get_default_device()
 
@@ -784,32 +802,270 @@ class DatasetWithFlows(IterableDataset):
         return False
 
         
-from torch.utils.data import TensorDataset, DataLoader
-import copy
-import tqdm
-#Try to store all of the data in memory instead?
-def recreateDL(dl:torch.utils.data.DataLoader,shuffle=True):
-    xList= []
-    yList= []
-    for xs,ys in tqdm.tqdm(dl,desc="Loading Dataloader into memory"):
-        #https://github.com/pytorch/pytorch/issues/11201#issuecomment-486232056
-        xList.append(copy.deepcopy(xs))
-        del(xs)
-        yList.append(copy.deepcopy(ys))
-        del(ys)
-    xList = torch.cat(xList)
-    yList = torch.cat(yList)
-    combinedList = TensorDataset(xList,yList)
-    return DataLoader(combinedList, Config.parameters["batch_size"][0], shuffle=shuffle, num_workers=Config.parameters["num_workers"][0],pin_memory=False)
+
+
+
+class ClassDivDataset_flows(Dataset):
+    def __init__(self, path:str, use:list=None, unknownData=False):
+        """
+        initializes the dataloader.
+        
+        parameters: 
+            path is the string path that is the main datafile
+            use is the list of integers corrispoding with the class dictionary above that you want to load.
+            Unknown Data is if the dataset should only give unknown labels.
+        
+        If you want to make a dataloader that only reads benign data:
+          train = Dataload.Dataset("Payload_data_CICIDS2017",use=[0])
+        "Payload_data_CICIDS2017" is the main name for where the chunked data folder is
+        use = [0] means that we are only using CLASSLIST[0] which is benign
+        """
+        from nids_datasets import DatasetInfo
+        self.unknownData=unknownData
+        self.path = path
+        if "CIC" in path:
+            length_name = "CIC-IDS2017"
+        elif "UNSW" in path:
+            length_name = "UNSW-NB15"
+        
+        
+        self.listOfCounts = DatasetInfo(length_name).sum()
+        self.listOfCounts.drop(columns="total",inplace=True)
+        self.length = None
+        self.maxclass = Config.parameters["MaxPerClass"][0]
+        if "MaxSamples" in Config.parameters:
+            self.totalSamples = Config.parameters["MaxSamples"][0]
+        
+        
+        self.use_numerical = use.copy()
+        #This is setting what classes are considered to be knowns.
+        if use is not None:
+            self.use_mask = [False for i in range(len(CLASSLIST))] 
+            self.usedDict = {}
+            use.sort()
+            for case in use:
+                self.use_mask[case] = True
+                #OK this requires you to have the use list be sorted, but otherwise it works.
+                self.usedDict[len(self.usedDict)] = CLASSLIST[case]
+        else:
+            self.use_mask = [True for i in range(len(CLASSLIST))] 
+            self.usedDict = CLASSLIST
+        
+        #this will check if the file is chunked and chunk it if it is not
+        self.checkIfSplit(path)
+
+    def __len__(self) -> int:
+        """
+        Finds and saves the length of the dataloader.
+
+        returns an intger of the length of the data.
+        
+        """
+        if self.length is None:
+            if "MaxSamples" in Config.parameters:
+                #MAX SAMPLES DEFINITION:
+                #Max Samples limits the total number of samples to self.totalSamples
+                #It then distributes those samples to match with the percentages given in percentages.csv as best as possible.
+                maxperclass = pd.read_csv("datasets/percentages.csv", index_col=None)
+                maxperclass = maxperclass.iloc[Config.parameters["loopLevel"][0],:len(self.listOfCounts)]
+                maxperclass = ((torch.tensor(maxperclass)/100)*self.totalSamples).ceil()
+                for x in range(len(self.listOfCounts)):
+                    if self.listOfCounts.iloc[x,0] > maxperclass[x].item():
+                        self.listOfCounts.iloc[x,0] = maxperclass[x].item()
+                #This removes all of the unused classes
+                self.listOfCounts = self.listOfCounts.loc[self.use_mask]
+                print(f"Items per class: \n{self.listOfCounts}")
+            else:
+                #add max per class
+                if isinstance(self.maxclass,int):
+                    #Huh, this only runs if Config MaxPerClass is an integer. 
+                    # But it takes x samples of each class where x is MaxPerClass
+                    self.listOfCounts.mask(self.listOfCounts>self.maxclass,self.maxclass,inplace=True)
+                elif self.maxclass == "File":
+                    #Not quite sure how this works, 
+                    # I think it is assuming there are 100 samples and just taking the number of samples listed in percentages.csv
+                    self.maxclass = pd.read_csv("datasets/percentages.csv", index_col=0)
+                    self.listOfCounts.mask(self.listOfCounts>self.maxclass,self.maxclass,inplace=True)
+                #This removes all of the unused classes
+                self.listOfCounts.loc[self.use_mask] *= 0
+            self.length = self.listOfCounts.sum().item()
+        return self.length
+
+
+    def __getitem__(self, index) -> tuple([torch.Tensor,torch.Tensor]):
+        """
+        Gets the item at integer index. Note: you should not be calling this directly. Torch dataloaders will do that for you.
+
+        parameters:
+            index - the index of the item to retrieve.
+        
+        returns:
+            tuple containing two tensors:
+                first tensor - data, the data associated with a label
+                second tensor is two dimentional:
+                    first column - modified label, label with all unknown classes replaced with 15 for unknown.
+                    second column - true label, the actual label of the class in integer form.
+        
+        """
+        #For debug
+        if index==self.length:
+            print(index)
+        
+        class_possibility = 0
+        while index>=self.listOfCounts[CLASSLIST[class_possibility]]:
+            index -= self.listOfCounts[CLASSLIST[class_possibility]]
+        clas = class_possibility
+
+        t_start = time.time()
+        chunk = pd.read_csv(self.path+f"/{clas}.csv", index_col=False,chunksize=1,skiprows=index).get_chunk()
+        t_total = time.time()-t_start
+        if t_total>1:
+            print(f"load took {t_total:.2f} seconds")
+
+        data, labels = self.seriesprocess(chunk.iloc[0])  
+        
+        #print(f"index: {index} does not exist in chunk: {chunkNumber} of type: {chunktype} ")
+
+        item = data,labels
+
+        return item
+
+    def seriesprocess(self,x:pd.Series) -> tuple([torch.Tensor,torch.Tensor]):
+        """
+        This separates the data from the labels with series
+        
+        parameters:
+            x - series to turn into tensors.
+        
+        returns:
+            tuple containing:
+                data - torch tensor of data values for a label
+                label - the true class of the item in integer form.
+        """
+        true_label = x["attack_label"]
+        index = x["index"]
+        flow_id = x["flow_id"]
+        data = x.copy()
+        data.pop("attack_label")
+        data.pop("flow_id")
+        data = torch.tensor([int(val[1]) if val[1] is not None else 0 for val in data.items()])
+
+        true_label = torch.tensor(int(true_label),dtype=torch.long)    #The int is because the loss function is expecting ints
+        index = torch.tensor(int(index),dtype=torch.long)
+        flow_id = torch.tensor(int(flow_id),dtype=torch.long)
+        true_label.unsqueeze_(0)              #This is to allow it to be two dimentional
+        index.unsqueeze_(0)
+        flow_id.unsqueeze_(0)
+        if self.unknownData:
+            obsficated_label = torch.tensor(Config.parameters["CLASSES"][0],dtype=torch.long).unsqueeze_(0)    #unknowns are marked as unknown
+        else:
+            obsficated_label = groupDoS(true_label.clone())
+        true_label = torch.cat([obsficated_label,true_label,flow_id,index], dim=0)
+
+
+        return (data,true_label)
+    
+    def checkIfSplit(self, path=None):
+        """
+        This checks if the data is in the correct format, if it is not in the correct format it will generate the correct format.
+        The correct format is clustered by type into chunks with a csv conainging the counts of all of the classes.
+
+        Parameters:
+            path - string containing the path to look for the dataset.
+        
+        """
+        if path is None:
+            path = self.path
+        if False in [os.path.exists(f"datasets/{Config.parameters['Dataset'][0]}_with_flows/{CLASSLIST[clas]}.csv") for clas in self.use_numerical]:
+            run_demo(self.split_flows_dataset,18)
+            self.join_split_flows_dataset()
+
+    @staticmethod
+    def split_flows_dataset(file=None, worldsize=18):
+        from nids_datasets import Dataset as Data_set_with_flows
+        if Config.parameters["Dataset"][0] == "Payload_data_CICIDS2017":
+            dataset_name = 'CIC-IDS2017'
+        elif Config.parameters["Dataset"][0] == "Payload_data_CICIDS2017":
+            dataset_name = 'UNSW-NB15'
+        else:
+            raise ValueError("Invalid name of dataset")
+        
+        if file is None:
+            files = [x+1 for x in range(18)]
+        else:
+            files = [file+1]
+
+        def fixes(item:dict):
+            item["protocol"] = protocalConvert(item["protocol"])
+            if item["attack_label"] == 'Web Attack – SQL Injection':
+                item["label"] = LISTCLASS['Web Attack – Sql Injection']
+            else:
+                item["label"] = classConvert(item["attack_label"])
+            item.pop("attack_label")
+            for a,x in enumerate(item.pop("destination_ip").split(sep='.')):
+                item[f"destination_ip_pt{a}"] = x
+            for a,x in enumerate(item.pop("source_ip").split(sep='.')):
+                item[f"source_ip_pt{a}"] = x
+            return item
+
+        df = Data_set_with_flows(dataset=dataset_name,subset=["Payload-Bytes"],files="all")
+
+        if not os.path.exists(f"datasets/{Config.parameters['Dataset'][0]}_with_flows"):
+            os.mkdir(f"datasets/{Config.parameters['Dataset'][0]}_with_flows")
+
+        for file in files:
+            if not os.path.exists(f"datasets/{Config.parameters['Dataset'][0]}_with_flows/file{file}"):
+                os.mkdir(f"datasets/{Config.parameters['Dataset'][0]}_with_flows/file{file}")
+            for num,item in enumerate(map(fixes,df.read(files=[file],stream=True))):
+                item["index"]=num
+                #https://stackoverflow.com/a/68206394
+                item_df = pd.Series(item).to_frame().T
+                if os.path.exists(f"datasets/{Config.parameters['Dataset'][0]}_with_flows/file{file}/{CLASSLIST[item['label']]}.csv"):
+                    item_df.to_csv(f"datasets/{Config.parameters['Dataset'][0]}_with_flows/file{file}/{CLASSLIST[item['label']]}.csv",mode='a',header=False,index_label="index")
+                else:
+                    item_df.to_csv(f"datasets/{Config.parameters['Dataset'][0]}_with_flows/file{file}/{CLASSLIST[item['label']]}.csv",index_label="index")
+                if num%10000 == 0:
+                    print(f"{num} rows finished in file {file}")
+        print(f"{file} finished.")
+
+    @staticmethod
+    def join_split_flows_dataset():
+        for file in range(18):
+            for clas in LISTCLASS.keys():
+                if os.path.exists(f"datasets/{Config.parameters['Dataset'][0]}_with_flows/file{file+1}/{clas}.csv"):
+                    csv = pd.read_csv(f"datasets/{Config.parameters['Dataset'][0]}_with_flows/file{file+1}/{clas}.csv")
+                    if os.path.exists(f"datasets/{Config.parameters['Dataset'][0]}_with_flows/{clas}.csv"):
+                        mod = 'a'
+                    else:
+                        mod = None
+                    os.remove(f"datasets/{Config.parameters['Dataset'][0]}_with_flows/file{file+1}/{clas}.csv")
+                    csv.to_csv(f"datasets/{Config.parameters['Dataset'][0]}_with_flows/{clas}.csv",header=False,mode=mod)
+            print(f"File {file} consolidation finished.")
+
+def testing(name, worldsize=18):
+    print(f"running thread {name}")
+
+#from the torch multiprocessing demo:
+import torch.multiprocessing as mp
+def run_demo(demo_fn, world_size):
+    mp.spawn(demo_fn,
+            args=(world_size,),
+            nprocs=world_size,
+            join=True)
+        
+
+DataloaderTypes = {"Standard":ClassDivDataset,"Old_Cluster":ClusterDivDataset,"Cluster":ClusterLimitDataset,"Slow_Flows":DatasetWithFlows,"Flows":ClassDivDataset_flows}
 
 
 
 if __name__ == "__main__":
-    from torch.utils.data import TensorDataset, DataLoader
-    import copy
-    import tqdm
-    t = DataLoader(DatasetWithFlows(use=[0,1,2,3,4,5],unknownData=False,state_worker_loads=True), Config.parameters["batch_size"][0], num_workers=5,pin_memory=True,worker_init_fn=DatasetWithFlows.worker_init_fn)
-    startTime = time.time()
-    for b,a in tqdm.tqdm(enumerate(t)):
-        pass
-    print(f"Finished in:{time.time()-startTime}")
+    # run_demo(testing,18)
+    # print("Testing if this waits for the data to finish.")
+    from nids_datasets import DatasetInfo
+    print(DatasetInfo('CIC-IDS2017').sum())
+    if False:
+        t = DataLoader(DatasetWithFlows(use=[0,1,2,3,4,5],unknownData=False,state_worker_loads=True), Config.parameters["batch_size"][0], num_workers=5,pin_memory=True,worker_init_fn=DatasetWithFlows.worker_init_fn)
+        startTime = time.time()
+        for b,a in tqdm.tqdm(enumerate(t)):
+            pass
+        print(f"Finished in:{time.time()-startTime}")

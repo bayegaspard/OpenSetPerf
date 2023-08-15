@@ -61,14 +61,14 @@ parameters = {
     "attemptLoad":[0, "0: do not use saves\n1:use saves"],
     "testlength":[1/4, "[0,1) percentage of training to test with"],
     "Mix unknowns and validation": [1,"0 or 1, 0 means that the test set is purely unknowns and 1 means that the testset is the validation set plus unknowns (for testing)"],
-    "MaxPerClass": [1000, "Maximum number of samples per class\n if Datagrouping is Dendrogram Limit and this value is a float it interprets it as the maximum percentage of the class instead."],
+    "MaxPerClass": [1000, "Maximum number of samples per class\n if Dataloader_Variation is Cluster and this value is a float it interprets it as the maximum percentage of the class instead."],
     "num_epochs":[150,"Number of times it trains on the whole trainset"],
     "learningRate":[0.001, "a modifier for training"],
     "threshold":[0.5,"When to declare something to be unknown"],
     "model":["Convolutional","Model type",["Fully_Connected","Convolutional"]],
     "OOD Type":["Soft","type of out of distribution detection", ["Soft","Open","Energy","COOL","DOC","iiMod"]],
     "Dropout":[0.1,"percent of nodes that are skipped per run, larger numbers for more complex models [0,1)"],
-    "Datagrouping":["Dendrogramlimit","Datagroup type", ["ClassChunk","Dendrogramlimit"]],
+    "Dataloader_Variation":["Cluster","Defines the style of Dataloader used. This affects sampling from the dataset", ["Standard","Cluster","Slow_Flows","Flows"]],
     "optimizer":opt_func["Adam"],
     "Unknowns":["UNUSED"],
     "Unknowns_clss": [[7,8,9],"Class indexes used as unknowns."],
@@ -100,7 +100,7 @@ for x in parameters.keys():
         parser.add_argument(f"--{x}",type=int,choices=[1,0],default=parameters[x][0],help=parameters[x][1],required=False)
     if x in ["LOOP"]:
         parser.add_argument(f"--{x}",type=int,choices=[0,1,2,3,4],default=parameters[x][0],help=parameters[x][1],required=False)
-    if x in ["model","OOD Type","Datagrouping","Activation","Dataset"]:
+    if x in ["model","OOD Type","Dataloader_Variation","Activation","Dataset"]:
         parser.add_argument(f"--{x}",choices=parameters[x].pop(),default=parameters[x][0],help=parameters[x][1],required=False)
     if x in ["Unknowns_clss"]:
         parser.add_argument(f"--{x}",default=f"{parameters[x][0]}",help=parameters[x][1],required=False)
@@ -129,7 +129,7 @@ UnusedClasses = []
 
 #Dendrogram chunk uses a slightly diffrent output on the model structure.
 # (Also, dendrogram chunk is not working, so don't use it. Possibly related.)
-if parameters["Datagrouping"][0] == "DendrogramChunk":
+if parameters["Dataloader_Variation"][0] == "Old_Cluster":
     parameters["CLASSES"][0] = parameters["CLASSES"][0] *32
 
 
@@ -205,9 +205,9 @@ optim = [opt_func["Adam"]]
 # alg.insert(0,parameters["OOD Type"][0])
 
 #This is an array to eaiser loop through everything.
-loops = [batch,learning_rates,activation,["ClassChunk","Dendrogramlimit"],groups]
+loops = [batch,learning_rates,activation,["Standard","Cluster"],groups]
 # loops = [groups]
-loops2 = ["batch_size","learningRate","Activation","Datagrouping","Unknowns"]
+loops2 = ["batch_size","learningRate","Activation","Dataloader_Variation","Unknowns"]
 # loops2 = ["Unknowns"]
 for i in range(len(loops)):
     if loops2[i] == "Unknowns":
@@ -262,4 +262,4 @@ if parameters["LOOP"][0] == 3:
 f = open("build_number.txt","r")
 parameters["Version"] = [f.read(),"The version number"]
 
-
+save_as_tensorboard = True

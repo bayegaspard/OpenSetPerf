@@ -291,7 +291,7 @@ def graphTabel(df:pd.DataFrame,show=False,save=True,latex=False,extrapath=""):
                 
                 if x in ["Activation"]:
                     fig = px.scatter(part_table)
-                elif x in ["Datagrouping","Unknowns"]:
+                elif x in ["Dataloader_Variation","Unknowns"]:
                     fig = px.line(part_table,markers=True)
                 else:
                     fig = px.line(part_table,markers=True,log_x=True)

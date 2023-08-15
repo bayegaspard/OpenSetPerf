@@ -26,7 +26,7 @@ if __name__ == "__main__":
 opt_func = Config.parameters["optimizer"]
 device = GPU.get_default_device() # selects a device, cpu or gpu
 
-def run_model(measurement=FileHandling.addMeasurement, graphDefault=True):
+def run_model(measurement=None, graphDefault=False):
     """
     run_model() takes up to one parameter and runs the model according to the current model configurations in Config.py
     parameter:
@@ -35,6 +35,8 @@ def run_model(measurement=FileHandling.addMeasurement, graphDefault=True):
     run_model() does not return anything but outputs are saved in Saves/
     
     """
+    if measurement is None:
+        measurement = FileHandling.Score_saver()
     #This refreshes all of the copies of the Config files, the copies can be used to find the current config if something breaks.
     #At this point these copies are mostly redundent.
     FileHandling.refreshFiles(root_path)
@@ -70,6 +72,12 @@ def run_model(measurement=FileHandling.addMeasurement, graphDefault=True):
     #Testset is for checking if the model got things correct with the Validationset+unknowns.
     testset = DataLoader(test, Config.parameters["batch_size"][0], shuffle=True, num_workers=Config.parameters["num_workers"][0], pin_memory=False)
 
+    for batch in validationset:
+        for x in Config.parameters["Unknowns_clss"][0]:
+            assert x not in batch[1][1]
+        for x in batch[1]:
+            assert x[1] in Config.parameters["Knowns_clss"][0]
+
 
     #testing
     if len(trainset)<100000 and Config.parameters["num_epochs"][0]>0:
@@ -96,14 +104,14 @@ def run_model(measurement=FileHandling.addMeasurement, graphDefault=True):
     #This array stores the 'history' data, I am not sure what data that is
     history_final = []
     #This gives important information to the endlayer for some of the algorithms
-    model.end.prepWeibull(train_loader,device,model)
+    model.end.prepWeibull(trainset,device,model)
 
 
     starttime = time.time()
     #Model.fit is what actually runs the model. It outputs some kind of history array?
     history_final += model.fit(Config.parameters["num_epochs"][0], Config.parameters["learningRate"][0], train_loader, test_loader,val_loader, opt_func=opt_func, measurement=measurement)
 
-    model.batchSaveMode()
+    model.batchSaveMode(function=measurement)
 
     #This big block of commented code is to create confusion matricies that we thought could be misleading,
     #   so it is commented out.
@@ -139,7 +147,7 @@ def run_model(measurement=FileHandling.addMeasurement, graphDefault=True):
 
 
 
-    runExistingModel(model,test_loader,"Test",history_final,class_names, graphDefault=graphDefault,print_vals=True)
+    runExistingModel(model,test_loader,"Test",history_final,class_names, graphDefault=graphDefault,print_vals=True,measurement=measurement)
 
     
 
@@ -162,6 +170,8 @@ def run_model(measurement=FileHandling.addMeasurement, graphDefault=True):
             model.end.cutoff = -1
         else:
             roc_data = pd.DataFrame(roc_curve(model.end.rocData[0],model.end.rocData[1]))
+            if hasattr(measurement,"writer") and measurement.writer is not None:
+                measurement.writer.add_pr_curve("PR curve for unknowns vs knowns",model.end.rocData[0].squeeze(),model.end.rocData[1].squeeze())
             #https://stackoverflow.com/a/62329743 (unused)
             
             new_row = ((1-roc_data.iloc[0])*roc_data.iloc[1])
@@ -173,8 +183,8 @@ def run_model(measurement=FileHandling.addMeasurement, graphDefault=True):
                 if model.end.type == "Energy":
                     model.end.cutoff = -model.end.cutoff
 
-        runExistingModel(model,test_loader,"AUTOTHRESHOLD_Test",history_final,class_names)
-        runExistingModel(model,val_loader,"AUTOTHRESHOLD_Val",history_final,class_names)
+        runExistingModel(model,test_loader,"AUTOTHRESHOLD_Test",history_final,class_names,measurement=measurement)
+        runExistingModel(model,val_loader,"AUTOTHRESHOLD_Val",history_final,class_names,measurement=measurement)
 
         measurement("AUTOTHRESHOLD",model.end.cutoff)
         measurement("AUTOTHRESHOLD_Trained_on_length",len(model.end.rocData[0]))
@@ -187,8 +197,8 @@ def run_model(measurement=FileHandling.addMeasurement, graphDefault=True):
             model.end.cutoff = roc_data.iloc[2][roc_data.iloc[3].idxmax()]
             if model.end.type == "Energy":
                 model.end.cutoff = -model.end.cutoff
-            runExistingModel(model,test_loader,"AUTOTHRESHOLD2_Test",history_final,class_names)
-            runExistingModel(model,val_loader,"AUTOTHRESHOLD2_Val",history_final,class_names)
+            runExistingModel(model,test_loader,"AUTOTHRESHOLD2_Test",history_final,class_names,measurement=measurement)
+            runExistingModel(model,val_loader,"AUTOTHRESHOLD2_Val",history_final,class_names,measurement=measurement)
 
 
 
@@ -200,9 +210,9 @@ def run_model(measurement=FileHandling.addMeasurement, graphDefault=True):
         #Use Softmax to test.
         model.end.type = "Soft"
         model.storeReset()
-        runExistingModel(model,val_loader,"Soft_Val",history_final,class_names)
+        runExistingModel(model,val_loader,"Soft_Val",history_final,class_names,measurement=measurement)
         model.storeReset()
-        runExistingModel(model,test_loader,"Soft_Test",history_final,class_names)
+        runExistingModel(model,test_loader,"Soft_Test",history_final,class_names,measurement=measurement)
 
 
     
@@ -210,7 +220,7 @@ def run_model(measurement=FileHandling.addMeasurement, graphDefault=True):
 
     plt.close()
 
-def runExistingModel(model,data,name,history_final,class_names,measurement=FileHandling.addMeasurement,graphDefault = False, print_vals = False):
+def runExistingModel(model,data,name,history_final,class_names,measurement=None,graphDefault = False, print_vals = False):
     """
     Runs an existing and loaded model.
     
@@ -223,6 +233,8 @@ def runExistingModel(model,data,name,history_final,class_names,measurement=FileH
         measurement (optional) - Function that is passed the results from the model in the form of (type_of_data,value_of_data)
         graphDefault - the default for desplaying graphs, normally False
     """
+    if measurement is None:
+        measurement = FileHandling.Score_saver()
     #Resets the stored values that are used to generate the above values.
     model.storeReset()
 
@@ -270,7 +282,7 @@ def runExistingModel(model,data,name,history_final,class_names,measurement=FileH
         print(f"Precision : {precision*100:.2f}%")
         print(f"Recall : {recall*100:.2f}%")
 
-def loopType1(main=run_model,measurement=FileHandling.addMeasurement):
+def loopType1(main=run_model,measurement=None):
     """
     Tests if loop type 1 is true and if it is runs loop type 1.
     Note, this should be run after the model is run for the first time.
@@ -283,14 +295,16 @@ def loopType1(main=run_model,measurement=FileHandling.addMeasurement):
         main - the main function to run, this should be run_model unless being tested.
         measurement - Function that is passed the results from the model in the form of (type_of_data,value_of_data)
     """
+    if measurement is None:
+        measurement = FileHandling.Score_saver()
     #If it is loop type 1 (changing parameters loop):
     if Config.parameters["LOOP"][0] == 1:
-        FileHandling.create_loop_history(name="LoopRan.csv")
+        FileHandling.Score_saver.create_loop_history_(name="LoopRan.csv")
         step = (0,0,0) #keeps track of what is being updated.
         measurement("Currently Modifying","Default")
         measurement("Type of modification","Default")
         measurement("Modification Level","Default")
-        
+        measurement.start()
 
         #Loops until the loop function disables the loop.
         while Config.parameters["LOOP"][0]:
@@ -317,11 +331,11 @@ def loopType1(main=run_model,measurement=FileHandling.addMeasurement):
                 measurement("Type of modification",helperFunctions.getcurrentlychanged_Stage(step))
                 index = measurement("Modification Level",helperFunctions.getcurrentlychanged_Step(step))
                 if not index is None:
-                    FileHandling.addMeasurement(plots.name_override,index,fileName="LoopRan.csv")
+                    FileHandling.Score_saver.addMeasurement_(plots.name_override,index,fileName="LoopRan.csv")
                 else:
-                    FileHandling.addMeasurement(plots.name_override,"Done",fileName="LoopRan.csv")
+                    FileHandling.Score_saver.addMeasurement_(plots.name_override,"Done",fileName="LoopRan.csv")
 
-def loopType2(main=run_model,measurement=FileHandling.addMeasurement):
+def loopType2(main=run_model,measurement=None):
     """
     Tests if loop type 2 is true and if it is runs loop type 2.
     Note, this should be run after the model is run for the first time.
@@ -334,11 +348,14 @@ def loopType2(main=run_model,measurement=FileHandling.addMeasurement):
         main - the main function to run, this should be run_model unless being tested.
         measurement - Function that is passed the results from the model in the form of (type_of_data,value_of_data)
     """
+    if measurement is None:
+        measurement = FileHandling.Score_saver()
     #If it is loop type 2 (iterative unknowns loop):
     #Same structure as above.
     if Config.parameters["LOOP"][0] == 2:
         step = (0) 
         measurement("Currently Modifying",f"Incremental TRAINING with {Config.parameters['Unknowns']} unknowns")
+        measurement.start()
         while Config.parameters["LOOP"][0]:
             step = helperFunctions.incrementLoop(step)
             if step:
@@ -349,7 +366,7 @@ def loopType2(main=run_model,measurement=FileHandling.addMeasurement):
                 main()
                 measurement("Currently Modifying",plots.name_override)
 
-def loopType3(main=run_model,measurement=FileHandling.addMeasurement):
+def loopType3(main=run_model,measurement=None):
     """
     Tests if loop type 3 is true and if it is runs loop type 3.
     Note, this should be run after the model is run for the first time.
@@ -362,7 +379,10 @@ def loopType3(main=run_model,measurement=FileHandling.addMeasurement):
         main - the main function to run, this should be run_model unless being tested.
         measurement - Function that is passed the results from the model in the form of (type_of_data,value_of_data)
     """
+    if measurement is None:
+        measurement = FileHandling.Score_saver()
     if Config.parameters["LOOP"][0] == 3:
+        measurement.start()
         while Config.parameters["LOOP"][0]:
             helperFunctions.resilianceLoop()
             plt.clf()
@@ -371,7 +391,7 @@ def loopType3(main=run_model,measurement=FileHandling.addMeasurement):
             measurement(f"Row of percentages", Config.parameters['loopLevel'])
             main()
 
-def loopType4(main=run_model,measurement=FileHandling.addMeasurement):
+def loopType4(main=run_model,measurement=None):
     """
     Loop type 4 runs thrugh every line of datasets/hyperparamList.csv and changes any valid Config parameters to match.
     This means that you can predefine specific lists of hyperparameters to loop through. 
@@ -380,15 +400,18 @@ def loopType4(main=run_model,measurement=FileHandling.addMeasurement):
         main - the main function to run, this should be run_model unless being tested.
         measurement - Function that is passed the results from the model in the form of (type_of_data,value_of_data)
     """
+    if measurement is None:
+        measurement = FileHandling.Score_saver()
     if Config.parameters["LOOP"][0] == 4:
         row = 0
         while Config.parameters["LOOP"][0]:
             measurement(f"Row of defined hyperparameter csv: ", row)
+            measurement.start()
             row = helperFunctions.definedLoops(row=row)
             plots.name_override = f"Predefined loop row {row}"
             main()
 
-def main():
+def main_start():
     """
     The main function
     This is what is run to start the model.
@@ -410,19 +433,21 @@ def main():
     #Deletes all privious model saves before running
     helperFunctions.deleteSaves()
 
-    #Runs the model
-    run_model()
+    measurement = FileHandling.Score_saver()
 
-    loopType1(run_model,FileHandling.addMeasurement)
-    loopType2(run_model,FileHandling.addMeasurement)
-    loopType3(run_model,FileHandling.addMeasurement)
-    loopType4(run_model,FileHandling.addMeasurement)
+    #Runs the model
+    run_model(measurement=measurement)
+
+    loopType1(run_model,measurement)
+    loopType2(run_model,measurement)
+    loopType3(run_model,measurement)
+    loopType4(run_model,measurement)
     GenerateImages.main()
     
 
 
 if __name__ == '__main__':
-    main()
+    main_start()
 
 
 

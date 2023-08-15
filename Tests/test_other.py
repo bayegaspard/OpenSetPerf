@@ -15,8 +15,13 @@ from torch.utils.data import DataLoader
 import src.main.helperFunctions as helperFunctions
 from src.main.Config import parameters as parameters
 import src.main.GenerateImages as GenerateImages
+import pytest
+
 
 def test_images():
+    if not os.path.exists("Saves/Scoresall.csv"):
+        #https://docs.pytest.org/en/7.1.x/how-to/skipping.html
+        pytest.skip("No score file to test graphing with.")
     GenerateImages.main(save=False)
 
 def test_validation():
