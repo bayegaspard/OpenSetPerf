@@ -75,7 +75,11 @@ def recreateDL(dl:torch.utils.data.DataLoader,shuffle=True):
     xList = torch.cat(xList)
     yList = torch.cat(yList)
     combinedList = TensorDataset(xList,yList)
-    return DataLoader(combinedList, Config.parameters["batch_size"][0], shuffle=shuffle, num_workers=Config.parameters["num_workers"][0],pin_memory=False, persistent_workers=True)
+    if Config.parameters["num_workers"][0] > 0:
+        persistant_workers = True
+    else:
+        persistant_workers = False
+    return DataLoader(combinedList, Config.parameters["batch_size"][0], shuffle=shuffle, num_workers=Config.parameters["num_workers"][0],pin_memory=False, persistent_workers=persistant_workers)
 
 
 device = get_default_device()

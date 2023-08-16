@@ -172,7 +172,10 @@ def run_model(measurement=None, graphDefault=False):
         else:
             roc_data = pd.DataFrame(roc_curve(model.end.rocData[0],model.end.rocData[1]))
             if hasattr(measurement,"writer") and measurement.writer is not None:
-                measurement.writer.add_pr_curve("PR curve for unknowns vs knowns",model.end.rocData[0].squeeze(),model.end.rocData[1].squeeze())
+                if isinstance(model.end.rocData[0],np.ndarray) and isinstance(model.end.rocData[1],np.ndarray):
+                    measurement.writer.add_pr_curve("PR curve for unknowns vs knowns",model.end.rocData[0].squeeze(),model.end.rocData[1].squeeze())
+                else:
+                    measurement.writer.add_pr_curve("PR curve for unknowns vs knowns",model.end.rocData[0],model.end.rocData[1])
             #https://stackoverflow.com/a/62329743 (unused)
             
             new_row = ((1-roc_data.iloc[0])*roc_data.iloc[1])
