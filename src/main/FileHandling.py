@@ -297,7 +297,13 @@ def create_params_Fscore(path, score, threshold = None):
 
 class Score_saver():
 
-    def __init__(self,path=""):
+    def __init__(self,path="Scoresall.csv"):
+        """
+        Score_saver() is a class to consolidate the saving of data to the csv files. 
+        When a Score_saver() object is initialized then it creates a new row onto the file, 
+        the new row contains all of the current Config settingss at the start.
+        It will also attempt to save some of the data as a tensorboard if the Config option is true.
+        """
         self.writer = None
         self.path = path #unused at the moment
         if Config.save_as_tensorboard:
@@ -305,48 +311,74 @@ class Score_saver():
         self.create_params_All()
         
 
-    def __call__(self,name:str,val,path="",fileName="Scoresall.csv"):
+    def __call__(self,name:str,val,path="",fileName=None):
+        """
+        Adds the measurement to the file. The __call__ version allows the Score_saver to be called like this:
+        scoresaver = Score_saver()
+        scoresaver("hello",1)
+        
+        parameters:
+            name - Name of measurement
+            val - value to save under that name
+            filename - overrite the orignal file to save as
+        """
+        if fileName is None:
+            fileName = self.path
         self.addMeasurement(name,val,path,fileName)
 
-    def create_params_All(self,path="",name="Scoresall.csv"):
+    def create_params_All(self,name=None):
         """
-        Generates a new line of the file scoresAll.csv that we use to store the scores from the run.
+        Generates a new line of the file that we use to store the scores from the run.
         The new line contains all of the Config values that we are using.
-        If the file does not exist this creates the file.
+        The csv is generated in Saves/'name'. If the file does not exist this creates the file.
 
-        you can change the path with the path parameter.
+        parameters:
+            name - name of the file to save to.
+                -if name is None then name will be the Score_saver's path (defalut:"Scoresall.csv").
         """
         if Config.unit_test_mode:
             return
+        
+        if name is None:
+            name = self.path
         params = pd.DataFrame(Config.parameters,columns=Config.parameters.keys())
 
 
-        if os.path.exists(os.path.join(path,"Saves",name)):
-            hist = pd.read_csv(os.path.join(path,"Saves",name),index_col=0)
+        if os.path.exists(os.path.join("Saves",name)):
+            hist = pd.read_csv(os.path.join("Saves",name),index_col=0)
             hist = pd.concat([hist,params.iloc[[0]]],axis=0,ignore_index=True)
         else:
             hist = params.iloc[[0]]
         
         #hist = hist.transpose()
-        hist.to_csv(os.path.join(path,"Saves",name))
+        hist.to_csv(os.path.join("Saves",name))
 
-    def create_loop_history(self,name:str,path=""):
+    def create_loop_history(self,name:str):
+        """
+        creates a CSV file like create_params_all() but this score file is for keeping track of what loops were run.
+        It was created so you can cross refrence and figure out where in Scoresall.csv you need to look.
+
+        parameters:
+        name - name of the file to save to.
+            -if name is None then name will be the Score_saver's path (defalut:"Scoresall.csv").
+        
+        """
         if Config.unit_test_mode:
             return
         params = pd.DataFrame([Config.loops],columns=Config.loops2)
         params["Version"] = Config.parameters["Version"][0]
 
 
-        if os.path.exists(os.path.join(path,"Saves",name)):
-            hist = pd.read_csv(os.path.join(path,"Saves",name),index_col=0)
+        if os.path.exists(os.path.join("Saves",name)):
+            hist = pd.read_csv(os.path.join("Saves",name),index_col=0)
             hist = pd.concat([hist,params.iloc[[0]]],axis=0,ignore_index=True)
         else:
             hist = params.iloc[[0]]
         
         #hist = hist.transpose()
-        hist.to_csv(os.path.join(path,"Saves",name))
+        hist.to_csv(os.path.join("Saves",name))
 
-    def addMeasurement(self,name:str,val,path="",fileName="Scoresall.csv",step=0):
+    def addMeasurement(self,name:str,val,path="",fileName=None,step=0):
         """
         Adds a measurement to the LATEST line in the Scoresall.csv file. This may cause problems if you are running two versions at once.
         we reccomend only running one version at once. 
@@ -354,12 +386,16 @@ class Score_saver():
         parameters:
             name - measurement name
             val - measurement value
+            fileName - file to save as, if None uses defalut of 'Scoresall.csv'
+            step - tensorboard step value
 
         returns:
             Last valid index in the CSV
         """
         if Config.unit_test_mode:
             return
+        if fileName is None:
+            fileName = self.path
         if self.writer is not None:
             if not isinstance(val, str):
                 self.writer.add_scalar(name,val,step)
@@ -377,6 +413,9 @@ class Score_saver():
 
     @staticmethod
     def create_loop_history_(name:str,path=""):
+        """
+        A static version of create_loop_history() if needed.
+        """
         if Config.unit_test_mode:
             return
         params = pd.DataFrame([Config.loops],columns=Config.loops2)
@@ -395,15 +434,7 @@ class Score_saver():
     @staticmethod
     def addMeasurement_(name:str,val,path="",fileName="Scoresall.csv"):
         """
-        Adds a measurement to the LATEST line in the Scoresall.csv file. This may cause problems if you are running two versions at once.
-        we reccomend only running one version at once. 
-
-        parameters:
-            name - measurement name
-            val - measurement value
-
-        returns:
-            Last valid index in the CSV
+        A static version of addmasurement()
         """
         if Config.unit_test_mode:
             return
@@ -418,17 +449,24 @@ class Score_saver():
         return total.last_valid_index()
 
     def tensorboard_start(self):
+        """
+        Starts the tensorboard recording anything passing through the Score_saver
+        """
         from torch.utils.tensorboard import SummaryWriter
         self.writer = SummaryWriter()
         self.writer.add_hparams({x:str(Config.parameters[x][0]) for x in Config.parameters.keys() if x not in ["optimizer"]},{})
         self.writer.add_hparams({x:str(Config.parameters[x]) for x in Config.parameters.keys() if x in ["optimizer"]},{})
         
     def tensorboard_True(self):
+        """This is supposed to say if the tensorboard is being written to but it is unused."""
         if self.writer is None:
             return False
         return True
 
     def start(self):
+        """
+        This is an unused function that was suppose to be helping with the initilization method but able ot be recalled when nessisary.
+        """
         if not self.writer is None:
             self.writer.close()
             self.writer = None

@@ -72,14 +72,15 @@ def run_model(measurement=None, graphDefault=False):
     #Testset is for checking if the model got things correct with the Validationset+unknowns.
     testset = DataLoader(test, Config.parameters["batch_size"][0], shuffle=True, num_workers=Config.parameters["num_workers"][0], pin_memory=False)
 
-    for batch in validationset:
-        for x in Config.parameters["Unknowns_clss"][0]:
-            assert x not in batch[1][1]
-        for x in batch[1]:
-            assert x[1] in Config.parameters["Knowns_clss"][0]
+    #                               made this into a unit test
+    # for batch in validationset:
+    #     for x in Config.parameters["Unknowns_clss"][0]:
+    #         assert x not in batch[1][1]
+    #     for x in batch[1]:
+    #         assert x[1] in Config.parameters["Knowns_clss"][0]
 
 
-    #testing
+    #Recreating the datasets so that they are in memory.
     if len(trainset)<100000 and Config.parameters["num_epochs"][0]>0:
         trainset = Dataload.recreateDL(trainset)
     if len(validationset)<100000 and Config.parameters["num_epochs"][0]>0:

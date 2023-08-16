@@ -75,7 +75,7 @@ def recreateDL(dl:torch.utils.data.DataLoader,shuffle=True):
     xList = torch.cat(xList)
     yList = torch.cat(yList)
     combinedList = TensorDataset(xList,yList)
-    return DataLoader(combinedList, Config.parameters["batch_size"][0], shuffle=shuffle, num_workers=Config.parameters["num_workers"][0],pin_memory=False)
+    return DataLoader(combinedList, Config.parameters["batch_size"][0], shuffle=shuffle, num_workers=Config.parameters["num_workers"][0],pin_memory=False, persistent_workers=True)
 
 
 device = get_default_device()
@@ -643,12 +643,13 @@ class ClusterLimitDataset(ClusterDivDataset):
 class DatasetWithFlows(IterableDataset):
     def __init__(self, path="", use:list=None, unknownData=False, state_worker_loads = False):
         """
-        initializes the dataloader. NOTE: DatasetWithFlows does not work with LOOP == 2
+        initializes the dataloader. NOTE: DatasetWithFlows does not work with current code due to train/test split
         
         parameters: 
-            use is the list of integers corrispoding with the class dictionary above that you want to load.
-            Unknown Data is if the dataset should only give unknown labels.
-            path is unused
+            use - the list of integers corrispoding with the class dictionary above that you want to load.
+            Unknown Data - if the dataset should only give unknown labels.
+            path - unused
+            state_worker_loads - debug option that prints data about the different workers ('state' as in 'make a statement')
         
         If you want to make a dataloader that only reads benign data:
           train = Dataload.DatasetWithFlows(use=[0])
@@ -692,6 +693,9 @@ class DatasetWithFlows(IterableDataset):
         #For some reason the files are 1 indexed.
     
     def initializeCounts(self):
+        """
+        Initialize how many of each class the dataloader shoud return. All the rest are skipped.
+        """
         from nids_datasets import DatasetInfo
         self.dfInfo = DatasetInfo(self.dataset_name)
         self.dfInfo.drop(columns="total",inplace=True)
@@ -710,10 +714,21 @@ class DatasetWithFlows(IterableDataset):
         self.length = self.filecounts.sum().sum()
 
     def __len__(self):
+        """
+        Returns the length
+        """
         return int(self.length)
 
     @staticmethod
     def worker_init_fn(id):
+        """
+        worker_init_fn is the function that is called when creating each worker. 
+        This function splits up the iterator data into the different files for each worker as evently as possible.
+        It then recalculates the length that it will need to run for.
+
+        parameters:
+            id - worker id number
+        """
         worker_info = torch.utils.data.get_worker_info()
         self = worker_info.dataset
         if worker_info.id >= len(self.files_to_acces):
@@ -788,9 +803,7 @@ class DatasetWithFlows(IterableDataset):
 
     def check_invalid(self,item:dict) -> bool:
         """
-        Checks if this row should be thrown out.
-        #TODO: Modify to keep count of classes to limit the number of samples.
-
+        Checks if this row should be thrown out based on how many of each class is called for.
 
         """
         if self.filecounts[item["attack_label"]] <=0:
@@ -826,7 +839,7 @@ class ClassDivDataset_flows(Dataset):
         """
         from nids_datasets import DatasetInfo
         self.unknownData=unknownData
-        self.path = path
+        self.path = path+"_with_flows"
         if "CIC" in path:
             length_name = "CIC-IDS2017"
         elif "UNSW" in path:
@@ -843,18 +856,16 @@ class ClassDivDataset_flows(Dataset):
         
         self.use_numerical = use.copy()
         #This is setting what classes are considered to be knowns.
+        self.classlist_with_uppercase = CLASSLIST.copy()
+        # print(self.listOfCounts.keys())
+        self.classlist_with_uppercase[14] = 'Web Attack – SQL Injection'
         if use is not None:
-            self.use_mask = [False for i in range(len(CLASSLIST))] 
-            self.usedDict = {}
-            use.sort()
-            for case in use:
-                self.use_mask[case] = True
-                #OK this requires you to have the use list be sorted, but otherwise it works.
-                self.usedDict[len(self.usedDict)] = CLASSLIST[case]
+            self.use_mask = [case in [self.classlist_with_uppercase[x] for x in use] for case in self.listOfCounts.keys()]
+            self.usedDict = {count:CLASSLIST[case] for count,case in enumerate(use)}
         else:
-            self.use_mask = [True for i in range(len(CLASSLIST))] 
-            self.usedDict = CLASSLIST
-        
+            self.use_mask = [case in [self.classlist_with_uppercase[x] for x in self.classlist_with_uppercase.keys()] for case in self.listOfCounts.keys()]
+            self.usedDict = CLASSLIST.copy()
+
         #this will check if the file is chunked and chunk it if it is not
         self.checkIfSplit(path)
 
@@ -912,16 +923,19 @@ class ClassDivDataset_flows(Dataset):
         
         """
         #For debug
-        if index==self.length:
+        if index>=self.length:
             print(index)
         
+        test = index
         class_possibility = 0
-        while index>=self.listOfCounts[CLASSLIST[class_possibility]]:
-            index -= self.listOfCounts[CLASSLIST[class_possibility]]
+        while index>=self.listOfCounts[self.classlist_with_uppercase[class_possibility]]:
+            index -= self.listOfCounts[self.classlist_with_uppercase[class_possibility]]
+            class_possibility+=1
         clas = class_possibility
 
         t_start = time.time()
-        chunk = pd.read_csv(self.path+f"/{clas}.csv", index_col=False,chunksize=1,skiprows=index).get_chunk()
+        chunk = pd.read_csv(self.path+f"/{CLASSLIST[clas]}.csv", index_col=False,chunksize=1,skiprows=range(1,index),header=0).get_chunk()
+        print(chunk)
         t_total = time.time()-t_start
         if t_total>1:
             print(f"load took {t_total:.2f} seconds")
@@ -951,6 +965,7 @@ class ClassDivDataset_flows(Dataset):
         flow_id = x["flow_id"]
         data = x.copy()
         data.pop("attack_label")
+        data.pop("index")
         data.pop("flow_id")
         data = torch.tensor([int(val[1]) if val[1] is not None else 0 for val in data.items()])
 
@@ -981,11 +996,24 @@ class ClassDivDataset_flows(Dataset):
         if path is None:
             path = self.path
         if False in [os.path.exists(f"datasets/{Config.parameters['Dataset'][0]}_with_flows/{CLASSLIST[clas]}.csv") for clas in self.use_numerical]:
-            run_demo(self.split_flows_dataset,18)
-            self.join_split_flows_dataset()
+            if False in [os.path.exists(f"datasets/{Config.parameters['Dataset'][0]}_with_flows/file{x+1}") for x in range(18)]:
+                files_to_refresh = [x+1 for x in range(18) if not os.path.exists(f"datasets/{Config.parameters['Dataset'][0]}_with_flows/file{x+1}")]
+                run_demo(self.split_flows_dataset,len(files_to_refresh),files_to_refresh)
+            self.join_split_flows_dataset([x for x in LISTCLASS.keys() if not os.path.exists(f"datasets/{Config.parameters['Dataset'][0]}_with_flows/{x}.csv")])
 
     @staticmethod
-    def split_flows_dataset(file=None, worldsize=18):
+    def split_flows_dataset(worker=None, worldsize=18,file=None):
+        """
+        Downloads the dataset into csv files. The saved csv files are saved first by original file number and then by class.
+
+        parameters:
+            worker - worker ID number
+            world size - how many workers exist.
+            file - three possibilities:
+                -None - loads all files after splitting as evenly as possible with the worker count.
+                -integer - loads exactly that file (filenumber +1 because the files are 1 indexed)
+                -list - loads the specific files given split as evenly as possible over the workers.
+        """
         from nids_datasets import Dataset as Data_set_with_flows
         if Config.parameters["Dataset"][0] == "Payload_data_CICIDS2017":
             dataset_name = 'CIC-IDS2017'
@@ -995,9 +1023,13 @@ class ClassDivDataset_flows(Dataset):
             raise ValueError("Invalid name of dataset")
         
         if file is None:
-            files = [x+1 for x in range(18)]
-        else:
+            files = [x+1 for x in range(18) if x%worldsize == worker]
+        elif isinstance(file, int):
             files = [file+1]
+        elif isinstance(file,list):
+            files = [x for x in file if (x-1)%worldsize == worker]
+        else:
+            files = file
 
         def fixes(item:dict):
             item["protocol"] = protocalConvert(item["protocol"])
@@ -1033,27 +1065,37 @@ class ClassDivDataset_flows(Dataset):
         print(f"{file} finished.")
 
     @staticmethod
-    def join_split_flows_dataset():
+    def join_split_flows_dataset(classes,deleteOld=False):
+        """
+        Joins the data created by split_flows_dataset() classwise into single csv files per class.
+
+        parameters:
+            clssses - list of names of classes to be compiled.
+            deleteOld - Deletes the file separated versions of the data as it is being processed.
+        """
         for file in range(18):
-            for clas in LISTCLASS.keys():
+            for clas in classes:
                 if os.path.exists(f"datasets/{Config.parameters['Dataset'][0]}_with_flows/file{file+1}/{clas}.csv"):
                     csv = pd.read_csv(f"datasets/{Config.parameters['Dataset'][0]}_with_flows/file{file+1}/{clas}.csv")
                     if os.path.exists(f"datasets/{Config.parameters['Dataset'][0]}_with_flows/{clas}.csv"):
                         mod = 'a'
+                        header = False
                     else:
-                        mod = None
-                    os.remove(f"datasets/{Config.parameters['Dataset'][0]}_with_flows/file{file+1}/{clas}.csv")
-                    csv.to_csv(f"datasets/{Config.parameters['Dataset'][0]}_with_flows/{clas}.csv",header=False,mode=mod)
+                        mod = 'w'
+                        header = True
+                    if deleteOld:
+                        os.remove(f"datasets/{Config.parameters['Dataset'][0]}_with_flows/file{file+1}/{clas}.csv")
+                    csv.to_csv(f"datasets/{Config.parameters['Dataset'][0]}_with_flows/{clas}.csv",header=header,mode=mod)
+            if deleteOld:
+                os.remove(f"datasets/{Config.parameters['Dataset'][0]}_with_flows/file{file+1}")
             print(f"File {file} consolidation finished.")
 
-def testing(name, worldsize=18):
-    print(f"running thread {name}")
 
-#from the torch multiprocessing demo:
+#modified from the torch multiprocessing demo:
 import torch.multiprocessing as mp
-def run_demo(demo_fn, world_size):
+def run_demo(demo_fn, world_size,other=None):
     mp.spawn(demo_fn,
-            args=(world_size,),
+            args=(world_size,other),
             nprocs=world_size,
             join=True)
         
