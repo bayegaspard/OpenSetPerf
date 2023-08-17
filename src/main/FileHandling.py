@@ -306,6 +306,10 @@ class Score_saver():
         """
         self.writer = None
         self.path = path #unused at the moment
+        self.name_all = ""
+        self.name_hist = ""
+        self.index_all = 0
+        self.index_hist = 0
         if Config.save_as_tensorboard:
             self.tensorboard_start()
         self.create_params_All()
@@ -350,8 +354,11 @@ class Score_saver():
         else:
             hist = params.iloc[[0]]
         
+        self.index_all = hist.last_valid_index()
+        self.name_all = name
         #hist = hist.transpose()
         hist.to_csv(os.path.join("Saves",name))
+        
 
     def create_loop_history(self,name:str):
         """
@@ -375,6 +382,8 @@ class Score_saver():
         else:
             hist = params.iloc[[0]]
         
+        self.index_hist = hist.last_valid_index()
+        self.name_hist = name
         #hist = hist.transpose()
         hist.to_csv(os.path.join("Saves",name))
 
@@ -401,15 +410,22 @@ class Score_saver():
                 self.writer.add_scalar(name,val,step)
             else:
                 self.writer.add_text(name,val,step)
+
         total = pd.read_csv(os.path.join(path,"Saves",fileName),index_col=0)
-        #print(f"last valid index = {total.last_valid_index()} item name= {name}, item value={val}")
-        if name in total and not (pd.isnull(total.at[total.last_valid_index(),name]) or name in ["Number Of Failures"]):
-            total.at[total.last_valid_index(),"A spot has already been filled?"] = f"An error has occured. {name} already has a value"
+        if fileName == self.name_all:
+            index = self.index_all
+        elif fileName == self.name_hist:
+            index = self.index_hist
+        else:
+            index = total.last_valid_index()
+        #print(f"last valid index = {total.last_valid_index()},current index = {index} item name= {name}, item value={val}")
+        if name in total and not (pd.isnull(total.at[index,name]) or name in ["Number Of Failures"]):
+            total.at[index,"A spot has already been filled?"] = f"An error has occured. {name} already has a value"
             import sys
             print(f"Something tried to save to a file position ({name}) that has already been filled. \n This might be caused by running the model twice.",file=sys.stderr)
-        total.at[total.last_valid_index(),name] = val
+        total.at[index,name] = val
         total.to_csv(os.path.join(path,"Saves",fileName))
-        return total.last_valid_index()
+        return index
 
     @staticmethod
     def create_loop_history_(name:str,path=""):

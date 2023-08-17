@@ -32,7 +32,7 @@ class EndLayers():
 
 
 
-    def endlayer(self, output_true:torch.Tensor, y:torch.Tensor, type=None):
+    def endlayer(self, output_true:torch.Tensor, y:torch.Tensor, type=None) -> torch.Tensor:
         startTime = time.time()
         if 1==2:
             print(f"Argmax")

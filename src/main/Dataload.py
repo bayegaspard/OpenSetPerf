@@ -855,7 +855,7 @@ class ClassDivDataset_flows(Dataset):
         self.data_length = 1514
         
         self.listOfCounts = DatasetInfo(length_name).sum()
-        self.listOfCounts.drop(columns="total",inplace=True)
+        self.listOfCounts.drop(labels="total",inplace=True)
         self.length = None
         self.maxclass = Config.parameters["MaxPerClass"][0]
         if "MaxSamples" in Config.parameters:
@@ -943,12 +943,12 @@ class ClassDivDataset_flows(Dataset):
 
         t_start = time.time()
         chunk = pd.read_csv(self.path+f"/{CLASSLIST[clas]}.csv", index_col=False,chunksize=1,skiprows=range(1,index),header=0).get_chunk()
-        print(chunk)
+        # print(chunk)
         t_total = time.time()-t_start
         if t_total>1:
             print(f"load took {t_total:.2f} seconds")
 
-        data, labels = self.seriesprocess(chunk.iloc[0])  
+        data, labels = self.seriesprocess(chunk.iloc[0].copy())  
         
         #print(f"index: {index} does not exist in chunk: {chunkNumber} of type: {chunktype} ")
 
@@ -968,14 +968,17 @@ class ClassDivDataset_flows(Dataset):
                 data - torch tensor of data values for a label
                 label - the true class of the item in integer form.
         """
-        true_label = x["attack_label"]
+        x.fillna(0,inplace=True)
+        true_label = x["label"]
+        if "index.1" in x.keys():
+            x["index"] = x.pop("index.1")
         index = x["index"]
         flow_id = x["flow_id"]
         data = x.copy()
-        data.pop("attack_label")
+        data.pop("label")
         data.pop("index")
         data.pop("flow_id")
-        data = torch.tensor([int(val[1]) if val[1] is not None else 0 for val in data.items()])
+        data = torch.tensor([int(val[1]) for val in data.items()])
 
         true_label = torch.tensor(int(true_label),dtype=torch.long)    #The int is because the loss function is expecting ints
         index = torch.tensor(int(index),dtype=torch.long)

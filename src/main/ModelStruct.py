@@ -173,7 +173,7 @@ class AttackTrainingClassification(nn.Module):
         x = self.sequencePackage(x)
         return x
         
-    def fit(self, epochs, lr, train_loader, test_loader,val_loader, opt_func, measurement=None, epoch_record_rate = 5,forward=None):
+    def fit(self, epochs, lr, train_loader, test_loader,val_loader, opt_func, measurement=None, epoch_record_rate = 5):
         """
         Trains the model on the train_loader and evaluates it off of the val_loader. Also it stores all of the results in model.store.
         It also generates a new line of ScoresAll.csv that stores all of the data for this model. (note: if you are running two threads at once the data will be overriden)
@@ -247,8 +247,8 @@ class AttackTrainingClassification(nn.Module):
                         self.savePoint(f"Saves/models", epoch+startingEpoch)
 
                     result['train_loss'] = torch.stack(train_losses).mean().item()
-                    if epoch%epoch_record_rate == 0:
-                        measurement(f"Epoch{epoch+startingEpoch} loss",result['train_loss'])
+                    # if epoch%epoch_record_rate == 0:
+                    #     measurement(f"Epoch{epoch+startingEpoch} loss",result['train_loss'])
                     #This seems like it would be slow, TODO: Write this better.
                     if hasattr(measurement,"writer") and measurement.writer is not None:
                         for x in result.keys():
