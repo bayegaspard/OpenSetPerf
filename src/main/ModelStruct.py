@@ -32,7 +32,7 @@ class ModdedParallel(nn.DataParallel):
 
 class AttackTrainingClassification(nn.Module):
     """This is the Default Model for the project"""
-    def __init__(self,numberOfFeatures=1504):
+    def __init__(self,mode="Soft",numberOfFeatures=1504):
         super().__init__()
 
         self.maxpooling = [4,2]
@@ -52,11 +52,16 @@ class AttackTrainingClassification(nn.Module):
         
         #These are for DOC, it has a special model structure. Because of that we allow it to override what we have.
         if Config.parameters['OOD Type'][0] == "DOC":
-            self.DOC_kernels = nn.ModuleList()
-            self.fullyConnectedStart=0
-            for x in Config.DOC_kernels:
-                self.DOC_kernels.append(nn.Conv1d(1, 32, x,device=device))
-                self.fullyConnectedStart-= x-1
+            class DOC_Module(nn.Module):
+                def __init__(me):
+                    super().__init__()
+                    me.DOC_kernels = nn.ModuleList()
+                    for x in Config.DOC_kernels:
+                        me.DOC_kernels.append(nn.Conv1d(1, 32, x))
+                def forward(self,input):
+                    return torch.concat([alg(input).max(dim=1)[0] for alg in self.DOC_kernels],dim=-1)
+            self.fullyConnectedStart = 0
+            self.fullyConnectedStart -= np.array([x-1 for x in Config.DOC_kernels]).sum()
             self.fullyConnectedStart+= numberOfFeatures*len(Config.DOC_kernels)
 
         #This (poorly made) menu switches between the diffrent options for activation functions.
@@ -82,9 +87,28 @@ class AttackTrainingClassification(nn.Module):
             self.activation = nn.Softmax(dim=1)
 
 
+        if Config.parameters["Activation"][0] == "PRElu":
+            self.activation = self.activation(device=device)
+        elif Config.parameters["Activation"][0] == "Softmax":
+            self.activation = self.activation(dim=-1)
+        else:
+            self.activation = self.activation
+
         #We use two normal fully connected layers after the CNN specific layers (or substiute layers)
         self.fc1 = nn.Linear(self.fullyConnectedStart, Config.parameters["Nodes"][0],device=device)
         self.fc2 = nn.Linear(Config.parameters["Nodes"][0], numClasses,device=device)
+
+        class RecordBatchVals_afterFC1(nn.Module):
+            def __init__(self,activation):
+                super().__init__()
+                self.activation = activation
+            
+            def forward(me,x):
+                self.batch_saves_fucnt("Difference after Fully_Connected_1",x.max().item()-x.min().item())
+                x = self.activation(x)
+                self.batch_saves_fucnt("Average of layer Fully_Connected_1 Node 0",x.permute(1,0).mean(dim=1)[0].item())
+                self.batch_saves_fucnt("Average of layer Fully_Connected_1 Total",x.mean().item())
+                return x
 
 
         self.addedLayers = torch.nn.Sequential()
@@ -104,17 +128,38 @@ class AttackTrainingClassification(nn.Module):
         self.COOL = nn.Linear(Config.parameters["Nodes"][0], numClasses*self.end.DOO,device=device)
 
         self.los = False
-        self.mode = None
+        self.mode = mode
+        self.end.type = mode
         self.keep_batch_saves = False
 
 
+
+        self.sequencePackage = nn.Sequential()
+        if self.mode=="DOC":
+            self.sequencePackage.append(DOC_Module())
+        
+        self.sequencePackage.append(self.flatten)
+        self.sequencePackage.append(self.fc1)
+        if self.keep_batch_saves:
+            self.sequencePackage.append(RecordBatchVals_afterFC1(self.activation))
+        else:
+            self.sequencePackage.append(self.activation)
+        self.sequencePackage.append(self.addedLayers)
+        self.sequencePackage.append(self.dropout)
+        if self.mode!="COOL":
+            self.sequencePackage.append(self.fc2)
+        else:
+            self.sequencePackage.append(self.COOL)
+        
+        self.sequencePackage = nn.DataParallel(self.sequencePackage)
         if False:
             #I am wondering if passing the direct feature vectors to the last layer will help identify specific points, 
             # such as port id numbers.
             #The thought is that the port id numbers get distorted over the course of the model and need to be re-added later.
             self.fc2 = nn.Linear(Config.parameters["Nodes"][0]+numberOfFeatures, numClasses,device=device)
             self.COOL = nn.Linear(Config.parameters["Nodes"][0]+numberOfFeatures, numClasses*self.end.DOO,device=device)
-        
+
+
     # Specify how the data passes in the neural network
     def forward(self, x_before_model: torch.Tensor):
         """Runs the model through all the standard layers
@@ -125,41 +170,10 @@ class AttackTrainingClassification(nn.Module):
         x_before_model = x_before_model.float()
         x = x_before_model.unsqueeze(1)
         
-        if self.mode == None:
-            self.mode = self.end.type
-        if self.mode != "DOC":
-            x = self.layer1(x)
-            x = self.layer2(x)
-        else:
-            #Gotten the device location from https://discuss.pytorch.org/t/dataparallel-arguments-are-located-on-different-gpus/42054/5
-            # print(f"model:{self.fc1.weight.device}")
-            # print(f"layer:{self.DOC_kernels[0].weight.device}")
-            # print(f"data:{x.device}")
-            xs = [alg(x) for alg in self.DOC_kernels]
-            xs = [a.max(dim=1)[0] for a in xs]
-            x = torch.concat(xs,dim=-1)
-        
-
-        x = self.flatten(x)
-        x = self.fc1(x)
-        if self.keep_batch_saves:
-            self.batch_saves_fucnt("Difference after Fully_Connected_1",x.max().item()-x.min().item())
-        x = self.activation(x)
-        if self.keep_batch_saves:
-            self.batch_saves_fucnt("Average of layer Fully_Connected_1 Node 0",x.permute(1,0).mean(dim=1)[0].item())
-            self.batch_saves_fucnt("Average of layer Fully_Connected_1 Total",x.mean().item())
-        x = self.addedLayers(x)
-        x = self.dropout(x)
-        # x = torch.concat([x,x_before_model],dim=-1)
-        if self.end.type != "COOL":
-            x = self.fc2(x)
-        else:
-            x = self.COOL(x)
-        
+        x = self.sequencePackage(x)
         return x
         
-
-    def fit(self, epochs, lr, train_loader, test_loader,val_loader, opt_func, measurement=None, epoch_record_rate = 5):
+    def fit(self, epochs, lr, train_loader, test_loader,val_loader, opt_func, measurement=None, epoch_record_rate = 5,forward=None):
         """
         Trains the model on the train_loader and evaluates it off of the val_loader. Also it stores all of the results in model.store.
         It also generates a new line of ScoresAll.csv that stores all of the data for this model. (note: if you are running two threads at once the data will be overriden)
@@ -536,6 +550,7 @@ class AttackTrainingClassification(nn.Module):
         if measurement is None:
             measurement = FileHandling.Score_saver()
         net.end.type = Config.parameters["OOD Type"][0]
+        net.mode = net.end.type
         net.loadPoint("Saves/models")
         thresh = Config.thresholds
         for y in range(len(thresh)):
@@ -593,8 +608,8 @@ class AttackTrainingClassification(nn.Module):
 
 
 class Conv1DClassifier(AttackTrainingClassification):
-    def __init__(self):
-        super().__init__()
+    def __init__(self,mode="Soft",numberOfFeatures=1504):
+        super().__init__(mode,numberOfFeatures)
         self.layer1 = nn.Sequential(
             nn.Conv1d(1, self.convolutional_channels[0], 3,device=device),
             self.activation,
@@ -605,6 +620,14 @@ class Conv1DClassifier(AttackTrainingClassification):
             self.activation,
             nn.MaxPool1d(self.maxpooling[1]),
             nn.Dropout(int(Config.parameters["Dropout"][0])))
+        
+        sequencePackage = nn.Sequential()
+        
+        sequencePackage.append(self.layer1)
+        sequencePackage.append(self.layer2)
+        if self.mode!="DOC":
+            sequencePackage.append(self.sequencePackage)
+            self.sequencePackage = sequencePackage
 
         
         
@@ -614,8 +637,8 @@ class Conv1DClassifier(AttackTrainingClassification):
 
 
 class FullyConnected(AttackTrainingClassification):
-    def __init__(self,numberOfFeatures=1504):
-        super().__init__(numberOfFeatures)
+    def __init__(self,mode="Soft",numberOfFeatures=1504):
+        super().__init__(mode,numberOfFeatures)
         self.layer1 = nn.Sequential(
             #Sorry about the big block of math, trying to calculate how big the convolutional tensor is after the first layer
             nn.Linear(numberOfFeatures,int(self.convolutional_channels[0]*(((numberOfFeatures)/(self.maxpooling[0])//1)-1)),device=device),
@@ -626,7 +649,13 @@ class FullyConnected(AttackTrainingClassification):
             self.activation,
             nn.Dropout(int(Config.parameters["Dropout"][0])))
 
-
+        sequencePackage = nn.Sequential()
+        
+        sequencePackage.append(self.layer1)
+        sequencePackage.append(self.layer2)
+        if self.mode!="DOC":
+            sequencePackage.append(self.sequencePackage)
+            self.sequencePackage = sequencePackage
 
 
 

@@ -6,6 +6,7 @@ import time
 import os
 from sklearn.metrics import roc_auc_score, roc_curve, RocCurveDisplay
 import pandas as pd
+from torch.utils.tensorboard import SummaryWriter
 
 # user defined modules
 import GPU, FileHandling
@@ -48,16 +49,14 @@ def run_model(measurement=None, graphDefault=False):
 
     #This just helps translate the config strings into model types. It is mostly unnesisary.
     model_list = {"Convolutional":ModelStruct.Conv1DClassifier,"Fully_Connected":ModelStruct.FullyConnected}
-    model = model_list[Config.parameters["model"][0]]() # change index to select a specific architecture.
+    model = model_list[Config.parameters["model"][0]](mode=Config.parameters["OOD Type"][0]) # change index to select a specific architecture.
 
     #This initializes the data-parallization which hopefully splits the training time over all of the connected GPUs
-    model = ModelStruct.ModdedParallel(model)
-
-    #This selects what algorithm you are using.
-    model.end.type = Config.parameters["OOD Type"][0]
+    model = ModelStruct.ModdedParallel(model)#I dont atcutally think this works the way we are using it, trying something new.
+    assert isinstance(model.module,ModelStruct.AttackTrainingClassification)#adding this purely for the linter, so that it knows exactly what the model is.
 
     #This selects the default cutoff value
-    model.end.cutoff = Config.parameters["threshold"][0]
+    model.module.end.cutoff = Config.parameters["threshold"][0]
 
     #This creates the datasets assuming there are not saved datasets that it can load.
     #By default the saved datasets will be deleted to avoid train/test corruption but this can be disabled.
@@ -99,20 +98,20 @@ def run_model(measurement=None, graphDefault=False):
     
     #Loop 2 uses the same model for each loop so it specifically loads the model.
     if Config.parameters["LOOP"][0] == 2:
-        model.loadPoint("Saves")
+        model.module.loadPoint("Saves")
 
 
     #This array stores the 'history' data, I am not sure what data that is
     history_final = []
     #This gives important information to the endlayer for some of the algorithms
-    model.end.prepWeibull(trainset,device,model)
+    model.module.end.prepWeibull(trainset,device,model)
 
 
     starttime = time.time()
     #Model.fit is what actually runs the model. It outputs some kind of history array?
-    history_final += model.fit(Config.parameters["num_epochs"][0], Config.parameters["learningRate"][0], train_loader, test_loader,val_loader, opt_func=opt_func, measurement=measurement)
+    history_final += model.module.fit(Config.parameters["num_epochs"][0], Config.parameters["learningRate"][0], train_loader, test_loader,val_loader, opt_func=opt_func, measurement=measurement)
 
-    model.batchSaveMode(function=measurement)
+    model.module.batchSaveMode(function=measurement)
 
     #This big block of commented code is to create confusion matricies that we thought could be misleading,
     #   so it is commented out.
@@ -160,19 +159,19 @@ def run_model(measurement=None, graphDefault=False):
         # roc = RocCurveDisplay.from_predictions(model.end.rocData[0],model.end.rocData[1],name=model.end.type)
         # roc.plot()
         # plt.show()
-    if (not torch.all(model.end.rocData[0])) and (not torch.all(model.end.rocData[0]==False)):
-        if isinstance(model.end.rocData[0],torch.Tensor):
-            model.end.rocData[0] = model.end.rocData[0].cpu().numpy()
-        if isinstance(model.end.rocData[1],torch.Tensor):
-            model.end.rocData[1] = model.end.rocData[1].cpu().numpy()
+    if (not torch.all(model.module.end.rocData[0])) and (not torch.all(model.module.end.rocData[0]==False)):
+        if isinstance(model.module.end.rocData[0],torch.Tensor):
+            model.module.end.rocData[0] = model.end.rocData[0].cpu().numpy()
+        if isinstance(model.module.end.rocData[1],torch.Tensor):
+            model.module.end.rocData[1] = model.module.end.rocData[1].cpu().numpy()
         
         #isnan gotten from https://stackoverflow.com/a/913499
-        if (np.isnan( model.end.rocData[1]).any()):
-            model.end.cutoff = -1
+        if (np.isnan( model.module.end.rocData[1]).any()):
+            model.module.end.cutoff = -1
         else:
-            roc_data = pd.DataFrame(roc_curve(model.end.rocData[0],model.end.rocData[1]))
+            roc_data = pd.DataFrame(roc_curve(model.module.end.rocData[0],model.module.end.rocData[1]))
             if hasattr(measurement,"writer") and measurement.writer is not None:
-                measurement.writer.add_pr_curve("PR curve for unknowns vs knowns",np.array(model.end.rocData[0]).squeeze(),np.array(model.end.rocData[1]).squeeze())
+                measurement.writer.add_pr_curve("PR curve for unknowns vs knowns",np.array(model.module.end.rocData[0]).squeeze(),np.array(model.module.end.rocData[1]).squeeze())
             #https://stackoverflow.com/a/62329743 (unused)
             
             new_row = ((1-roc_data.iloc[0])*roc_data.iloc[1])
@@ -180,24 +179,24 @@ def run_model(measurement=None, graphDefault=False):
             roc_data = pd.concat([roc_data,new_row.to_frame().T]).reset_index(drop=True)
             roc_data.to_csv(f"Saves/roc/ROC_data_{Config.parameters['OOD Type'][0]}.csv")
             if len(roc_data.iloc[2][roc_data.iloc[1]>0.95])>0:
-                model.end.cutoff = roc_data.iloc[2][roc_data.iloc[1]>0.95].iloc[0]
-                if model.end.type == "Energy":
-                    model.end.cutoff = -model.end.cutoff
+                model.module.end.cutoff = roc_data.iloc[2][roc_data.iloc[1]>0.95].iloc[0]
+                if model.module.end.type == "Energy":
+                    model.module.end.cutoff = -model.module.end.cutoff
 
         runExistingModel(model,test_loader,"AUTOTHRESHOLD_Test",history_final,class_names,measurement=measurement)
         runExistingModel(model,val_loader,"AUTOTHRESHOLD_Val",history_final,class_names,measurement=measurement)
 
         measurement("AUTOTHRESHOLD",model.end.cutoff)
-        measurement("AUTOTHRESHOLD_Trained_on_length",len(model.end.rocData[0]))
+        measurement("AUTOTHRESHOLD_Trained_on_length",len(model.module.end.rocData[0]))
 
-        if isinstance(model.end.rocData[0],torch.Tensor):
-            model.end.rocData[0] = model.end.rocData[0].cpu().numpy()
-        if isinstance(model.end.rocData[1],torch.Tensor):
-            model.end.rocData[1] = model.end.rocData[1].cpu().numpy()
-        if not (np.isnan( model.end.rocData[1]).any()):
-            model.end.cutoff = roc_data.iloc[2][roc_data.iloc[3].idxmax()]
-            if model.end.type == "Energy":
-                model.end.cutoff = -model.end.cutoff
+        if isinstance(model.module.end.rocData[0],torch.Tensor):
+            model.module.end.rocData[0] = model.module.end.rocData[0].cpu().numpy()
+        if isinstance(model.module.end.rocData[1],torch.Tensor):
+            model.module.end.rocData[1] = model.module.end.rocData[1].cpu().numpy()
+        if not (np.isnan( model.module.end.rocData[1]).any()):
+            model.module.end.cutoff = roc_data.iloc[2][roc_data.iloc[3].idxmax()]
+            if model.module.end.type == "Energy":
+                model.module.end.cutoff = -model.module.end.cutoff
             runExistingModel(model,test_loader,"AUTOTHRESHOLD2_Test",history_final,class_names,measurement=measurement)
             runExistingModel(model,val_loader,"AUTOTHRESHOLD2_Val",history_final,class_names,measurement=measurement)
 
@@ -221,7 +220,7 @@ def run_model(measurement=None, graphDefault=False):
 
     plt.close()
 
-def runExistingModel(model,data,name,history_final,class_names,measurement=None,graphDefault = False, print_vals = False):
+def runExistingModel(model:ModelStruct.AttackTrainingClassification,data,name,history_final,class_names,measurement=None,graphDefault = False, print_vals = False):
     """
     Runs an existing and loaded model.
     
@@ -229,7 +228,7 @@ def runExistingModel(model,data,name,history_final,class_names,measurement=None,
         Model - loaded model object with preset weights
         data - dataloader used to generate the data
         name - string to specify the name of the collected data
-        history_final - results from fitting the model (Not sure why we need this or what it is)
+        history_final - results from fitting the model
         class_names - generated class names for the confusion matrix
         measurement (optional) - Function that is passed the results from the model in the form of (type_of_data,value_of_data)
         graphDefault - the default for desplaying graphs, normally False
@@ -443,6 +442,8 @@ def main_start():
     loopType2(run_model,measurement)
     loopType3(run_model,measurement)
     loopType4(run_model,measurement)
+    if hasattr(measurement,"writer"):
+        measurement.writer.close()
     GenerateImages.main()
     
 
