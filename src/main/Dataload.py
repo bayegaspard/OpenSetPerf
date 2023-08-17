@@ -112,6 +112,7 @@ class ClassDivDataset(Dataset):
         self.length = None
         self.listOfCounts = None
         self.maxclass = Config.parameters["MaxPerClass"][0]
+        self.data_length = 1504
         if "MaxSamples" in Config.parameters:
             self.totalSamples = Config.parameters["MaxSamples"][0]
         
@@ -329,6 +330,7 @@ class ClusterDivDataset(ClassDivDataset):
         self.minclass = 0
         self.path = path+"_Clustered"
         self.countspath = self.path+"/counts.csv"
+        self.data_length = 1504
             
     def __len__(self) -> int:
         if self.listOfCounts is None:
@@ -543,6 +545,7 @@ class ClusterLimitDataset(ClusterDivDataset):
         self.perclassgroups = None
         self.clusters = 32
         self.minclass = 0
+        self.data_length = 1504
         super().__init__(path,use,unknownData)
         
         
@@ -849,6 +852,7 @@ class ClassDivDataset_flows(Dataset):
         elif "UNSW" in path:
             length_name = "UNSW-NB15"
         
+        self.data_length = 1514
         
         self.listOfCounts = DatasetInfo(length_name).sum()
         self.listOfCounts.drop(columns="total",inplace=True)

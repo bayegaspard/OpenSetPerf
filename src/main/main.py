@@ -47,9 +47,14 @@ def run_model(measurement=None, graphDefault=False):
     #This is an example of how we get the values from Config now.
     knownVals = Config.parameters["Knowns_clss"][0]
 
+    #This creates the datasets assuming there are not saved datasets that it can load.
+    #By default the saved datasets will be deleted to avoid train/test corruption but this can be disabled.
+    #The dataset files are stored in saves as .pt (Pytorch) files
+    train, test, val = FileHandling.checkAttempLoad(root_path)
+
     #This just helps translate the config strings into model types. It is mostly unnesisary.
     model_list = {"Convolutional":ModelStruct.Conv1DClassifier,"Fully_Connected":ModelStruct.FullyConnected}
-    model = model_list[Config.parameters["model"][0]](mode=Config.parameters["OOD Type"][0]) # change index to select a specific architecture.
+    model = model_list[Config.parameters["model"][0]](mode=Config.parameters["OOD Type"][0],numberOfFeatures=FileHandling.getDatagroup()[0].data_length) # change index to select a specific architecture.
 
     #This initializes the data-parallization which hopefully splits the training time over all of the connected GPUs
     model = ModelStruct.ModdedParallel(model)#I dont atcutally think this works the way we are using it, trying something new.
@@ -58,10 +63,6 @@ def run_model(measurement=None, graphDefault=False):
     #This selects the default cutoff value
     model.module.end.cutoff = Config.parameters["threshold"][0]
 
-    #This creates the datasets assuming there are not saved datasets that it can load.
-    #By default the saved datasets will be deleted to avoid train/test corruption but this can be disabled.
-    #The dataset files are stored in saves as .pt (Pytorch) files
-    train, test, val = FileHandling.checkAttempLoad(root_path)
 
     #These lines initialize the loaders for the datasets.
     #Trainset is for training the model.
