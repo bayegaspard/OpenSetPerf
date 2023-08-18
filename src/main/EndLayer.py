@@ -1,6 +1,7 @@
 import torch
 import numpy as np
 import torch.nn.functional as F
+import torch.nn as nn
 import pandas as pd
 import Config
 import helperFunctions
@@ -20,26 +21,27 @@ root_path = os.getcwd()
 import helperFunctions
 from src.main.helperFunctions import NoExamples
 
-class EndLayers():
+class EndLayers(nn.Module):
 
     def __init__(self,num_classes: int,cutoff=0.25, type="Soft"):
+        super().__init__()
         self.cutoff = cutoff
         self.classCount = num_classes
-        self.type = type
+        self.end_type = type
         self.DOO = Config.parameters["Degree of Overcompleteness"][0]    #Degree of Overcompleteness for COOL
         self.weibulInfo = None
         self.resetvals()
 
 
 
-    def endlayer(self, output_true:torch.Tensor, y:torch.Tensor, type=None) -> torch.Tensor:
+    def forward(self, output_true:torch.Tensor, y:torch.Tensor, type=None) -> torch.Tensor:
         startTime = time.time()
         if 1==2:
             print(f"Argmax")
             helperFunctions.printconfmat(output_true.cpu(),y.cpu())
         #check if a type is specified
         if type is None:
-            type = self.type
+            type = self.end_type
         
         if type == "Energy":
             #Energy kind of reverses things.
@@ -309,7 +311,7 @@ class EndLayers():
 
     def labelMod(self,labelList:torch.Tensor):
         try:
-            return self.typesOfLabelMod[self.type](self,labelList)
+            return self.typesOfLabelMod[self.end_type](self,labelList)
         except:
             return self.noChange(labelList)
 
@@ -324,7 +326,7 @@ class EndLayers():
 
     def trainMod(self,batch,model):
         try:
-            return self.typesOfTrainMod[self.type](self,batch,model)
+            return self.typesOfTrainMod[self.end_type](self,batch,model)
         except:
             return
 

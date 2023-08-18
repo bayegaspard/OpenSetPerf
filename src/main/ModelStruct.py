@@ -128,14 +128,13 @@ class AttackTrainingClassification(nn.Module):
         self.COOL = nn.Linear(Config.parameters["Nodes"][0], numClasses*self.end.DOO,device=device)
 
         self.los = False
-        self.mode = mode
-        self.end.type = mode
+        self.end.end_type = mode
         self.keep_batch_saves = False
 
 
 
         self.sequencePackage = nn.Sequential()
-        if self.mode=="DOC":
+        if self.end.end_type=="DOC":
             self.sequencePackage.append(DOC_Module())
         
         self.sequencePackage.append(self.flatten)
@@ -146,7 +145,7 @@ class AttackTrainingClassification(nn.Module):
             self.sequencePackage.append(self.activation)
         self.sequencePackage.append(self.addedLayers)
         self.sequencePackage.append(self.dropout)
-        if self.mode!="COOL":
+        if self.end.end_type!="COOL":
             self.sequencePackage.append(self.fc2)
         else:
             self.sequencePackage.append(self.COOL)
@@ -327,7 +326,7 @@ class AttackTrainingClassification(nn.Module):
         #zeross = GPU.to_device(torch.zeros(len(out),1),device)
         zeross = GPU.to_device(torch.zeros(len(out),1),device)
         loss = F.cross_entropy(torch.cat((out,zeross),dim=1), labels)  # Calculate loss
-        out = self.end.endlayer(out,
+        out = self.end(out,
                                 labels).to(labels.device)  # <----Here is where it is using Softmax TODO: make this be able to run all of the versions and save the outputs.
         #loss = F.cross_entropy(torch.cat((out,zeross),dim=1), labels)  # Calculate loss
         # out = self.end.endlayer(out, labels, type="Open")
@@ -342,7 +341,7 @@ class AttackTrainingClassification(nn.Module):
 
         #This is just for datacollection.
         if self.los:
-            if self.end.type == "DOC" or self.end.type == "COOL":
+            if self.end.end_type == "DOC" or self.end.end_type == "COOL":
                 self.los.addloss(out,labels)
             else:
                 self.los.addloss(torch.argmax(out,dim=1),labels)
@@ -549,8 +548,8 @@ class AttackTrainingClassification(nn.Module):
         """
         if measurement is None:
             measurement = FileHandling.Score_saver()
-        net.end.type = Config.parameters["OOD Type"][0]
-        net.mode = net.end.type
+        net.end.end_type = Config.parameters["OOD Type"][0]
+        net.end.end_type = net.end.end_type
         net.loadPoint("Saves/models")
         thresh = Config.thresholds
         for y in range(len(thresh)):
@@ -625,7 +624,7 @@ class Conv1DClassifier(AttackTrainingClassification):
         
         sequencePackage.append(self.layer1)
         sequencePackage.append(self.layer2)
-        if self.mode!="DOC":
+        if self.end.end_type!="DOC":
             sequencePackage.append(self.sequencePackage)
             self.sequencePackage = sequencePackage
 
@@ -653,7 +652,7 @@ class FullyConnected(AttackTrainingClassification):
         
         sequencePackage.append(self.layer1)
         sequencePackage.append(self.layer2)
-        if self.mode!="DOC":
+        if self.end.end_type!="DOC":
             sequencePackage.append(self.sequencePackage)
             self.sequencePackage = sequencePackage
 

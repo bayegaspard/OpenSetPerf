@@ -191,7 +191,7 @@ def write_hist_to_file(lst, num_epochs, type=""):
         for item in lst:
             # write each item on a new line
             fp.write(f"num_epochs {num_epochs} " + str(item) + "\n")
-        print('Writing history Done')
+        # print('Writing history Done')
 
 
 def write_scores_to_file(lst, num_epochs, type=""):
@@ -217,7 +217,7 @@ def write_scores_to_file(lst, num_epochs, type=""):
         for item in lst:
             # write each item on a new line
             fp.write(f"num_epochs {num_epochs} " + str(item).format(num_epochs) + "\n")
-        print('Writing scores Done')
+        # print('Writing scores Done')
 
 
 def write_batch_to_file(loss, num, modeltype="", batchtype=""):

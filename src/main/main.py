@@ -125,14 +125,15 @@ def run_model(measurement=None, graphDefault=False):
     class_names.append("*Unknowns")
     #print("class names", class_names)
 
-
+    if hasattr(measurement,"writer") and measurement.writer is not None:
+        measurement.writer.add_graph(model.module,input_to_model=next(iter(test_loader))[0])
 
     measurement(f"Length train",len(train))
     measurement(f"Length validation",len(val))
     measurement(f"Length test",len(test))
 
     #Validation values
-    f1, recall, precision, accuracy = helperFunctions.getFscore(model.store)
+    f1, recall, precision, accuracy = helperFunctions.getFscore(model.module.store)
     measurement("Val_F1",f1)
     measurement("Val_Recall",recall)
     measurement("Val_Precision",precision)
@@ -181,7 +182,7 @@ def run_model(measurement=None, graphDefault=False):
             roc_data.to_csv(f"Saves/roc/ROC_data_{Config.parameters['OOD Type'][0]}.csv")
             if len(roc_data.iloc[2][roc_data.iloc[1]>0.95])>0:
                 model.module.end.cutoff = roc_data.iloc[2][roc_data.iloc[1]>0.95].iloc[0]
-                if model.module.end.type == "Energy":
+                if model.module.end.end_type == "Energy":
                     model.module.end.cutoff = -model.module.end.cutoff
 
         runExistingModel(model,test_loader,"AUTOTHRESHOLD_Test",history_final,class_names,measurement=measurement)
@@ -196,7 +197,7 @@ def run_model(measurement=None, graphDefault=False):
             model.module.end.rocData[1] = model.module.end.rocData[1].cpu().numpy()
         if not (np.isnan( model.module.end.rocData[1]).any()):
             model.module.end.cutoff = roc_data.iloc[2][roc_data.iloc[3].idxmax()]
-            if model.module.end.type == "Energy":
+            if model.module.end.end_type == "Energy":
                 model.module.end.cutoff = -model.module.end.cutoff
             runExistingModel(model,test_loader,"AUTOTHRESHOLD2_Test",history_final,class_names,measurement=measurement)
             runExistingModel(model,val_loader,"AUTOTHRESHOLD2_Val",history_final,class_names,measurement=measurement)
@@ -274,10 +275,10 @@ def runExistingModel(model:ModelStruct.AttackTrainingClassification,data,name,hi
     
     #This stores and prints the final results.
     score_list = [recall,precision,f1]
-    FileHandling.write_hist_to_file(history_final,Config.parameters["num_epochs"][0],model.end.type)
-    FileHandling.write_scores_to_file(score_list,Config.parameters["num_epochs"][0],model.end.type)
+    FileHandling.write_hist_to_file(history_final,Config.parameters["num_epochs"][0],model.end.end_type)
+    FileHandling.write_scores_to_file(score_list,Config.parameters["num_epochs"][0],model.end.end_type)
     if print_vals:
-        print("Type : ",model.end.type)
+        print("Type : ",model.end.end_type)
         print(f"Now changing : {plots.name_override}")
         print(f"F-Score : {f1*100:.2f}%")
         print(f"Precision : {precision*100:.2f}%")
@@ -327,7 +328,8 @@ def loopType1(main=run_model,measurement=None):
                 print(f"Now changing: {plots.name_override}")
 
                 #Finally run the loop.
-                main()
+                measurement = FileHandling.Score_saver()
+                main(measurement=measurement)
                 measurement("Currently Modifying",plots.name_override)
                 measurement("Type of modification",helperFunctions.getcurrentlychanged_Stage(step))
                 index = measurement("Modification Level",helperFunctions.getcurrentlychanged_Step(step))
@@ -364,7 +366,8 @@ def loopType2(main=run_model,measurement=None):
                 plots.name_override = f"Incremental with {Config.parameters['Unknowns']} unknowns"
                 plt.figure(figsize=(4,4))
                 print(f"unknowns: {Config.parameters['Unknowns_clss'][0]}")
-                main()
+                measurement = FileHandling.Score_saver()
+                main(measurement=measurement)
                 measurement("Currently Modifying",plots.name_override)
 
 def loopType3(main=run_model,measurement=None):
@@ -390,7 +393,8 @@ def loopType3(main=run_model,measurement=None):
             plots.name_override = f"Reisiliance with {Config.parameters['Unknowns']} unknowns"
             plt.figure(figsize=(4,4))
             measurement(f"Row of percentages", Config.parameters['loopLevel'])
-            main()
+            measurement = FileHandling.Score_saver()
+            main(measurement=measurement)
 
 def loopType4(main=run_model,measurement=None):
     """
@@ -407,10 +411,10 @@ def loopType4(main=run_model,measurement=None):
         row = 0
         while Config.parameters["LOOP"][0]:
             measurement(f"Row of defined hyperparameter csv: ", row)
-            measurement.start()
             row = helperFunctions.definedLoops(row=row)
             plots.name_override = f"Predefined loop row {row}"
-            main()
+            measurement = FileHandling.Score_saver()
+            main(measurement=measurement)
 
 def main_start():
     """

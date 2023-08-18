@@ -52,7 +52,7 @@ def testLoop1UniquenessAndChanges():
         def start(self):
             pass
 
-    def nothing():
+    def nothing(measurement=None):
         pass
         
     main.Config.parameters["LOOP"][0] = 1
@@ -68,7 +68,7 @@ def testLoop2Uniqueness():
     global count
     count = 0
     loopNames = set()
-    def nothing():
+    def nothing(measurement=None):
         pass
     class looptype2Uniqueness(main.FileHandling.Score_saver):
         def __init__(self):
@@ -96,7 +96,7 @@ def testLoop3looping():
     """
     Tests if loop 3 works properly
     """
-    def nothing():
+    def nothing(measurement=None):
         pass
     class looptype3Uniqueness(main.FileHandling.Score_saver):
         def __init__(self):
@@ -119,7 +119,7 @@ def testLoop4looping():
     Tests if loop 4 works properly
     """
 
-    def nothing():
+    def nothing(measurement=None):
         pass
 
     class looptype4Uniqueness(main.FileHandling.Score_saver):

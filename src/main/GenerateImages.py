@@ -43,14 +43,14 @@ def old_run_model(set,last=None,start=0):
     model_list = {"Convolutional":ModelStruct.Conv1DClassifier,"Fully_Connected":ModelStruct.FullyConnected}
     model = model_list[Config.parameters["model"][0]]() # change index to select a specific architecture.
 
+    assert isinstance(model,ModelStruct.AttackTrainingClassification)#adding this purely for the linter, so that it knows exactly what the model is.
+
     if not last is None:
         model.store=last
 
-    #This initializes the data-parallization which hopefully splits the training time over all of the connected GPUs
-    model = ModelStruct.ModdedParallel(model)
 
     #This selects what algorithm you are using.
-    model.end.type = Config.parameters["OOD Type"][0]
+    model.end.end_type = Config.parameters["OOD Type"][0]
 
     #This selects the default cutoff value
     model.end.cutoff = Config.parameters["threshold"][0]

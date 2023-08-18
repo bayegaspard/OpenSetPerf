@@ -37,7 +37,7 @@ def testtype():
     end = EndLayer.EndLayers(Config.parameters["CLASSES"][0])
     example_tensor = torch.Tensor([range(Config.parameters["CLASSES"][0])]*2)
     targets = torch.Tensor([[4,4],[5,Config.parameters["CLASSES"][0]]])
-    test= end.endlayer(example_tensor,targets)
+    test= end(example_tensor,targets)
     # print(test)
     assert isinstance(test,torch.Tensor)
 
@@ -48,7 +48,7 @@ def testShape():
     end = EndLayer.EndLayers(Config.parameters["CLASSES"][0])
     example_tensor = torch.Tensor([range(Config.parameters["CLASSES"][0])]*2)
     targets = torch.Tensor([[4,4],[5,Config.parameters["CLASSES"][0]]])
-    test= end.endlayer(example_tensor,targets)
+    test= end(example_tensor,targets)
     shape = test.shape[-1]
 
     assert shape == Config.parameters["CLASSES"][0]+1
@@ -60,7 +60,7 @@ def testIfSoftUnknown():
     end = EndLayer.EndLayers(Config.parameters["CLASSES"][0])
     example_tensor = torch.Tensor([range(Config.parameters["CLASSES"][0])]*2)
     targets = torch.Tensor([[4,4],[5,Config.parameters["CLASSES"][0]]])
-    before_argmax = end.endlayer(example_tensor,targets)
+    before_argmax = end(example_tensor,targets)
     after_argmax = before_argmax.argmax()
     assert torch.all(after_argmax!=Config.parameters["CLASSES"][0])
                      
@@ -73,12 +73,12 @@ def testAllEndlayers():
     end = EndLayer.EndLayers(Config.parameters["CLASSES"][0])
     end.prepWeibull([net.testingTensor()],torch.device('cpu'),net)
     for x in ["Soft","Open","Energy","COOL","DOC","iiMod", "SoftThresh"]:
-        end.type = x
+        end.end_type = x
         example_tensor = torch.Tensor([range(Config.parameters["CLASSES"][0])]*2)
         targets = torch.Tensor([[4,4],[5,Config.parameters["CLASSES"][0]]])
         if x == "COOL":
             example_tensor = torch.cat([example_tensor,example_tensor,example_tensor],dim=-1)
-        before_argmax = end.endlayer(example_tensor,targets)
+        before_argmax = end(example_tensor,targets)
         after_argmax = before_argmax.argmax(dim=1)
         assert isinstance(after_argmax,torch.Tensor)
         assert len(after_argmax) == 2
@@ -91,10 +91,10 @@ def testOpenFailure():
     end = EndLayer.EndLayers(Config.parameters["CLASSES"][0])
     end.prepWeibull([net.testingTensor()],torch.device('cpu'),net)
 
-    end.type = "Open"
+    end.end_type = "Open"
     example_tensor = torch.Tensor([range(Config.parameters["CLASSES"][0])]*2)
     targets = torch.Tensor([[4,4],[5,Config.parameters["CLASSES"][0]]])
-    before_argmax = end.endlayer(example_tensor,targets)
+    before_argmax = end(example_tensor,targets)
     after_argmax = before_argmax.argmax(dim=1)
     assert isinstance(after_argmax,torch.Tensor)
     assert len(after_argmax) == 2
