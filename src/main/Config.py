@@ -68,7 +68,7 @@ parameters = {
     "model":["Convolutional","Model type",["Fully_Connected","Convolutional"]],
     "OOD Type":["Soft","type of out of distribution detection", ["Soft","Open","Energy","COOL","DOC","iiMod"]],
     "Dropout":[0.1,"percent of nodes that are skipped per run, larger numbers for more complex models [0,1)"],
-    "Dataloader_Variation":["Flows","Defines the style of Dataloader used. This affects sampling from the dataset", ["Standard","Cluster","Flows"]],
+    "Dataloader_Variation":["Cluster","Defines the style of Dataloader used. This affects sampling from the dataset", ["Standard","Cluster","Flows"]],
     "optimizer":opt_func["Adam"],
     "Unknowns":["UNUSED"],
     "Unknowns_clss": [[7,8,9],"Class indexes used as unknowns."],

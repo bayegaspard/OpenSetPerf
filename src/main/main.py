@@ -172,6 +172,7 @@ def run_model(measurement=None, graphDefault=False):
         if isinstance(model.module.end.rocData[1],torch.Tensor):
             model.module.end.rocData[1] = model.module.end.rocData[1].cpu().numpy()
         
+        roc_data = None
         #isnan gotten from https://stackoverflow.com/a/913499
         if (np.isnan( model.module.end.rocData[1]).any()):
             model.module.end.cutoff = -1
@@ -202,16 +203,17 @@ def run_model(measurement=None, graphDefault=False):
         measurement("AUTOTHRESHOLD",model.end.cutoff)
         measurement("AUTOTHRESHOLD_Trained_on_length",len(model.module.end.rocData[0]))
 
-        if isinstance(model.module.end.rocData[0],torch.Tensor):
-            model.module.end.rocData[0] = model.module.end.rocData[0].cpu().numpy()
-        if isinstance(model.module.end.rocData[1],torch.Tensor):
-            model.module.end.rocData[1] = model.module.end.rocData[1].cpu().numpy()
-        if not (np.isnan( model.module.end.rocData[1]).any()):
-            model.module.end.cutoff = roc_data.iloc[2][roc_data.iloc[3].idxmax()]
-            if model.module.end.end_type == "Energy":
-                model.module.end.cutoff = -model.module.end.cutoff
-            runExistingModel(model,test_loader,"AUTOTHRESHOLD2_Test",history_final,class_names,measurement=measurement)
-            runExistingModel(model,val_loader,"AUTOTHRESHOLD2_Val",history_final,class_names,measurement=measurement)
+        if not roc_data is None:
+            if isinstance(model.module.end.rocData[0],torch.Tensor):
+                model.module.end.rocData[0] = model.module.end.rocData[0].cpu().numpy()
+            if isinstance(model.module.end.rocData[1],torch.Tensor):
+                model.module.end.rocData[1] = model.module.end.rocData[1].cpu().numpy()
+            if not (np.isnan( model.module.end.rocData[1]).any()):
+                model.module.end.cutoff = roc_data.iloc[2][roc_data.iloc[3].idxmax()]
+                if model.module.end.end_type == "Energy":
+                    model.module.end.cutoff = -model.module.end.cutoff
+                runExistingModel(model,test_loader,"AUTOTHRESHOLD2_Test",history_final,class_names,measurement=measurement)
+                runExistingModel(model,val_loader,"AUTOTHRESHOLD2_Val",history_final,class_names,measurement=measurement)
 
 
 
@@ -230,7 +232,10 @@ def run_model(measurement=None, graphDefault=False):
 
     
 
-
+    #To close persistant workers: https://discuss.pytorch.org/t/what-are-the-dis-advantages-of-persistent-workers/102110/10
+    del trainset._iterator
+    del validationset._iterator
+    del testset._iterator
     plt.close()
 
 def runExistingModel(model:ModelStruct.AttackTrainingClassification,data,name,history_final,class_names,measurement=None,graphDefault = False, print_vals = False):
@@ -335,7 +340,7 @@ def loopType1(main=run_model,measurement=None):
                 plt.figure(figsize=(4,4))
 
                 #State what is changing for bugfixing.
-                print(f"Now changing: {plots.name_override}")
+                print(f"-----------------\nNext To Change: {plots.name_override}")
 
                 #Finally run the loop.
                 measurement = FileHandling.Score_saver()

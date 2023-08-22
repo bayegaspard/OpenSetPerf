@@ -82,7 +82,7 @@ def testLoadDatasetfromSave():
 def testfindSave():
     """Finds if the save exists"""
     epochFound = ModelStruct.AttackTrainingClassification.findloadEpoch()
-    assert epochFound != -1 #CANNOT FIND MODEL
+    assert epochFound != -1, "CANNOT FIND MODEL"
         
     pathFound = ModelStruct.AttackTrainingClassification.findloadPath(epochFound)
     assert os.path.exists(pathFound) #The path is invalid.
@@ -109,7 +109,8 @@ def testrunFromSave():
             assert isinstance(itemDescription,str)
             self.vals[itemDescription] = item
         def checkifinloop(self,itemDescription,item):
-            assert (item==(self.vals[itemDescription])) or (item is np.nan and self.vals[itemDescription] is np.nan)
+            #np.nan is strange: https://stackoverflow.com/a/52124109
+            assert (item==(self.vals[itemDescription])) or (np.isnan(item) and np.isnan(self.vals[itemDescription]))
     
     main.Config.unit_test_mode = True
     main.Config.parameters["num_workers"][0] = 0
