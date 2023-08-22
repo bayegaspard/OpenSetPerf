@@ -306,13 +306,11 @@ class Score_saver():
         """
         self.writer = None
         self.path = path #unused at the moment
-        self.name_all = ""
-        self.name_hist = ""
-        self.index_all = 0
-        self.index_hist = 0
+        self.name_all = {path:0}
+        self.create_params_All()
         if Config.save_as_tensorboard:
             self.tensorboard_start()
-        self.create_params_All()
+        
         
 
     def __call__(self,name:str,val,path="",fileName=None):
@@ -353,11 +351,12 @@ class Score_saver():
             hist = pd.concat([hist,params.iloc[[0]]],axis=0,ignore_index=True)
         else:
             hist = params.iloc[[0]]
-        
-        self.index_all = hist.last_valid_index()
-        self.name_all = name
+
+        self.name_all[name] = hist.last_valid_index()
         #hist = hist.transpose()
         hist.to_csv(os.path.join("Saves",name))
+        if name=="Scoresall.csv" and False:
+            self.addMeasurement("TESTING_INDEX_VALUE",self.name_all[name])
         
 
     def create_loop_history(self,name:str):
@@ -381,9 +380,7 @@ class Score_saver():
             hist = pd.concat([hist,params.iloc[[0]]],axis=0,ignore_index=True)
         else:
             hist = params.iloc[[0]]
-        
-        self.index_hist = hist.last_valid_index()
-        self.name_hist = name
+
         #hist = hist.transpose()
         hist.to_csv(os.path.join("Saves",name))
 
@@ -408,14 +405,14 @@ class Score_saver():
         if self.writer is not None:
             if not isinstance(val, str):
                 self.writer.add_scalar(name,val,step)
+                if "F1" in name or "Unknowns" in name:
+                    self.writer.add_hparams({},{name:val})
             else:
                 self.writer.add_text(name,val,step)
 
         total = pd.read_csv(os.path.join(path,"Saves",fileName),index_col=0)
-        if fileName == self.name_all:
-            index = self.index_all
-        elif fileName == self.name_hist:
-            index = self.index_hist
+        if fileName in self.name_all.keys():
+            index = self.name_all[fileName]
         else:
             index = total.last_valid_index()
         #print(f"last valid index = {total.last_valid_index()},current index = {index} item name= {name}, item value={val}")
@@ -469,7 +466,7 @@ class Score_saver():
         Starts the tensorboard recording anything passing through the Score_saver
         """
         from torch.utils.tensorboard import SummaryWriter
-        self.writer = SummaryWriter()
+        self.writer = SummaryWriter(comment=f"Run Number[{self.name_all.get('Scoresall.csv','N/A')}]")
         self.writer.add_hparams({x:str(Config.parameters[x][0]) for x in Config.parameters.keys() if x not in ["optimizer"]},{})
         self.writer.add_hparams({x:str(Config.parameters[x]) for x in Config.parameters.keys() if x in ["optimizer"]},{})
         

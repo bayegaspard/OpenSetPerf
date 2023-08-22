@@ -36,6 +36,7 @@ def run_model(measurement=None, graphDefault=False):
     run_model() does not return anything but outputs are saved in Saves/
     
     """
+    torch.cuda.empty_cache()
     if measurement is None:
         measurement = FileHandling.Score_saver()
     #This refreshes all of the copies of the Config files, the copies can be used to find the current config if something breaks.
@@ -143,7 +144,7 @@ def run_model(measurement=None, graphDefault=False):
     #Sets the model to really be sure to be on evaluation mode and not on training mode. (Affects dropout)
     if not Config.parameters["LOOP"][0] and graphDefault:
         #More matrix stuff that we removed.
-        cnf_matrix = plots.confusionMatrix(model.store) 
+        cnf_matrix = plots.confusionMatrix(model.module.store) 
         plots.plot_confusion_matrix(cnf_matrix, classes=class_names, normalize=True,
                     title=f'{Config.parameters["OOD Type"][0]} Validation', knowns = knownVals)
 
@@ -162,8 +163,12 @@ def run_model(measurement=None, graphDefault=False):
         # roc.plot()
         # plt.show()
     if (not torch.all(model.module.end.rocData[0])) and (not torch.all(model.module.end.rocData[0]==False)):
+        #NOTE: The definitions of the rocData are as follows:
+        #First row (rocData[0]) - the true values of unknown or known TODO: look to see if 1 is unknown or known
+        #Second row (rocData[1]) - the associated thresholds for each value.
+
         if isinstance(model.module.end.rocData[0],torch.Tensor):
-            model.module.end.rocData[0] = model.end.rocData[0].cpu().numpy()
+            model.module.end.rocData[0] = model.module.end.rocData[0].cpu().numpy()
         if isinstance(model.module.end.rocData[1],torch.Tensor):
             model.module.end.rocData[1] = model.module.end.rocData[1].cpu().numpy()
         
@@ -179,6 +184,12 @@ def run_model(measurement=None, graphDefault=False):
             new_row = ((1-roc_data.iloc[0])*roc_data.iloc[1])
             #New row code: https://stackoverflow.com/a/72084365 (why was this so difficult, it is literally just adding a new row?)
             roc_data = pd.concat([roc_data,new_row.to_frame().T]).reset_index(drop=True)
+
+            #NOTE: roc_data now has the following structure:
+            #roc_data.iloc[0] = False Positive rate, the rate at which things are missclassified as unknowns
+            #roc_data.iloc[1] = True Positive rate, the rate at which things are correctly classifed as knowns
+            #roc_data.iloc[2] = The thresholds associated with the TPR and FPR
+            #roc_data.iloc[3] = a multiplied score of the True Negitive Rate and True Positive Rate
             roc_data.to_csv(f"Saves/roc/ROC_data_{Config.parameters['OOD Type'][0]}.csv")
             if len(roc_data.iloc[2][roc_data.iloc[1]>0.95])>0:
                 model.module.end.cutoff = roc_data.iloc[2][roc_data.iloc[1]>0.95].iloc[0]
@@ -306,7 +317,6 @@ def loopType1(main=run_model,measurement=None):
         measurement("Currently Modifying","Default")
         measurement("Type of modification","Default")
         measurement("Modification Level","Default")
-        measurement.start()
 
         #Loops until the loop function disables the loop.
         while Config.parameters["LOOP"][0]:
@@ -358,7 +368,6 @@ def loopType2(main=run_model,measurement=None):
     if Config.parameters["LOOP"][0] == 2:
         step = (0) 
         measurement("Currently Modifying",f"Incremental TRAINING with {Config.parameters['Unknowns']} unknowns")
-        measurement.start()
         while Config.parameters["LOOP"][0]:
             step = helperFunctions.incrementLoop(step)
             if step:
@@ -386,7 +395,6 @@ def loopType3(main=run_model,measurement=None):
     if measurement is None:
         measurement = FileHandling.Score_saver()
     if Config.parameters["LOOP"][0] == 3:
-        measurement.start()
         while Config.parameters["LOOP"][0]:
             helperFunctions.resilianceLoop()
             plt.clf()

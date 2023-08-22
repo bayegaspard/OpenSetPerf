@@ -7,7 +7,7 @@ import time
 import Config
 from sklearn.cluster import AgglomerativeClustering
 from itertools import filterfalse
-import tqdm
+from tqdm import tqdm
 import copy
 
 #List of conversions:
@@ -66,7 +66,7 @@ def to_device(data, device):
 def recreateDL(dl:torch.utils.data.DataLoader,shuffle=True):
     xList= []
     yList= []
-    for xs,ys in tqdm.tqdm(dl,desc="Loading Dataloader into memory"):
+    for xs,ys in tqdm(dl,desc="Loading Dataloader into memory"):
         #https://github.com/pytorch/pytorch/issues/11201#issuecomment-486232056
         xList.append(copy.deepcopy(xs))
         del(xs)
