@@ -37,7 +37,7 @@ def generateHyperparameters(root_path=""):
     if not os.path.exists("Saves/conf"):
         os.mkdir("Saves/conf")
 
-
+attemptload_message = True
 
 # generateHyperparameters(hyperpath,unknownpath)
 
@@ -92,7 +92,12 @@ def checkAttempLoad(root_path=""):
 
     else:
         #test = unknowns
-        print("Saving data. Use -attemptLoad 1 to use saved data and model")
+        global attemptload_message
+        if attemptload_message:
+            print("Saving data. Use -attemptLoad 1 to use saved data and model")
+            attemptload_message = False
+        else:
+            print("Saving data.")
         torch.save(train,os.path.join(root_path,"Saves","Data.pt"))
         torch.save(test,os.path.join(root_path,"Saves","DataTest.pt"))
         torch.save(val,os.path.join(root_path,"Saves","DataVal.pt"))
