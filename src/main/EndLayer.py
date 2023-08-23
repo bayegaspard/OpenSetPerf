@@ -294,7 +294,7 @@ class EndLayers(nn.Module):
         """
         import CodeFromImplementations.DeepOpenClassificationByLeishu02 as DOC
         if self.docMu is None:
-            print("Mu Standards need to be collected")
+            # print("Mu Standards need to be collected")
             if self.weibulInfo is None:
                 return
             else:

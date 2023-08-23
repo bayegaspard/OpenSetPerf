@@ -127,7 +127,7 @@ def run_model(measurement=None, graphDefault=False):
     class_names.append("*Unknowns")
     #print("class names", class_names)
 
-    if hasattr(measurement,"writer") and measurement.writer is not None:
+    if hasattr(measurement,"writer") and measurement.writer is not None and device == "cpu":
         measurement.writer.add_graph(model.module,input_to_model=next(iter(test_loader))[0])
 
     measurement(f"Length train",len(train))

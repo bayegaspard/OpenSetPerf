@@ -53,11 +53,11 @@ class AttackTrainingClassification(nn.Module):
         #These are for DOC, it has a special model structure. Because of that we allow it to override what we have.
         if Config.parameters['OOD Type'][0] == "DOC":
             class DOC_Module(nn.Module):
-                def __init__(me):
+                def __init__(self):
                     super().__init__()
-                    me.DOC_kernels = nn.ModuleList()
+                    self.DOC_kernels = nn.ModuleList()
                     for x in Config.DOC_kernels:
-                        me.DOC_kernels.append(nn.Conv1d(1, 32, x))
+                        self.DOC_kernels.append(nn.Conv1d(1, 32, x,device="cuda" if torch.cuda.is_available() else "cpu"))
                 def forward(self,input):
                     return torch.concat([alg(input).max(dim=1)[0] for alg in self.DOC_kernels],dim=-1)
             self.fullyConnectedStart = 0
@@ -626,8 +626,8 @@ class Conv1DClassifier(AttackTrainingClassification):
         sequencePackage.append(self.layer1)
         sequencePackage.append(self.layer2)
         if self.end.end_type!="DOC":
-            sequencePackage.append(self.sequencePackage)
-            self.sequencePackage = sequencePackage
+            sequencePackage.append(self.sequencePackage.module)
+            self.sequencePackage = nn.DataParallel(sequencePackage)
 
         
         
@@ -654,8 +654,8 @@ class FullyConnected(AttackTrainingClassification):
         sequencePackage.append(self.layer1)
         sequencePackage.append(self.layer2)
         if self.end.end_type!="DOC":
-            sequencePackage.append(self.sequencePackage)
-            self.sequencePackage = sequencePackage
+            sequencePackage.append(self.sequencePackage.module)
+            self.sequencePackage = nn.DataParallel(sequencePackage)
 
 
 
