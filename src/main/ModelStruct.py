@@ -593,6 +593,7 @@ class AttackTrainingClassification(nn.Module):
             start_function = function.create_params_All
         def funct2():
             start_function(name="BatchSaves.csv")
+            function("Current threshold",self.end.cutoff,fileName="BatchSaves.csv")
         self.batch_saves_start = funct2
         self.keep_batch_saves = True
         def funct(name,val):

@@ -7,6 +7,7 @@ import os
 from sklearn.metrics import roc_auc_score, roc_curve, RocCurveDisplay
 import pandas as pd
 from torch.utils.tensorboard import SummaryWriter
+import tqdm
 
 # user defined modules
 import GPU, FileHandling
@@ -200,7 +201,7 @@ def run_model(measurement=None, graphDefault=False):
         runExistingModel(model,test_loader,"AUTOTHRESHOLD_Test",history_final,class_names,measurement=measurement)
         runExistingModel(model,val_loader,"AUTOTHRESHOLD_Val",history_final,class_names,measurement=measurement)
 
-        measurement("AUTOTHRESHOLD",model.end.cutoff)
+        measurement("AUTOTHRESHOLD",model.module.end.cutoff)
         measurement("AUTOTHRESHOLD_Trained_on_length",len(model.module.end.rocData[0]))
 
         if not roc_data is None:
@@ -323,6 +324,7 @@ def loopType1(main=run_model,measurement=None):
         measurement("Type of modification","Default")
         measurement("Modification Level","Default")
 
+        tq = tqdm.tqdm(desc="Loop section", total=np.sum([len(a) for a in Config.loops])*len(Config.alg))
         #Loops until the loop function disables the loop.
         while Config.parameters["LOOP"][0]:
             #The function testRotate changes the values in Config.py, it is treating those as global veriables.
@@ -352,6 +354,7 @@ def loopType1(main=run_model,measurement=None):
                     FileHandling.Score_saver.addMeasurement_(plots.name_override,index,fileName="LoopRan.csv")
                 else:
                     FileHandling.Score_saver.addMeasurement_(plots.name_override,"Done",fileName="LoopRan.csv")
+            tq.update(1)
 
 def loopType2(main=run_model,measurement=None):
     """
