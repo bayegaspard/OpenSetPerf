@@ -3,6 +3,7 @@ import torch
 from torch.nn import functional as F
 import os
 from tqdm import tqdm
+import time
 
 ### user defined functions
 import Config
@@ -13,7 +14,7 @@ import helperFunctions
 
 
 import numpy as np
-from sklearn.metrics import (precision_score, recall_score, average_precision_score)
+from sklearn.metrics import (precision_score, recall_score, average_precision_score,accuracy_score,f1_score)
 
 device = GPU.get_default_device()
 
@@ -151,6 +152,9 @@ class AttackTrainingClassification(nn.Module):
             self.sequencePackage.append(self.COOL)
         
         self.sequencePackage = nn.DataParallel(self.sequencePackage)
+
+
+        self.batch_saves_identifier = "No Identification Set"
         if False:
             #I am wondering if passing the direct feature vectors to the last layer will help identify specific points, 
             # such as port id numbers.
@@ -313,6 +317,7 @@ class AttackTrainingClassification(nn.Module):
                 val_acc - the accuract from the validation  stage. Note: this accuracy is not used in the save.
         """
         self.eval()
+        t = time.time()
         #self.savePoint("test", phase=Config.helper_variables["phase"])
         data, labels_extended = batch
         self.batchnum += 1
@@ -352,11 +357,27 @@ class AttackTrainingClassification(nn.Module):
         #print("validation accuracy: ", acc)
 
         if self.keep_batch_saves:
+            self.batch_saves_fucnt("Identfier",self.batch_saves_identifier)
             if isinstance(self.end.rocData[1],torch.Tensor):
                 self.batch_saves_fucnt(f"Average unknown threshold possibilities",self.end.rocData[1].mean().item())
             else:
                 self.batch_saves_fucnt(f"Average unknown threshold possibilities",np.array(self.end.rocData[1]).mean().item())
-            self.batch_saves_fucnt("Accuracy",acc.item())
+            self.batch_saves_fucnt("Overall Accuracy",acc.item())
+            if out.ndim == 2:
+                out2 = torch.argmax(out, dim=1)
+            else:
+                #DOC already applies an argmax equivalent so we do not apply one here.
+                out2 = out
+            prec = precision_score(labels_extended[:,0],out2, labels=[Config.parameters["CLASSES"][0]],average="weighted",zero_division=0)
+            rec = recall_score(labels_extended[:,0],out2, labels=[Config.parameters["CLASSES"][0]],average="weighted",zero_division=0)
+            self.batch_saves_fucnt("Precision",prec)
+            self.batch_saves_fucnt("False Positive Rate",1-prec)
+            self.batch_saves_fucnt("Recall",rec)
+            self.batch_saves_fucnt("False Negative Rate",1-rec)
+            self.batch_saves_fucnt("F1_Score",f1_score(labels_extended[:,0],out2, labels=[Config.parameters["CLASSES"][0]],average="weighted",zero_division=0))
+            self.batch_saves_fucnt("Total F1_Score",f1_score(labels_extended[:,0],out2,average="weighted",zero_division=0))
+            self.batch_saves_fucnt("Time",time.time()-t)
+            
             # torch.Tensor.bincount(minlength=Config.parameters["CLASSES"][0])
             sampleCounts = labels.bincount(minlength=Config.parameters["CLASSES"][0]+1)
             guessCounts = out.argmax(dim=-1).bincount(minlength=Config.parameters["CLASSES"][0]+1)
@@ -375,6 +396,7 @@ class AttackTrainingClassification(nn.Module):
             self.batch_saves_fucnt(f"Guesses of unknown classes",guessCounts[mask].sum().item())
             if guessCounts[mask].sum().item()!=0:
                 self.batch_saves_fucnt(f"Samples/Guesses of unknown classes",sampleCounts[mask].sum().item()/guessCounts[mask].sum().item())
+            
 
         return {'val_loss': loss.detach(), 'val_acc': acc}
 

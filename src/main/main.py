@@ -151,7 +151,7 @@ def run_model(measurement=None, graphDefault=False):
 
 
 
-    runExistingModel(model,test_loader,"Test",history_final,class_names, graphDefault=graphDefault,print_vals=True,measurement=measurement)
+    runExistingModel(model.module,test_loader,"Test",history_final,class_names, graphDefault=graphDefault,print_vals=True,measurement=measurement)
 
     
 
@@ -198,8 +198,8 @@ def run_model(measurement=None, graphDefault=False):
                 if model.module.end.end_type == "Energy":
                     model.module.end.cutoff = -model.module.end.cutoff
 
-        runExistingModel(model,test_loader,"AUTOTHRESHOLD_Test",history_final,class_names,measurement=measurement)
-        runExistingModel(model,val_loader,"AUTOTHRESHOLD_Val",history_final,class_names,measurement=measurement)
+        runExistingModel(model.module,test_loader,"AUTOTHRESHOLD_Test",history_final,class_names,measurement=measurement)
+        runExistingModel(model.module,val_loader,"AUTOTHRESHOLD_Val",history_final,class_names,measurement=measurement)
 
         measurement("AUTOTHRESHOLD",model.module.end.cutoff)
         measurement("AUTOTHRESHOLD_Trained_on_length",len(model.module.end.rocData[0]))
@@ -213,8 +213,8 @@ def run_model(measurement=None, graphDefault=False):
                 model.module.end.cutoff = roc_data.iloc[2][roc_data.iloc[3].idxmax()]
                 if model.module.end.end_type == "Energy":
                     model.module.end.cutoff = -model.module.end.cutoff
-                runExistingModel(model,test_loader,"AUTOTHRESHOLD2_Test",history_final,class_names,measurement=measurement)
-                runExistingModel(model,val_loader,"AUTOTHRESHOLD2_Val",history_final,class_names,measurement=measurement)
+                runExistingModel(model.module,test_loader,"AUTOTHRESHOLD2_Test",history_final,class_names,measurement=measurement)
+                runExistingModel(model.module,val_loader,"AUTOTHRESHOLD2_Val",history_final,class_names,measurement=measurement)
 
 
 
@@ -256,6 +256,8 @@ def runExistingModel(model:ModelStruct.AttackTrainingClassification,data,name,hi
         measurement = FileHandling.Score_saver()
     #Resets the stored values that are used to generate the above values.
     model.storeReset()
+
+    model.batch_saves_identifier = name
 
     #model.evaluate() runs only the evaluation stage of running the model. model.fit() calls model.evaluate() after epochs
     model.evaluate(data)
@@ -403,14 +405,16 @@ def loopType3(main=run_model,measurement=None):
     if measurement is None:
         measurement = FileHandling.Score_saver()
     if Config.parameters["LOOP"][0] == 3:
+        tq = tqdm.tqdm(desc="Loop section", total=len(pd.read_csv("datasets/percentages.csv", index_col=None)))
         while Config.parameters["LOOP"][0]:
             helperFunctions.resilianceLoop()
             plt.clf()
             plots.name_override = f"Reisiliance with {Config.parameters['Unknowns']} unknowns"
             plt.figure(figsize=(4,4))
-            measurement(f"Row of percentages", Config.parameters['loopLevel'])
+            measurement(f"Row of percentages", f"{Config.parameters['loopLevel']}")
             measurement = FileHandling.Score_saver()
             main(measurement=measurement)
+            tq.update(1)
 
 def loopType4(main=run_model,measurement=None):
     """

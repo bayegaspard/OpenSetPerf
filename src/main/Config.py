@@ -252,7 +252,7 @@ def algorithmSpecificSettings(alg="None"):
         parameters["threshold"][0] = 102064.4453
     
 if parameters["LOOP"][0] == 3:
-    parameters["num_epochs"][0] = 0
+    # parameters["num_epochs"][0] = 0
     parameters["loopLevel"] = [0,"What percentages the model is on"]
     parameters["MaxSamples"] = [parameters["MaxPerClass"][0], "Max number of samples total"]
 
