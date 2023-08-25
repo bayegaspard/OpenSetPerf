@@ -370,11 +370,11 @@ class AttackTrainingClassification(nn.Module):
                 out2 = out.cpu()
             prec = precision_score(labels_extended[:,0].cpu(),out2, labels=[Config.parameters["CLASSES"][0]],average="weighted",zero_division=0)
             rec = recall_score(labels_extended[:,0].cpu(),out2, labels=[Config.parameters["CLASSES"][0]],average="weighted",zero_division=0)
-            self.batch_saves_fucnt("Precision",prec)
-            self.batch_saves_fucnt("False Positive Rate",1-prec)
-            self.batch_saves_fucnt("Recall",rec)
-            self.batch_saves_fucnt("False Negative Rate",1-rec)
-            self.batch_saves_fucnt("F1_Score",f1_score(labels_extended[:,0].cpu(),out2, labels=[Config.parameters["CLASSES"][0]],average="weighted",zero_division=0))
+            self.batch_saves_fucnt("Knowns/Unknowns_Precision",prec)
+            self.batch_saves_fucnt("Knowns/Unknowns_False Positive Rate",1-prec)
+            self.batch_saves_fucnt("Knowns/Unknowns_Recall",rec)
+            self.batch_saves_fucnt("Knowns/Unknowns_False Negative Rate",1-rec)
+            self.batch_saves_fucnt("Knowns/Unknowns_F1_Score",f1_score(labels_extended[:,0].cpu(),out2, labels=[Config.parameters["CLASSES"][0]],average="weighted",zero_division=0))
             self.batch_saves_fucnt("Total F1_Score",f1_score(labels_extended[:,0].cpu(),out2,average="weighted",zero_division=0))
             self.batch_saves_fucnt("Time",time.time()-t)
             
@@ -396,6 +396,8 @@ class AttackTrainingClassification(nn.Module):
             self.batch_saves_fucnt(f"Guesses of unknown classes",guessCounts[mask].sum().item())
             if guessCounts[mask].sum().item()!=0:
                 self.batch_saves_fucnt(f"Samples/Guesses of unknown classes",sampleCounts[mask].sum().item()/guessCounts[mask].sum().item())
+            if self.end.end_type not in ["COOL","DOC"]:
+                self.batch_saves_fucnt("iiLoss_intra_spread",self.end.distance_by_batch(labels_extended[:,0].cpu(),out.cpu(),self.batch_saves_class_means).item())
             
 
         return {'val_loss': loss.detach(), 'val_acc': acc}
@@ -622,6 +624,11 @@ class AttackTrainingClassification(nn.Module):
             function(name,val,fileName="BatchSaves.csv")
         self.batch_saves_fucnt = funct
         self.eval()
+
+        #get class means for intra spread
+        if self.end.end_type != "COOL":
+            self.end.iiLoss_Means(None)
+            self.batch_saves_class_means = self.end.iiLoss_means
         
 
 
