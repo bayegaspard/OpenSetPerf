@@ -364,18 +364,18 @@ class AttackTrainingClassification(nn.Module):
                 self.batch_saves_fucnt(f"Average unknown threshold possibilities",np.array(self.end.rocData[1]).mean().item())
             self.batch_saves_fucnt("Overall Accuracy",acc.item())
             if out.ndim == 2:
-                out2 = torch.argmax(out, dim=1)
+                out2 = torch.argmax(out, dim=1).cpu()
             else:
                 #DOC already applies an argmax equivalent so we do not apply one here.
-                out2 = out
-            prec = precision_score(labels_extended[:,0],out2, labels=[Config.parameters["CLASSES"][0]],average="weighted",zero_division=0)
-            rec = recall_score(labels_extended[:,0],out2, labels=[Config.parameters["CLASSES"][0]],average="weighted",zero_division=0)
+                out2 = out.cpu()
+            prec = precision_score(labels_extended[:,0].cpu(),out2, labels=[Config.parameters["CLASSES"][0]],average="weighted",zero_division=0)
+            rec = recall_score(labels_extended[:,0].cpu(),out2, labels=[Config.parameters["CLASSES"][0]],average="weighted",zero_division=0)
             self.batch_saves_fucnt("Precision",prec)
             self.batch_saves_fucnt("False Positive Rate",1-prec)
             self.batch_saves_fucnt("Recall",rec)
             self.batch_saves_fucnt("False Negative Rate",1-rec)
-            self.batch_saves_fucnt("F1_Score",f1_score(labels_extended[:,0],out2, labels=[Config.parameters["CLASSES"][0]],average="weighted",zero_division=0))
-            self.batch_saves_fucnt("Total F1_Score",f1_score(labels_extended[:,0],out2,average="weighted",zero_division=0))
+            self.batch_saves_fucnt("F1_Score",f1_score(labels_extended[:,0].cpu(),out2, labels=[Config.parameters["CLASSES"][0]],average="weighted",zero_division=0))
+            self.batch_saves_fucnt("Total F1_Score",f1_score(labels_extended[:,0].cpu(),out2,average="weighted",zero_division=0))
             self.batch_saves_fucnt("Time",time.time()-t)
             
             # torch.Tensor.bincount(minlength=Config.parameters["CLASSES"][0])
@@ -536,7 +536,7 @@ class AttackTrainingClassification(nn.Module):
                 else:
                     print(f"Critital mismatch for model {x} is different from loaded version. No load can occur")
                     return -1
-        for x in loaded["parameters"]["Unknowns_clss"]:
+        for x in loaded["parameters"]["Unknowns_clss"][0]:
             if not x in Config.parameters["Unknowns_clss"][0]:
                 print(f"Warning: Model trained with {x} as an unknown.")
         net.load_state_dict(loaded["model_state"])

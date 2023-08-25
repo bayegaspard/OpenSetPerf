@@ -35,6 +35,7 @@ def test_validation():
 
 def test_testing_dataset():
     FileHandling.Config.parameters["Mix unknowns and validation"][0] = 0
+    assert FileHandling.Config.parameters["Mix unknowns and validation"][0] != 3 #LOOP == 3 causes problems by not having unknowns in loop level 0
     FileHandling.Config.unit_test_mode = True
     train, test, val = FileHandling.checkAttempLoad("")
     test = DataLoader(test, parameters["batch_size"][0], shuffle=True, num_workers=0, pin_memory=False)

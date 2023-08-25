@@ -346,12 +346,13 @@ def renameClassesLabeled(modelOut:torch.Tensor, labels:torch.Tensor):
     labels = labels.clone()
     lastval = -1
     label = list(range(Config.parameters["CLASSES"][0]))
+    keep_label = label.copy()
     newout = []
     remove = Config.parameters["Unknowns_clss"][0] + Config.UnusedClasses
     remove.sort()
     #print(Config.helper_variables["unknowns_clss"])
     for val in remove:
-        label.remove(val)
+        keep_label.remove(val)
         if val > lastval+1:
             if modelOut.dim() == 2:
                 newout.append(modelOut[:,lastval+1:val])
@@ -367,8 +368,11 @@ def renameClassesLabeled(modelOut:torch.Tensor, labels:torch.Tensor):
 
     i = 0
     for l in label:
-        labels[labels==l] = i
-        i+=1
+        if l in keep_label:
+            labels[labels==l] = i
+            i+=1
+        else:
+            labels[labels==l] = -1
     return newout, labels
 
 

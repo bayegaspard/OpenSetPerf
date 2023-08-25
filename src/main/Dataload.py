@@ -9,6 +9,7 @@ from sklearn.cluster import AgglomerativeClustering
 from itertools import filterfalse
 from tqdm import tqdm
 import copy
+import random
 
 #List of conversions:
 if Config.parameters["Dataset"][0] == "Payload_data_CICIDS2017":
@@ -143,6 +144,8 @@ class ClassDivDataset(Dataset):
         """
         if self.listOfCounts is None:
             self.listOfCounts = pd.read_csv(self.countspath, index_col=0)
+            self.totalListOfCounts = self.listOfCounts.copy()
+            self.listOfCountsOffset = self.listOfCounts.copy()
             if "MaxSamples" in Config.parameters:
                 #MAX SAMPLES DEFINITION:
                 #Max Samples limits the total number of samples to self.totalSamples
@@ -153,6 +156,11 @@ class ClassDivDataset(Dataset):
                 for x in range(len(self.listOfCounts)):
                     if self.listOfCounts.iloc[x,0] > maxperclass[x].item():
                         self.listOfCounts.iloc[x,0] = maxperclass[x].item()
+                        # self.listOfCountsOffset.iloc[x,0] = self.listOfCountsOffset.iloc[x,0]-maxperclass[x].item()
+                        # if self.listOfCountsOffset.iloc[x,0]>0:
+                        #     self.listOfCountsOffset.iloc[x,0] = random.randrange(self.listOfCountsOffset.iloc[x,0].item())
+                        # else:
+                        #     self.listOfCountsOffset.iloc[x,0] = 0
                 #This removes all of the unused classes
                 self.listOfCounts = self.listOfCounts.loc[self.use]
                 print(f"Items per class: \n{self.listOfCounts}")
@@ -169,6 +177,12 @@ class ClassDivDataset(Dataset):
                     self.listOfCounts.mask(self.listOfCounts>self.maxclass,self.maxclass,inplace=True)
                 #This removes all of the unused classes
                 self.listOfCounts = self.listOfCounts.loc[self.use]
+
+            #creates a random offset
+            self.listOfCountsOffset = self.listOfCountsOffset.loc[self.use]
+            self.listOfCountsOffset = self.listOfCountsOffset-self.listOfCounts
+            self.listOfCountsOffset.applymap(lambda x: 0 if x<=0 else random.randrange(x))
+
         if self.length is None:
             self.length = self.listOfCounts.sum().item()
         return self.length
@@ -198,13 +212,19 @@ class ClassDivDataset(Dataset):
         while index>=self.listOfCounts.iat[chunktype,0]:
             index -= self.listOfCounts.iat[chunktype,0]
             chunktype+=1
-        chunkNumber = index//CHUNKSIZE
-        index = index%CHUNKSIZE
+        
+        index_before_offset = index
+        chunkNumber = (index+self.listOfCountsOffset.iat[chunktype,0])//CHUNKSIZE
+        index = (index+self.listOfCountsOffset.iat[chunktype,0])%CHUNKSIZE
         #This is needed incase it is not a full chunk so the max value is 0
-        index = index%self.listOfCounts.iat[chunktype,0]
+        index = index%self.totalListOfCounts.iat[chunktype,0]
 
         t_start = time.time()
-        chunk = pd.read_csv(self.path+f"/chunk{self.usedDict[chunktype]}{chunkNumber}.csv", index_col=False,chunksize=1,skiprows=index).get_chunk()
+        try:
+            chunk = pd.read_csv(self.path+f"/chunk{self.usedDict[chunktype]}{chunkNumber}.csv", index_col=False,chunksize=1,skiprows=index).get_chunk()
+        except:
+            print(f"Original index {index_before_offset}, Index with offset {index}, Chunk Number {chunkNumber}, Offset {self.listOfCountsOffset.iat[chunktype,0]}",flush=True)
+            raise
         t_total = time.time()-t_start
         if t_total>1:
             print(f"load took {t_total:.2f} seconds")
@@ -335,6 +355,8 @@ class ClusterDivDataset(ClassDivDataset):
     def __len__(self) -> int:
         if self.listOfCounts is None:
             self.listOfCounts = pd.read_csv(self.countspath, index_col=0)
+            self.totalListOfCounts = self.listOfCounts.copy()
+            self.listOfCountsOffset = self.listOfCounts.copy()
             if "MaxSamples" in Config.parameters:
                 #MAX SAMPLES DEFINITION:    (effectively percentage based distribution)
                 #Max Samples limits the total number of samples to self.totalSamples
@@ -380,6 +402,11 @@ class ClusterDivDataset(ClassDivDataset):
                     self.listOfCounts = pd.DataFrame(self.listOfCounts)
                 #This removes all of the unused classes
                 self.listOfCounts = self.listOfCounts.loc[self.use]
+            
+            #creates a random offset
+            self.listOfCountsOffset = self.listOfCountsOffset.loc[self.use]
+            self.listOfCountsOffset = self.listOfCountsOffset-self.listOfCounts
+            self.listOfCountsOffset.applymap(lambda x: 0 if x<=0 else random.randrange(x))
         if self.length is None:
             self.length = self.listOfCounts.sum().sum().item()
 
@@ -419,12 +446,16 @@ class ClusterDivDataset(ClassDivDataset):
             if chunkNumber>=self.clusters:
                 chunktype+=1
                 chunkNumber = 0
-        
+        index_before_offset = index
 
         t_start = time.time()
         #print(f"/chunk{self.usedDict[chunktype]}-type{chunkNumber:03d}.csv")
         #print(f"supposed length:{self.listOfCounts.iat[chunktype,chunkNumber]}, Index:{index}")
-        chunk = pd.read_csv(self.path+f"/chunk{self.usedDict[chunktype]}-type{chunkNumber:03d}.csv", index_col=False,chunksize=1,skiprows=index).get_chunk()
+        try:
+            chunk = pd.read_csv(self.path+f"/chunk{self.usedDict[chunktype]}-type{chunkNumber:03d}.csv", index_col=False,chunksize=1,skiprows=index).get_chunk()
+        except:
+            print(f"Original index {index_before_offset}, Index with offset {index}, Chunk Number {chunkNumber}, Offset {self.listOfCountsOffset.iat[chunktype,0]}",flush=True)
+            raise
         t_total = time.time()-t_start
         if t_total>1:
             print(f"load took {t_total:.2f} seconds")
@@ -556,6 +587,7 @@ class ClusterLimitDataset(ClusterDivDataset):
         if self.length is None:
             super().__len__()
             self.perclassgroups = (self.listOfCounts>self.minclass).sum(axis=1)
+            # print(self.listOfCounts)
         return self.length
 
 
@@ -596,11 +628,17 @@ class ClusterLimitDataset(ClusterDivDataset):
                 chunktype+=1
                 chunkNumber = 0
         
+        index_before_offset = index
+        index += self.listOfCountsOffset.iat[chunktype,chunkNumber].item()
 
         t_start = time.time()
         #print(f"/chunk{self.usedDict[chunktype]}-type{chunkNumber:03d}.csv")
         #print(f"supposed length:{self.listOfCounts.iat[chunktype,chunkNumber]}, Index:{index}")
-        chunk = pd.read_csv(self.path+f"/chunk{self.usedDict[chunktype]}-type{chunkNumber:03d}.csv", index_col=False,chunksize=1,skiprows=index-1).get_chunk()
+        try:
+            chunk = pd.read_csv(self.path+f"/chunk{self.usedDict[chunktype]}-type{chunkNumber:03d}.csv", index_col=False,chunksize=1,skiprows=index-1).get_chunk()
+        except:
+            print(f"Original index {index_before_offset}, Index with offset {index}, Chunk Number {chunkNumber}, Offset {self.listOfCountsOffset.iat[chunktype,0]}",flush=True)
+            raise
         t_total = time.time()-t_start
         if t_total>1:
             print(f"load took {t_total:.2f} seconds")
@@ -941,8 +979,14 @@ class ClassDivDataset_flows(Dataset):
             class_possibility+=1
         clas = class_possibility
 
+        index_before_offset = index
+
         t_start = time.time()
-        chunk = pd.read_csv(self.path+f"/{CLASSLIST[clas]}.csv", index_col=False,chunksize=1,skiprows=range(1,index),header=0).get_chunk()
+        try:
+            chunk = pd.read_csv(self.path+f"/{CLASSLIST[clas]}.csv", index_col=False,chunksize=1,skiprows=range(1,index),header=0).get_chunk()
+        except:
+            print(f"Original index {index_before_offset}, Index with offset {index}, Class number {clas}, Offset {0}",flush=True)
+            raise
         # print(chunk)
         t_total = time.time()-t_start
         if t_total>1:
