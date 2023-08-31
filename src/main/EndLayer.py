@@ -452,4 +452,4 @@ class EndLayers(nn.Module):
 
     def distance_by_batch(self,labels:torch.Tensor,outputs:torch.Tensor,means:list):
         from CodeFromImplementations.OpenNet import intra_spread
-        return intra_spread(outputs[:,Config.parameters["Knowns_clss"][0]],means,labels)
+        return intra_spread(outputs[:,Config.parameters["Knowns_clss"][0]][labels!=Config.parameters["CLASSES"][0]],means,labels[labels!=Config.parameters["CLASSES"][0]])

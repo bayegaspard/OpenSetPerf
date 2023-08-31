@@ -397,7 +397,7 @@ class AttackTrainingClassification(nn.Module):
             if guessCounts[mask].sum().item()!=0:
                 self.batch_saves_fucnt(f"Samples/Guesses of unknown classes",sampleCounts[mask].sum().item()/guessCounts[mask].sum().item())
             if self.end.end_type not in ["COOL","DOC"]:
-                self.batch_saves_fucnt("iiLoss_intra_spread",self.end.distance_by_batch(labels_extended[:,0].cpu(),out.cpu(),self.batch_saves_class_means).item())
+                self.batch_saves_fucnt("iiLoss_intra_spread",self.end.distance_by_batch(torch.argmax(out,dim=1).cpu(),out.cpu(),self.batch_saves_class_means).item())
             
 
         return {'val_loss': loss.detach(), 'val_acc': acc}

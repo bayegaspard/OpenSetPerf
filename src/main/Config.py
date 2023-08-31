@@ -264,3 +264,4 @@ f = open("build_number.txt","r")
 parameters["Version"] = [f.read(),"The version number"]
 
 save_as_tensorboard = True
+datasetRandomOffset =True

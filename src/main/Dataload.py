@@ -135,6 +135,7 @@ class ClassDivDataset(Dataset):
         #this will check if the file is chunked and chunk it if it is not
         self.checkIfSplit(path)
 
+
     def __len__(self) -> int:
         """
         Finds and saves the length of the dataloader.
@@ -181,7 +182,10 @@ class ClassDivDataset(Dataset):
             #creates a random offset
             self.listOfCountsOffset = self.listOfCountsOffset.loc[self.use]
             self.listOfCountsOffset = self.listOfCountsOffset-self.listOfCounts
-            self.listOfCountsOffset.applymap(lambda x: 0 if x<=0 else random.randrange(x))
+            if Config.datasetRandomOffset:
+                self.listOfCountsOffset = self.listOfCountsOffset.applymap(lambda x: 0 if x<=0 else random.randrange(x))
+            else:
+                self.listOfCountsOffset = self.listOfCountsOffset.applymap(lambda x: 0)
 
         if self.length is None:
             self.length = self.listOfCounts.sum().item()
@@ -223,7 +227,7 @@ class ClassDivDataset(Dataset):
         try:
             chunk = pd.read_csv(self.path+f"/chunk{self.usedDict[chunktype]}{chunkNumber}.csv", index_col=False,chunksize=1,skiprows=index).get_chunk()
         except:
-            print(f"Original index {index_before_offset}, Index with offset {index}, Chunk Number {chunkNumber}, Offset {self.listOfCountsOffset.iat[chunktype,0]}",flush=True)
+            print(f"Original index {index_before_offset}, Chunk Type{self.usedDict[chunktype]},Chunk Type {chunktype}, Chunk Number {chunkNumber}, Offset {self.listOfCountsOffset.iat[chunktype,0]}",flush=True)
             raise
         t_total = time.time()-t_start
         if t_total>1:
@@ -331,7 +335,7 @@ class ClusterDivDataset(ClassDivDataset):
     However, the better implemented ClusterLimitDataset does inhearit some of its functionality from this version.
     
     """
-    def __init__(self, path:str, use:list=None, unknownData=False):
+    def __init__(self, path:str, use:list=None, unknownData=False, randomOffset=True):
         super().__init__(path,use,unknownData)
         """
         path is the string path that is the main datafile
@@ -351,6 +355,7 @@ class ClusterDivDataset(ClassDivDataset):
         self.path = path+"_Clustered"
         self.countspath = self.path+"/counts.csv"
         self.data_length = 1504
+
             
     def __len__(self) -> int:
         if self.listOfCounts is None:
@@ -406,7 +411,10 @@ class ClusterDivDataset(ClassDivDataset):
             #creates a random offset
             self.listOfCountsOffset = self.listOfCountsOffset.loc[self.use]
             self.listOfCountsOffset = self.listOfCountsOffset-self.listOfCounts
-            self.listOfCountsOffset.applymap(lambda x: 0 if x<=0 else random.randrange(x))
+            if Config.datasetRandomOffset:
+                self.listOfCountsOffset = self.listOfCountsOffset.applymap(lambda x: 0 if x<=0 else random.randrange(x))
+            else:
+                self.listOfCountsOffset = self.listOfCountsOffset.applymap(lambda x: 0)
         if self.length is None:
             self.length = self.listOfCounts.sum().sum().item()
 
