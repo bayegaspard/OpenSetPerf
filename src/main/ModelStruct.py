@@ -131,6 +131,7 @@ class AttackTrainingClassification(nn.Module):
         self.los = False
         self.end.end_type = mode
         self.keep_batch_saves = False
+        self.batch_saves_class_means = None
 
 
 
@@ -500,6 +501,8 @@ class AttackTrainingClassification(nn.Module):
             "parameter_keys": list(Config.parameters.keys()),
             "parameters": Config.parameters
         }
+        if "batchSaveClassMeans" is not None:
+            to_save["batchSaveClassMeans"] = net.batch_saves_class_means
         to_save["parameter_keys"].remove("optimizer")
         to_save["parameter_keys"].remove("Unknowns")
         torch.save(to_save, path + f"/Epoch{epoch:03d}{Config.parameters['OOD Type'][0]}")
@@ -542,7 +545,8 @@ class AttackTrainingClassification(nn.Module):
             if not x in Config.parameters["Unknowns_clss"][0]:
                 print(f"Warning: Model trained with {x} as an unknown.")
         net.load_state_dict(loaded["model_state"])
-        
+        if "batchSaveClassMeans" in loaded.keys():
+            net.batch_saves_class_means = loaded["batchSaveClassMeans"]
 
         return epochFound
 
@@ -627,8 +631,9 @@ class AttackTrainingClassification(nn.Module):
 
         #get class means for intra spread
         if self.end.end_type != "COOL":
-            self.end.iiLoss_Means(None)
-            self.batch_saves_class_means = self.end.iiLoss_means
+            if self.batch_saves_class_means == None:
+                self.end.iiLoss_Means(None)
+                self.batch_saves_class_means = self.end.iiLoss_means
         
 
 

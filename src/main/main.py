@@ -68,7 +68,11 @@ def run_model(measurement=None, graphDefault=False):
 
     #These lines initialize the loaders for the datasets.
     #Trainset is for training the model.
-    trainset = DataLoader(train, Config.parameters["batch_size"][0], num_workers=Config.parameters["num_workers"][0],shuffle=True,pin_memory=True)  # for faster processing enable pin memory to true and num_workers=4
+    if  Config.parameters["testlength"][0] == 1 and Config.parameters["num_epochs"][0]==0:
+        #This is just if not doing any training.
+        trainset = DataLoader(test, Config.parameters["batch_size"][0], num_workers=Config.parameters["num_workers"][0],shuffle=True,pin_memory=True)
+    else:
+        trainset = DataLoader(train, Config.parameters["batch_size"][0], num_workers=Config.parameters["num_workers"][0],shuffle=True,pin_memory=True)  # for faster processing enable pin memory to true and num_workers=4
     #Validationset is for checking if the model got things correct with the same type of data as the trainset
     validationset = DataLoader(val, Config.parameters["batch_size"][0], shuffle=True, num_workers=Config.parameters["num_workers"][0],pin_memory=True)
     #Testset is for checking if the model got things correct with the Validationset+unknowns.

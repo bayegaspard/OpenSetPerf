@@ -179,6 +179,7 @@ def incrementLoop(notes=(0)):
 #Resiliance loop
 def resilianceLoop():
     Config.parameters["num_epochs"][0] = 0
+    Config.parameters["testlength"][0] = 1
     current = Config.parameters["loopLevel"][0]
     file = pd.read_csv("datasets/percentages.csv", index_col=None)
     if current+1<len(file):
