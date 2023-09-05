@@ -2,6 +2,8 @@ from torch import nn
 import torch
 from torch.nn import functional as F
 import os
+from tqdm import tqdm
+import time
 
 ### user defined functions
 import Config
@@ -9,7 +11,10 @@ from EndLayer import EndLayers
 import GPU
 import FileHandling
 import helperFunctions
-from sklearn.metrics import (precision_score, recall_score, average_precision_score)
+
+
+import numpy as np
+from sklearn.metrics import (precision_score, recall_score, average_precision_score,accuracy_score,f1_score)
 
 device = GPU.get_default_device()
 
@@ -28,7 +33,7 @@ class ModdedParallel(nn.DataParallel):
 
 class AttackTrainingClassification(nn.Module):
     """This is the Default Model for the project"""
-    def __init__(self,numberOfFeatures=1504):
+    def __init__(self,mode="Soft",numberOfFeatures=1504):
         super().__init__()
 
         self.maxpooling = [4,2]
@@ -43,16 +48,21 @@ class AttackTrainingClassification(nn.Module):
 
         #There are 15 classes
         numClasses = Config.parameters["CLASSES"][0]
-        if Config.parameters['Datagrouping'][0] == "DendrogramChunk":
+        if Config.parameters['Dataloader_Variation'][0] == "Old_Cluster":
             numClasses = numClasses*32
         
         #These are for DOC, it has a special model structure. Because of that we allow it to override what we have.
         if Config.parameters['OOD Type'][0] == "DOC":
-            self.DOC_kernels = nn.ModuleList()
-            self.fullyConnectedStart=0
-            for x in Config.DOC_kernels:
-                self.DOC_kernels.append(nn.Conv1d(1, 32, x,device=device))
-                self.fullyConnectedStart-= x-1
+            class DOC_Module(nn.Module):
+                def __init__(self):
+                    super().__init__()
+                    self.DOC_kernels = nn.ModuleList()
+                    for x in Config.DOC_kernels:
+                        self.DOC_kernels.append(nn.Conv1d(1, 32, x,device="cuda" if torch.cuda.is_available() else "cpu"))
+                def forward(self,input):
+                    return torch.concat([alg(input).max(dim=1)[0] for alg in self.DOC_kernels],dim=-1)
+            self.fullyConnectedStart = 0
+            self.fullyConnectedStart -= np.array([x-1 for x in Config.DOC_kernels]).sum()
             self.fullyConnectedStart+= numberOfFeatures*len(Config.DOC_kernels)
 
         #This (poorly made) menu switches between the diffrent options for activation functions.
@@ -78,9 +88,28 @@ class AttackTrainingClassification(nn.Module):
             self.activation = nn.Softmax(dim=1)
 
 
+        if Config.parameters["Activation"][0] == "PRElu":
+            self.activation = self.activation(device=device)
+        elif Config.parameters["Activation"][0] == "Softmax":
+            self.activation = self.activation(dim=-1)
+        else:
+            self.activation = self.activation
+
         #We use two normal fully connected layers after the CNN specific layers (or substiute layers)
         self.fc1 = nn.Linear(self.fullyConnectedStart, Config.parameters["Nodes"][0],device=device)
         self.fc2 = nn.Linear(Config.parameters["Nodes"][0], numClasses,device=device)
+
+        class RecordBatchVals_afterFC1(nn.Module):
+            def __init__(self,activation):
+                super().__init__()
+                self.activation = activation
+            
+            def forward(me,x):
+                self.batch_saves_fucnt("Difference after Fully_Connected_1",x.max().item()-x.min().item())
+                x = self.activation(x)
+                self.batch_saves_fucnt("Average of layer Fully_Connected_1 Node 0",x.permute(1,0).mean(dim=1)[0].item())
+                self.batch_saves_fucnt("Average of layer Fully_Connected_1 Total",x.mean().item())
+                return x
 
 
         self.addedLayers = torch.nn.Sequential()
@@ -100,47 +129,55 @@ class AttackTrainingClassification(nn.Module):
         self.COOL = nn.Linear(Config.parameters["Nodes"][0], numClasses*self.end.DOO,device=device)
 
         self.los = False
-        self.mode = None
+        self.end.end_type = mode
+        self.keep_batch_saves = False
+        self.batch_saves_class_means = None
 
+
+
+        self.sequencePackage = nn.Sequential()
+        if self.end.end_type=="DOC":
+            self.sequencePackage.append(DOC_Module())
         
+        self.sequencePackage.append(self.flatten)
+        self.sequencePackage.append(self.fc1)
+        if self.keep_batch_saves:
+            self.sequencePackage.append(RecordBatchVals_afterFC1(self.activation))
+        else:
+            self.sequencePackage.append(self.activation)
+        self.sequencePackage.append(self.addedLayers)
+        self.sequencePackage.append(self.dropout)
+        if self.end.end_type!="COOL":
+            self.sequencePackage.append(self.fc2)
+        else:
+            self.sequencePackage.append(self.COOL)
+        
+        self.sequencePackage = nn.DataParallel(self.sequencePackage)
+
+
+        self.batch_saves_identifier = "No Identification Set"
+        if False:
+            #I am wondering if passing the direct feature vectors to the last layer will help identify specific points, 
+            # such as port id numbers.
+            #The thought is that the port id numbers get distorted over the course of the model and need to be re-added later.
+            self.fc2 = nn.Linear(Config.parameters["Nodes"][0]+numberOfFeatures, numClasses,device=device)
+            self.COOL = nn.Linear(Config.parameters["Nodes"][0]+numberOfFeatures, numClasses*self.end.DOO,device=device)
+
+
     # Specify how the data passes in the neural network
-    def forward(self, x: torch.Tensor):
+    def forward(self, x_before_model: torch.Tensor):
         """Runs the model through all the standard layers
         
         also uses the Compettitive Overcomplete Output Layer alternative layer if the setting is for COOL.
         """
         # x = to_device(x, device)
-        x = x.float()
-        x = x.unsqueeze(1)
+        x_before_model = x_before_model.float()
+        x = x_before_model.unsqueeze(1)
         
-        if self.mode == None:
-            self.mode = self.end.type
-        if self.mode != "DOC":
-            x = self.layer1(x)
-            x = self.layer2(x)
-        else:
-            #Gotten the device location from https://discuss.pytorch.org/t/dataparallel-arguments-are-located-on-different-gpus/42054/5
-            # print(f"model:{self.fc1.weight.device}")
-            # print(f"layer:{self.DOC_kernels[0].weight.device}")
-            # print(f"data:{x.device}")
-            xs = [alg(x) for alg in self.DOC_kernels]
-            xs = [a.max(dim=1)[0] for a in xs]
-            x = torch.concat(xs,dim=-1)
-        
-
-        x = self.flatten(x)
-        x = self.activation(self.fc1(x))
-        x = self.addedLayers(x)
-        x = self.dropout(x)
-        if self.end.type != "COOL":
-            x = self.fc2(x)
-        else:
-            x = self.COOL(x)
-        
+        x = self.sequencePackage(x)
         return x
         
-
-    def fit(self, epochs, lr, train_loader, test_loader,val_loader, opt_func, measurement=FileHandling.addMeasurement, epoch_record_rate = 5):
+    def fit(self, epochs, lr, train_loader, test_loader,val_loader, opt_func, measurement=None, epoch_record_rate = 5):
         """
         Trains the model on the train_loader and evaluates it off of the val_loader. Also it stores all of the results in model.store.
         It also generates a new line of ScoresAll.csv that stores all of the data for this model. (note: if you are running two threads at once the data will be overriden)
@@ -160,6 +197,8 @@ class AttackTrainingClassification(nn.Module):
                 epoch - the epoch that this data was taken
                 train_loss - the average training loss per batch of this epoch
         """
+        if measurement is None:
+            measurement = FileHandling.Score_saver()
         if Config.parameters["attemptLoad"][0] == 1:
             startingEpoch = self.loadPoint("Saves/models")
             #If it cannot find a model to load because of some error, the epoch number starts at -1 to avoid overwriting a possilby working model
@@ -172,52 +211,59 @@ class AttackTrainingClassification(nn.Module):
         else:
             sch = None
         self.los = helperFunctions.LossPerEpoch("TestingDuringTrainEpochs.csv")
-        if measurement == FileHandling.addMeasurement:
-            FileHandling.create_params_All()
         # torch.cuda.empty_cache()
         if epochs > 0:
-            for epoch in range(epochs):
-                self.end.resetvals()
-                self.storeReset()
-                # Training Phase
-                self.train()
-                train_losses = []
-                num = 0
-                for batch in train_loader:
+            with tqdm(range(epochs),desc="Running epochs ") as tqdmEpoch:
+                for epoch in tqdmEpoch:
+                    self.end.resetvals()
+                    self.storeReset()
+                    # Training Phase
                     self.train()
-                    #print("Batch")
-                    # batch = to_device(batch,device)
-                    # batch = DeviceDataLoader(batch, device)
-                    loss = self.training_step(batch)
+                    train_losses = []
+                    num = 0
+                    for batch in train_loader:
+                        if self.keep_batch_saves:
+                            self.batch_saves_start()
+                            self.batch_saves_fucnt("Kind","Training")
+                        self.train()
+                        #print("Batch")
+                        # batch = to_device(batch,device)
+                        # batch = DeviceDataLoader(batch, device)
+                        loss = self.training_step(batch)
 
-                    #FileHandling.write_batch_to_file(loss, num, self.end.type, "train")
-                    train_losses.append(loss.detach())
-                    self.end.trainMod(batch,self)
-                    #print(loss)
-                    loss.backward()
-                    optimizer.step()
-                    optimizer.zero_grad()
-                    num += 1
+                        #FileHandling.write_batch_to_file(loss, num, self.end.type, "train")
+                        train_losses.append(loss.detach())
+                        self.end.trainMod(batch,self)
+                        #print(loss)
+                        loss.backward()
+                        optimizer.step()
+                        optimizer.zero_grad()
+                        num += 1
 
-                if not sch is None:
-                    sch.step()
-                
+                    if not sch is None:
+                        sch.step()
+                    
 
-                # Validation phase
-                result = self.evaluate(val_loader)
+                    # Validation phase
+                    result = self.evaluate(val_loader)
 
-                if epoch > epochs-5 or result['val_acc'] > 0.7:
-                    self.savePoint(f"Saves/models", epoch+startingEpoch)
+                    if epoch > epochs-5 or result['val_acc'] > 0.7:
+                        self.savePoint(f"Saves/models", epoch+startingEpoch)
 
-                result['train_loss'] = torch.stack(train_losses).mean().item()
-                if epoch%epoch_record_rate == 0:
-                    measurement(f"Epoch{epoch+startingEpoch} loss",result['train_loss'])
-                result["epoch"] = epoch+startingEpoch
-                self.epoch_end(epoch+startingEpoch, result)
-                #print("result", result)
+                    result['train_loss'] = torch.stack(train_losses).mean().item()
+                    # if epoch%epoch_record_rate == 0:
+                    #     measurement(f"Epoch{epoch+startingEpoch} loss",result['train_loss'])
+                    #This seems like it would be slow, TODO: Write this better.
+                    if hasattr(measurement,"writer") and measurement.writer is not None:
+                        for x in result.keys():
+                            measurement.writer.add_scalar(f"Epoch {x}",result[x],global_step=epoch+startingEpoch)
+                    result["epoch"] = epoch+startingEpoch
+                    tqdmEpoch.set_postfix({"Epoch":epoch+startingEpoch, "train_loss": result['train_loss'], "val_loss": result['val_loss'], "val_acc": result['val_acc']})
+                    # self.epoch_end(epoch+startingEpoch, result)
+                    #print("result", result)
 
-                history.append(result)
-                self.los.collect()
+                    history.append(result)
+                    self.los.collect(measurement)
         else:
             # Validation phase
             epoch = self.loadPoint("Saves/models")
@@ -259,7 +305,7 @@ class AttackTrainingClassification(nn.Module):
         # print("loss from training step ... ", loss)
         return loss
 
-    def validation_step(self, batch):
+    def evaluate_batch(self, batch):
         """
         Takes a batch from the validation loader and evaluates it using the endlayer.
 
@@ -270,18 +316,26 @@ class AttackTrainingClassification(nn.Module):
             dictionary of:
                 val_loss - the loss from the validation stage
                 val_acc - the accuract from the validation  stage. Note: this accuracy is not used in the save.
+            
+        known issues:
+            batch size must be greater than 1. 
         """
         self.eval()
+        t = time.time()
         #self.savePoint("test", phase=Config.helper_variables["phase"])
         data, labels_extended = batch
         self.batchnum += 1
         labels = labels_extended[:,0]
+
+        if self.keep_batch_saves:
+            self.batch_saves_start()
+            self.batch_saves_fucnt("Kind","Testing")
         
         out = self(data)  # Generate predictions
         #zeross = GPU.to_device(torch.zeros(len(out),1),device)
         zeross = GPU.to_device(torch.zeros(len(out),1),device)
         loss = F.cross_entropy(torch.cat((out,zeross),dim=1), labels)  # Calculate loss
-        out = self.end.endlayer(out,
+        out = self.end(out,
                                 labels).to(labels.device)  # <----Here is where it is using Softmax TODO: make this be able to run all of the versions and save the outputs.
         #loss = F.cross_entropy(torch.cat((out,zeross),dim=1), labels)  # Calculate loss
         # out = self.end.endlayer(out, labels, type="Open")
@@ -296,7 +350,7 @@ class AttackTrainingClassification(nn.Module):
 
         #This is just for datacollection.
         if self.los:
-            if self.end.type == "DOC" or self.end.type == "COOL":
+            if self.end.end_type == "DOC" or self.end.end_type == "COOL":
                 self.los.addloss(out,labels)
             else:
                 self.los.addloss(torch.argmax(out,dim=1),labels)
@@ -305,11 +359,56 @@ class AttackTrainingClassification(nn.Module):
         acc = self.accuracy(out, labels_extended)  # Calculate accuracy
         #FileHandling.write_batch_to_file(loss, self.batchnum, self.end.type, "Saves")
         #print("validation accuracy: ", acc)
+
+        if self.keep_batch_saves:
+            self.batch_saves_fucnt("Identfier",self.batch_saves_identifier)
+            if isinstance(self.end.rocData[1],torch.Tensor):
+                self.batch_saves_fucnt(f"Average unknown threshold possibilities",self.end.rocData[1].mean().item())
+            else:
+                self.batch_saves_fucnt(f"Average unknown threshold possibilities",np.array(self.end.rocData[1]).mean().item())
+            self.batch_saves_fucnt("Overall Accuracy",acc.item())
+            if out.ndim == 2:
+                out2 = torch.argmax(out, dim=1).cpu()
+            else:
+                #DOC already applies an argmax equivalent so we do not apply one here.
+                out2 = out.cpu()
+            prec = precision_score(labels_extended[:,0].cpu(),out2, labels=[Config.parameters["CLASSES"][0]],average="weighted",zero_division=0)
+            rec = recall_score(labels_extended[:,0].cpu(),out2, labels=[Config.parameters["CLASSES"][0]],average="weighted",zero_division=0)
+            self.batch_saves_fucnt("Knowns/Unknowns_Precision",prec)
+            self.batch_saves_fucnt("Knowns/Unknowns_False Positive Rate",1-prec)
+            self.batch_saves_fucnt("Knowns/Unknowns_Recall",rec)
+            self.batch_saves_fucnt("Knowns/Unknowns_False Negative Rate",1-rec)
+            self.batch_saves_fucnt("Knowns/Unknowns_F1_Score",f1_score(labels_extended[:,0].cpu(),out2, labels=[Config.parameters["CLASSES"][0]],average="weighted",zero_division=0))
+            self.batch_saves_fucnt("Total F1_Score",f1_score(labels_extended[:,0].cpu(),out2,average="weighted",zero_division=0))
+            self.batch_saves_fucnt("Time",time.time()-t)
+            
+            # torch.Tensor.bincount(minlength=Config.parameters["CLASSES"][0])
+            sampleCounts = labels.bincount(minlength=Config.parameters["CLASSES"][0]+1)
+            guessCounts = out.argmax(dim=-1).bincount(minlength=Config.parameters["CLASSES"][0]+1)
+            # for i in range(Config.parameters["CLASSES"][0]):
+            #     self.batch_saves_fucnt(f"Samples of class {i}",sampleCounts[i].item())
+            #     self.batch_saves_fucnt(f"Guesses of class {i}",guessCounts[i].item())
+                # if guessCounts[i].item()!=0:
+                #     self.batch_saves_fucnt(f"Samples/Guesses of class {i}",sampleCounts[i].item()/guessCounts[i].item())
+            mask = torch.concat([helperFunctions.mask,torch.tensor([False])])
+            self.batch_saves_fucnt(f"Samples of known classes",sampleCounts[mask].sum().item())
+            self.batch_saves_fucnt(f"Guesses of known classes",guessCounts[mask].sum().item())
+            if guessCounts[mask].sum().item()!=0:
+                self.batch_saves_fucnt(f"Samples/Guesses of known classes",sampleCounts[mask].sum().item()/guessCounts[mask].sum().item())
+            mask = mask==False
+            self.batch_saves_fucnt(f"Samples of unknown classes",sampleCounts[mask].sum().item())
+            self.batch_saves_fucnt(f"Guesses of unknown classes",guessCounts[mask].sum().item())
+            if guessCounts[mask].sum().item()!=0:
+                self.batch_saves_fucnt(f"Samples/Guesses of unknown classes",sampleCounts[mask].sum().item()/guessCounts[mask].sum().item())
+            if self.end.end_type not in ["COOL","DOC"]:
+                self.batch_saves_fucnt("iiLoss_intra_spread",self.end.distance_by_batch(torch.argmax(out,dim=1).cpu(),out.cpu(),self.batch_saves_class_means).item())
+            
+
         return {'val_loss': loss.detach(), 'val_acc': acc}
 
 
     @torch.no_grad()
-    def evaluate(self, validationset):
+    def evaluate(self, testset):
         """
         Evaluates the given dataset on this model.
         
@@ -323,8 +422,8 @@ class AttackTrainingClassification(nn.Module):
         """
         self.eval()
         self.batchnum = 0
-        outputs = [self.validation_step(batch) for batch in validationset]  ### reverted bac
-        return self.validation_epoch_end(outputs)
+        outputs = [self.evaluate_batch(batch) for batch in testset if len(batch)>1]  #Note: Some of the processes brake if the batch size is 1. (due to things not being lists.)
+        return self.evaluation_epoch_end(outputs)
 
     def accuracy(self, outputs:torch.Tensor, labels):
         """
@@ -362,7 +461,7 @@ class AttackTrainingClassification(nn.Module):
 
 
 
-    def validation_epoch_end(self, outputs):
+    def evaluation_epoch_end(self, outputs):
         """
         Takes the output of each epoch and takes the mean values. Returns a dictionary of those mean values.
 
@@ -403,9 +502,10 @@ class AttackTrainingClassification(nn.Module):
         to_save = {
             "model_state": net.state_dict(),
             "parameter_keys": list(Config.parameters.keys()),
-            "parameters": Config.parameters,
-            "class_split": Config.class_split
+            "parameters": Config.parameters
         }
+        if not net.batch_saves_class_means is None:
+            to_save["batchSaveClassMeans"] = net.batch_saves_class_means
         to_save["parameter_keys"].remove("optimizer")
         to_save["parameter_keys"].remove("Unknowns")
         torch.save(to_save, path + f"/Epoch{epoch:03d}{Config.parameters['OOD Type'][0]}")
@@ -429,20 +529,27 @@ class AttackTrainingClassification(nn.Module):
         epochFound = AttackTrainingClassification.findloadEpoch(path)
         if epochFound == -1:
             print("No model to load found.")
-            return
+            return -1
         
         pathFound = AttackTrainingClassification.findloadPath(epochFound,path)
-        loaded = torch.load(pathFound)
-        net.load_state_dict(loaded["model_state"])
+        loaded = torch.load(pathFound,map_location=GPU.get_default_device())
+        
         print(f"Loaded  model from {pathFound}")
         for x in loaded["parameter_keys"]:
-            if loaded["parameters"][x][0] != Config.parameters[x][0]:
-                print(f"Warning: {x} has been changed from when model was created")
-        for x in loaded["class_split"]["unknowns_clss"]:
-            if not x in Config.class_split["unknowns_clss"]:
+
+            # assert x in Config.parameters.keys() #Make sure that the model loaded actually has all of the needed values
+            if x in Config.parameters.keys() and loaded["parameters"][x][0] != Config.parameters[x][0]:
+                if not x in ["model","CLASSES","Degree of Overcompleteness","Number of Layers","Nodes"]:
+                    print(f"Warning: {x} has been changed from when model was created")
+                else:
+                    print(f"Critital mismatch for model {x} is different from loaded version. No load can occur")
+                    return -1
+        for x in loaded["parameters"]["Unknowns_clss"][0]:
+            if not x in Config.parameters["Unknowns_clss"][0]:
                 print(f"Warning: Model trained with {x} as an unknown.")
-        
-        
+        net.load_state_dict(loaded["model_state"])
+        if "batchSaveClassMeans" in loaded.keys():
+            net.batch_saves_class_means = loaded["batchSaveClassMeans"]
 
         return epochFound
 
@@ -464,13 +571,16 @@ class AttackTrainingClassification(nn.Module):
         return path + f"/Epoch{epoch:03d}{Config.parameters['OOD Type'][0]}"
     
     #This loops through all the thresholds without resetting the model.
-    def thresholdTest(net,val_loader,measurement=FileHandling.addMeasurement):
+    def thresholdTest(net,val_loader,measurement=None):
         """
         This tests the results from val_loader at various thresholds and saves it to scoresAll.csv
 
         No longer used in favor of the ROC score.
         """
-        net.end.type = Config.parameters["OOD Type"][0]
+        if measurement is None:
+            measurement = FileHandling.Score_saver()
+        net.end.end_type = Config.parameters["OOD Type"][0]
+        net.end.end_type = net.end.end_type
         net.loadPoint("Saves/models")
         thresh = Config.thresholds
         for y in range(len(thresh)):
@@ -504,7 +614,31 @@ class AttackTrainingClassification(nn.Module):
         """
         self.store = GPU.to_device(torch.tensor([]), device), GPU.to_device(torch.tensor([]), device), GPU.to_device(torch.tensor([]), device)
     
-    
+    def batchSaveMode(self,function=None,start_function=None):
+        """
+        This wraps the saving scores so that the values recorded are piped to a specific file.
+        """
+        if function is None:
+            function = FileHandling.Score_saver()
+        if start_function is None:
+            start_function = function.create_params_All
+        def funct2():
+            start_function(name="BatchSaves.csv")
+            function("Current threshold",self.end.cutoff,fileName="BatchSaves.csv")
+        self.batch_saves_start = funct2
+        self.keep_batch_saves = True
+        def funct(name,val):
+            function(name,val,fileName="BatchSaves.csv")
+        self.batch_saves_fucnt = funct
+        self.eval()
+
+        #get class means for intra spread
+        if self.end.end_type != "COOL":
+            if self.batch_saves_class_means == None:
+                print("Recalculating means Starting",flush=True)
+                self.end.iiLoss_Means(None)
+                self.batch_saves_class_means = self.end.iiLoss_means
+                print("Recalculating means Saved",flush=True)
         
 
 
@@ -513,8 +647,8 @@ class AttackTrainingClassification(nn.Module):
 
 
 class Conv1DClassifier(AttackTrainingClassification):
-    def __init__(self):
-        super().__init__()
+    def __init__(self,mode="Soft",numberOfFeatures=1504):
+        super().__init__(mode,numberOfFeatures)
         self.layer1 = nn.Sequential(
             nn.Conv1d(1, self.convolutional_channels[0], 3,device=device),
             self.activation,
@@ -525,6 +659,14 @@ class Conv1DClassifier(AttackTrainingClassification):
             self.activation,
             nn.MaxPool1d(self.maxpooling[1]),
             nn.Dropout(int(Config.parameters["Dropout"][0])))
+        
+        sequencePackage = nn.Sequential()
+        
+        sequencePackage.append(self.layer1)
+        sequencePackage.append(self.layer2)
+        if self.end.end_type!="DOC":
+            sequencePackage.append(self.sequencePackage.module)
+            self.sequencePackage = nn.DataParallel(sequencePackage)
 
         
         
@@ -534,8 +676,8 @@ class Conv1DClassifier(AttackTrainingClassification):
 
 
 class FullyConnected(AttackTrainingClassification):
-    def __init__(self,numberOfFeatures=1504):
-        super().__init__(numberOfFeatures)
+    def __init__(self,mode="Soft",numberOfFeatures=1504):
+        super().__init__(mode,numberOfFeatures)
         self.layer1 = nn.Sequential(
             #Sorry about the big block of math, trying to calculate how big the convolutional tensor is after the first layer
             nn.Linear(numberOfFeatures,int(self.convolutional_channels[0]*(((numberOfFeatures)/(self.maxpooling[0])//1)-1)),device=device),
@@ -546,7 +688,13 @@ class FullyConnected(AttackTrainingClassification):
             self.activation,
             nn.Dropout(int(Config.parameters["Dropout"][0])))
 
-
+        sequencePackage = nn.Sequential()
+        
+        sequencePackage.append(self.layer1)
+        sequencePackage.append(self.layer2)
+        if self.end.end_type!="DOC":
+            sequencePackage.append(self.sequencePackage.module)
+            self.sequencePackage = nn.DataParallel(sequencePackage)
 
 
 

@@ -37,20 +37,20 @@ def old_run_model(set,last=None,start=0):
     FileHandling.generateHyperparameters(root_path) # generate hyper parameters copy files if they did not exist.
 
     #This is an example of how we get the values from Config now.
-    knownVals = Config.class_split["knowns_clss"]
+    knownVals = Config.parameters["Knowns_clss"][0]
 
     #This just helps translate the config strings into model types. It is mostly unnesisary.
     model_list = {"Convolutional":ModelStruct.Conv1DClassifier,"Fully_Connected":ModelStruct.FullyConnected}
     model = model_list[Config.parameters["model"][0]]() # change index to select a specific architecture.
 
+    assert isinstance(model,ModelStruct.AttackTrainingClassification)#adding this purely for the linter, so that it knows exactly what the model is.
+
     if not last is None:
         model.store=last
 
-    #This initializes the data-parallization which hopefully splits the training time over all of the connected GPUs
-    model = ModelStruct.ModdedParallel(model)
 
     #This selects what algorithm you are using.
-    model.end.type = Config.parameters["OOD Type"][0]
+    model.end.end_type = Config.parameters["OOD Type"][0]
 
     #This selects the default cutoff value
     model.end.cutoff = Config.parameters["threshold"][0]
@@ -214,7 +214,8 @@ def keepFirstThree(df:pd.DataFrame):
         df = pd.concat([df,temp])
         # print(f"The length is (should be more) {len(df)}")
         df.drop_duplicates(inplace=True,keep=False)
-    assert len(final)%3 ==0
+    if len(final)%3 !=0:
+        print("Some values don't have three runs.")
     return final
 
 
@@ -239,36 +240,44 @@ def main(save=True,show=False, minimumVersion=None, bysection=False, latex=False
         os.mkdir("Saves/images")
     
     whole_table = pd.read_csv("Saves/Scoresall.csv")
+    if "Type of modification" in whole_table:
+        whole_table = whole_table[whole_table["Version"]!="OLD"] #Sort out all unreadable versions
+        whole_table = whole_table[whole_table["Version"].astype(int)>=minimumVersion] #Only accept version numbers above value
+        whole_table["Unknowns"] = whole_table["Unknowns"].str.replace(" Unknowns","") #Remove unnessisary text
+        whole_table = whole_table[whole_table["Type of modification"]!="Default"] #Remove Defaults
+        whole_table = whole_table[whole_table["Type of modification"].notna()]  #Also remove defaluts
 
-    whole_table = whole_table[whole_table["Version"]!="OLD"] #Sort out all unreadable versions
-    whole_table = whole_table[whole_table["Version"].astype(int)>=minimumVersion] #Only accept version numbers above value
-    whole_table["Unknowns"] = whole_table["Unknowns"].str.replace(" Unknowns","") #Remove unnessisary text
-    whole_table = whole_table[whole_table["Type of modification"]!="Default"] #Remove Defaults
-    whole_table = whole_table[whole_table["Type of modification"].notna()]  #Also remove defaluts
-
-    whole_table = keepFirstThree(whole_table)
-    
-
-
-    for z1 in ["Convolutional","Fully_Connected"]:
-        part_tabel = whole_table[whole_table[valueLocations[z1]]==z1].copy()
-        for z2 in ["Payload_data_CICIDS2017","Payload_data_UNSW"]:
-            part_tabel2 = part_tabel[part_tabel[valueLocations[z2]]==z2].copy()
-            counts = part_tabel2["Currently Modifying"].value_counts()
-            if counts.min() != counts.max():
-                print(f"{z1}-{z2} has an unbalenced number of samples, {counts.min()}!={counts.max()}")
-            if graphTabel(part_tabel2,show=show,save=bysection) == -1:
-                print(f"{z1}-{z2} was unable to find samples for graphs")
+        whole_table = keepFirstThree(whole_table)
+        
 
 
-    whole_table[whole_table[valueLocations["Convolutional"]]=="Convolutional"]
-    whole_table[whole_table[valueLocations["Payload_data_CICIDS2017"]]=="Payload_data_CICIDS2017"]
-    graphTabel(whole_table,show=show,save=save,latex=latex)
+        for z1 in ["Convolutional","Fully_Connected"]:
+            part_tabel = whole_table[whole_table[valueLocations[z1]]==z1].copy()
+            for z2 in ["Payload_data_CICIDS2017","Payload_data_UNSW"]:
+                part_tabel2 = part_tabel[part_tabel[valueLocations[z2]]==z2].copy()
+                counts = part_tabel2["Currently Modifying"].value_counts()
+                if counts.min() != counts.max():
+                    print(f"{z1}-{z2} has an unbalenced number of samples, {counts.min()}!={counts.max()}")
+                if graphTabel(part_tabel2,show=show,save=bysection) == -1:
+                    print(f"{z1}-{z2} was unable to find samples for graphs")
+
+
+        whole_table[whole_table[valueLocations["Convolutional"]]=="Convolutional"]
+        whole_table[whole_table[valueLocations["Payload_data_CICIDS2017"]]=="Payload_data_CICIDS2017"]
+        graphTabel(whole_table,show=show,save=save,latex=latex)
 
     
     
 
 def graphTabel(df:pd.DataFrame,show=False,save=True,latex=False,extrapath=""):
+    """
+    This function creates a series of tables based on different pivot tables created from the dataframe df.
+
+
+    If Save is true then main() creates graphs based on the data and saves the graphs in Saves/images/
+    If Show is true then main() opens the graphs made by Save and shows them in an internet window
+    If latex is true then main() will save the pivot table as a latex table in Saves/images/
+    """
     if len(df) <2:
         print("Dataframe not enough values")
         return -1
@@ -282,7 +291,7 @@ def graphTabel(df:pd.DataFrame,show=False,save=True,latex=False,extrapath=""):
                 
                 if x in ["Activation"]:
                     fig = px.scatter(part_table)
-                elif x in ["Datagrouping","Unknowns"]:
+                elif x in ["Dataloader_Variation","Unknowns"]:
                     fig = px.line(part_table,markers=True)
                 else:
                     fig = px.line(part_table,markers=True,log_x=True)

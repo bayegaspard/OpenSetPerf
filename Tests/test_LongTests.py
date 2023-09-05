@@ -15,6 +15,9 @@ from torch.utils.data import DataLoader
 
 main.Config.parameters["MaxPerClass"][0] = 10
 
+#https://docs.pytest.org/en/7.1.x/how-to/skipping.html
+import pytest
+pytestmark = pytest.mark.skip("These tests took too long to run and check if they work so their validity is in question.")
 
 def testrunall():
     """

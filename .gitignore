@@ -20,6 +20,7 @@ Saves/unknown/*
 !Saves/models
 Saves/models/*
 !Saves/Scoresall-ArchivedForPaper.csv
+!datasets/hyperparamList.csv
 *.json
 src/CodeFromImplementations/Ignore.py
 !datasets/percentages.csv
@@ -27,3 +28,5 @@ test concat scores.py
 test copy.py
 test concat duplication problems.py
 log.txt
+Saves/Scoresall.csv
+runs/*

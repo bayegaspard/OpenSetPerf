@@ -5,6 +5,7 @@ import pandas as pd
 import torch
 import GPU
 import FileHandling
+import numpy as np
 from sklearn.metrics import (precision_score, recall_score, average_precision_score,accuracy_score)
 from sklearn.metrics import confusion_matrix
 
@@ -24,7 +25,7 @@ def setrelabel():
     #This is the mask to apply to tensors to make them ignore unknown classes.
     global mask
     mask = torch.zeros(Config.parameters["CLASSES"][0])
-    for x in Config.class_split["knowns_clss"]:
+    for x in Config.parameters["Knowns_clss"][0]:
         mask[x] = 1
     mask = mask==1 
 
@@ -32,7 +33,7 @@ def setrelabel():
     rerelabel = {Config.parameters["CLASSES"][0]:Config.parameters["CLASSES"][0]}
     temp = 0
     for x in range(Config.parameters["CLASSES"][0]):
-        if temp < len(Config.class_split["unknowns_clss"]) and x == Config.class_split["unknowns_clss"][temp]:
+        if temp < len(Config.parameters["Unknowns_clss"][0]) and x == Config.parameters["Unknowns_clss"][0][temp]:
             temp = temp+1
         else:
             relabel[x] = x-temp
@@ -49,7 +50,7 @@ def makeConsecutive(logits:torch.Tensor,labels:torch.Tensor):
     global mask
     loge = logits[mask]
     newlabels = labels.clone()
-    for x in Config.class_split["knowns_clss"]:
+    for x in Config.parameters["Knowns_clss"][0]:
         newlabels[labels==x] = relabel[x]
     return loge, newlabels
 
@@ -78,9 +79,9 @@ def configMod_testRotate(stage=0, step=0):
     if Config.loops2[stage] == "optimizer":
         Config.parameters[Config.loops2[stage]] = Config.loops[stage][step]
     elif Config.loops2[stage] == "Unknowns":
-        Config.class_split["unknowns_clss"] = Config.loops[stage][step]
+        Config.parameters["Unknowns_clss"][0] = Config.loops[stage][step]
         Config.parameters["Unknowns"] = f"{len(Config.loops[stage][step])} Unknowns"
-        Config.class_split["knowns_clss"] = Config.loopOverUnknowns(Config.class_split["unknowns_clss"])
+        Config.parameters["Knowns_clss"][0] = Config.loopOverUnknowns()
         setrelabel()
     elif Config.loops2[stage] == "None":
         pass
@@ -166,9 +167,9 @@ def incrementLoop(notes=(0)):
     if notes >= len(Config.incGroups):
         Config.parameters["LOOP"][0] = False
         return False
-    Config.class_split["unknowns_clss"] = Config.incGroups[notes]
+    Config.parameters["Unknowns_clss"][0] = Config.incGroups[notes]
     Config.parameters["Unknowns"] = f"{len(Config.incGroups[notes])} Unknowns"
-    Config.class_split["knowns_clss"] = Config.loopOverUnknowns(Config.incGroups[notes])
+    Config.parameters["Knowns_clss"][0] = Config.loopOverUnknowns(Config.incGroups[notes])
     setrelabel()
 
     #Find diffrence with this code: https://stackoverflow.com/a/3462160
@@ -178,6 +179,7 @@ def incrementLoop(notes=(0)):
 #Resiliance loop
 def resilianceLoop():
     Config.parameters["num_epochs"][0] = 0
+    Config.parameters["testlength"][0] = 1
     current = Config.parameters["loopLevel"][0]
     file = pd.read_csv("datasets/percentages.csv", index_col=None)
     if current+1<len(file):
@@ -250,9 +252,9 @@ def looptest():
     notes = (0,0,0)
     while notes:
         current = pd.DataFrame(Config.parameters)
-        current2 = pd.DataFrame(Config.class_split["unknowns_clss"])
+        # current2 = pd.DataFrame(Config.class_split["unknowns_clss"])
         out = pd.concat([out,current.iloc[0]],axis=1)
-        out2 = pd.concat([out2,current2],axis=1)
+        # out2 = pd.concat([out2,current2],axis=1)
         print(getcurrentlychanged(notes))
         notes = testRotate(notes)
         count = count+1
@@ -260,7 +262,7 @@ def looptest():
     out = pd.concat([current.iloc[0],out],axis=1)
 
     out.to_csv("Testing.csv")
-    out2.to_csv("Testing2.csv")
+    # out2.to_csv("Testing2.csv")
     print(f"That means the model will have to run {count} times")
 
 
@@ -272,6 +274,27 @@ class NoExamples(Exception):
     
     """
     pass
+
+
+def definedLoops(path="datasets/hyperparamList.csv",row=0):
+    """
+    This function is for LOOP 4 where the function loops through a predefined sequence of hyperparameters.
+    """
+    hyperparamsFile = pd.read_csv(path)
+    if len(hyperparamsFile)>row:
+        hyperparams = hyperparamsFile.iloc[row]
+        for x in Config.parameters.keys():
+            if x in hyperparams.keys() and x not in ["Unknowns","Knowns_clss","Version","optimizer","LOOP"]:
+                Config.parameters[x][0] = hyperparams[x]
+                if isinstance(Config.parameters[x][0],np.generic):
+                    Config.parameters[x][0] = Config.parameters[x][0].item()
+                if x == "Unknowns_clss":
+                    # str.removesuffix("]").removeprefix("[").split(sep=",")
+                    Config.parameters[x][0] = [int(y) for y in Config.parameters[x][0].removesuffix("]").removeprefix("[").split(sep=",")]
+        Config.loopOverUnknowns()
+        return row+1
+    Config.parameters["LOOP"][0] = 0
+    return row+1
 
 
 #The two rename classes are to reorginize things so that the numbers for classes are consecutive, some of the algorithms need that.
@@ -290,7 +313,7 @@ def renameClasses(modelOut:torch.Tensor):
     lastval = -1
     label = list(range(Config.parameters["CLASSES"][0]))
     newout = []
-    remove = Config.class_split["unknowns_clss"] + Config.UnusedClasses
+    remove = Config.parameters["Unknowns_clss"][0] + Config.UnusedClasses
     remove.sort()
     for val in remove:
         label.remove(val)
@@ -324,12 +347,13 @@ def renameClassesLabeled(modelOut:torch.Tensor, labels:torch.Tensor):
     labels = labels.clone()
     lastval = -1
     label = list(range(Config.parameters["CLASSES"][0]))
+    keep_label = label.copy()
     newout = []
-    remove = Config.class_split["unknowns_clss"] + Config.UnusedClasses
+    remove = Config.parameters["Unknowns_clss"][0] + Config.UnusedClasses
     remove.sort()
     #print(Config.helper_variables["unknowns_clss"])
     for val in remove:
-        label.remove(val)
+        keep_label.remove(val)
         if val > lastval+1:
             if modelOut.dim() == 2:
                 newout.append(modelOut[:,lastval+1:val])
@@ -345,8 +369,11 @@ def renameClassesLabeled(modelOut:torch.Tensor, labels:torch.Tensor):
 
     i = 0
     for l in label:
-        labels[labels==l] = i
-        i+=1
+        if l in keep_label:
+            labels[labels==l] = i
+            i+=1
+        else:
+            labels[labels==l] = -1
     return newout, labels
 
 
@@ -378,7 +405,7 @@ class LossPerEpoch():
         locations = predicted!=target
         self.loss += locations.sum().item()
 
-    def collect(self):
+    def collect(self,measurement):
         """
         Collect() gets the data gathered by the addloss() function and resets the stored loss to zero.
         The data is then stored in the file Saves/Scoresall.csv in the most recent line under "Number Of Failures"
@@ -396,7 +423,7 @@ class LossPerEpoch():
 
         #hist = pd.concat([hist,param],axis=1)
         #hist.to_csv(os.path.join("Saves",self.name))
-        FileHandling.addMeasurement("Number Of Failures",self.loss)
+        measurement("Number Of Failures",self.loss)
         self.loss = 0
 
 def getFscore(dat):

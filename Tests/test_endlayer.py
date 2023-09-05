@@ -37,7 +37,7 @@ def testtype():
     end = EndLayer.EndLayers(Config.parameters["CLASSES"][0])
     example_tensor = torch.Tensor([range(Config.parameters["CLASSES"][0])]*2)
     targets = torch.Tensor([[4,4],[5,Config.parameters["CLASSES"][0]]])
-    test= end.endlayer(example_tensor,targets)
+    test= end(example_tensor,targets)
     # print(test)
     assert isinstance(test,torch.Tensor)
 
@@ -48,7 +48,7 @@ def testShape():
     end = EndLayer.EndLayers(Config.parameters["CLASSES"][0])
     example_tensor = torch.Tensor([range(Config.parameters["CLASSES"][0])]*2)
     targets = torch.Tensor([[4,4],[5,Config.parameters["CLASSES"][0]]])
-    test= end.endlayer(example_tensor,targets)
+    test= end(example_tensor,targets)
     shape = test.shape[-1]
 
     assert shape == Config.parameters["CLASSES"][0]+1
@@ -60,7 +60,7 @@ def testIfSoftUnknown():
     end = EndLayer.EndLayers(Config.parameters["CLASSES"][0])
     example_tensor = torch.Tensor([range(Config.parameters["CLASSES"][0])]*2)
     targets = torch.Tensor([[4,4],[5,Config.parameters["CLASSES"][0]]])
-    before_argmax = end.endlayer(example_tensor,targets)
+    before_argmax = end(example_tensor,targets)
     after_argmax = before_argmax.argmax()
     assert torch.all(after_argmax!=Config.parameters["CLASSES"][0])
                      
@@ -73,12 +73,12 @@ def testAllEndlayers():
     end = EndLayer.EndLayers(Config.parameters["CLASSES"][0])
     end.prepWeibull([net.testingTensor()],torch.device('cpu'),net)
     for x in ["Soft","Open","Energy","COOL","DOC","iiMod", "SoftThresh"]:
-        end.type = x
+        end.end_type = x
         example_tensor = torch.Tensor([range(Config.parameters["CLASSES"][0])]*2)
         targets = torch.Tensor([[4,4],[5,Config.parameters["CLASSES"][0]]])
         if x == "COOL":
             example_tensor = torch.cat([example_tensor,example_tensor,example_tensor],dim=-1)
-        before_argmax = end.endlayer(example_tensor,targets)
+        before_argmax = end(example_tensor,targets)
         after_argmax = before_argmax.argmax(dim=1)
         assert isinstance(after_argmax,torch.Tensor)
         assert len(after_argmax) == 2
@@ -91,10 +91,10 @@ def testOpenFailure():
     end = EndLayer.EndLayers(Config.parameters["CLASSES"][0])
     end.prepWeibull([net.testingTensor()],torch.device('cpu'),net)
 
-    end.type = "Open"
+    end.end_type = "Open"
     example_tensor = torch.Tensor([range(Config.parameters["CLASSES"][0])]*2)
     targets = torch.Tensor([[4,4],[5,Config.parameters["CLASSES"][0]]])
-    before_argmax = end.endlayer(example_tensor,targets)
+    before_argmax = end(example_tensor,targets)
     after_argmax = before_argmax.argmax(dim=1)
     assert isinstance(after_argmax,torch.Tensor)
     assert len(after_argmax) == 2
@@ -106,23 +106,23 @@ def testConsecutaveDimentions_a():
     net = sampleNet()
     example_tensor, labels = net.testingTensor()
     consecutive_tensor, consecutive_labels = helperFunctions.renameClassesLabeled(example_tensor,labels)
-    assert len(example_tensor[0]) != len(consecutive_tensor[0]) or len(Config.class_split["knowns_clss"])==Config.parameters["CLASSES"][0]
-    assert consecutive_labels.max() < len(Config.class_split["knowns_clss"])
+    assert len(example_tensor[0]) != len(consecutive_tensor[0]) or len(Config.parameters["Knowns_clss"][0])==Config.parameters["CLASSES"][0]
+    assert consecutive_labels.max() < len(Config.parameters["Knowns_clss"][0])
     assert torch.all(consecutive_tensor[consecutive_tensor.max(dim=1)[0].gt(0)].argmax(dim=1)==consecutive_labels[consecutive_tensor.max(dim=1)[0].gt(0),0])
 
 def testConsecutaveDimentions_b():
     """
     Test if making things consecutive works with no unknowns
     """
-    Config.class_split["unknowns_clss"] = []
-    Config.class_split["knowns_clss"] = Config.loopOverUnknowns(Config.class_split["unknowns_clss"])
-    helperFunctions.Config.class_split = Config.class_split.copy()
+    Config.parameters["Unknowns_clss"][0] = []
+    Config.parameters["Knowns_clss"][0] = Config.loopOverUnknowns()
+    helperFunctions.Config.parameters = Config.parameters.copy()
     helperFunctions.setrelabel()
     net = sampleNet()
     example_tensor, labels = net.testingTensor()
     consecutive_tensor, consecutive_labels = helperFunctions.renameClassesLabeled(example_tensor,labels)
-    assert len(example_tensor[0]) != len(consecutive_tensor[0]) or len(Config.class_split["knowns_clss"])==Config.parameters["CLASSES"][0]
-    assert consecutive_labels.max() < len(Config.class_split["knowns_clss"])
+    assert len(example_tensor[0]) != len(consecutive_tensor[0]) or len(Config.parameters["Knowns_clss"][0])==Config.parameters["CLASSES"][0]
+    assert consecutive_labels.max() < len(Config.parameters["Knowns_clss"][0])
     assert torch.all(consecutive_tensor[consecutive_tensor.max(dim=1)[0].gt(0)].argmax(dim=1)==consecutive_labels[consecutive_tensor.max(dim=1)[0].gt(0),0])
 
 
@@ -130,28 +130,28 @@ def testConsecutaveDimentions_c():
     """
     Test if making things consecutive works with some unknowns
     """
-    Config.class_split["unknowns_clss"] = [1,2,3,4]
-    Config.class_split["knowns_clss"] = Config.loopOverUnknowns(Config.class_split["unknowns_clss"])
-    helperFunctions.Config.class_split = Config.class_split.copy()
+    Config.parameters["Unknowns_clss"][0] = [1,2,3,4]
+    Config.parameters["Knowns_clss"][0] = Config.loopOverUnknowns()
+    helperFunctions.Config.parameters = Config.parameters.copy()
     helperFunctions.setrelabel()
     net = sampleNet()
     example_tensor, labels = net.testingTensor()
     consecutive_tensor, consecutive_labels = helperFunctions.renameClassesLabeled(example_tensor,labels)
-    assert len(example_tensor[0]) != len(consecutive_tensor[0]) or len(Config.class_split["knowns_clss"])==Config.parameters["CLASSES"][0]
-    assert consecutive_labels.max() < len(Config.class_split["knowns_clss"])
+    assert len(example_tensor[0]) != len(consecutive_tensor[0]) or len(Config.parameters["Knowns_clss"][0])==Config.parameters["CLASSES"][0]
+    assert consecutive_labels.max() < len(Config.parameters["Knowns_clss"][0])
     assert torch.all(consecutive_tensor[consecutive_tensor.max(dim=1)[0].gt(0)].argmax(dim=1)==consecutive_labels[consecutive_tensor.max(dim=1)[0].gt(0),0])
 
 def testRemovedVals():
     tensor = torch.tensor(list(range(Config.parameters["CLASSES"][0])))
     newTensor = tensor.clone()
     newTensor = helperFunctions.renameClasses(newTensor)
-    for x in Config.class_split["unknowns_clss"]:
+    for x in Config.parameters["Unknowns_clss"][0]:
         assert not x in newTensor
 
     tensor = newTensor.clone()
     for x in range(len(newTensor)):
         newTensor[x] = torch.tensor(helperFunctions.relabel[newTensor[x].item()])
-    assert newTensor.max() <= Config.parameters["CLASSES"][0]-len(Config.class_split["unknowns_clss"])
+    assert newTensor.max() <= Config.parameters["CLASSES"][0]-len(Config.parameters["Unknowns_clss"][0])
     for x in range(len(newTensor)):
         newTensor[x] = torch.tensor(helperFunctions.rerelabel[newTensor[x].item()])
 

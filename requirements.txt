@@ -7,7 +7,9 @@ Pillow>=9.1.0
 Cython
 libmr>=0.1.9
 scikit-learn>=0.24
-sklearn
 bokeh
 plotly
 kaleido
+pytest
+tqdm
+nids_datasets
