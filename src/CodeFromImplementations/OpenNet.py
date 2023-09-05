@@ -16,10 +16,10 @@ if __name__ =="__main__":
     sys.path.append(root_folder)
     sys.path.append(root_folder+"/main")
 
-import ModelStruct as ms
+import ModelStruct
 import Config as Config
 
-def Algorithm_1(data_loader, model:ms.AttackTrainingClassification, train=False):
+def Algorithm_1(data_loader, model:ModelStruct.AttackTrainingClassification, train=False):
     #Note, this masking is only due to how we are handling model outputs.
     #If I was to design things again I would have designed the model outputs not to need this masking.
     mask = torch.zeros(Config.parameters["CLASSES"][0])
@@ -46,7 +46,7 @@ def Algorithm_1(data_loader, model:ms.AttackTrainingClassification, train=False)
     return class_means(torch.cat(totalout,dim=0),torch.cat(totallabel,dim=0)) #Step 9 and 10
 
 #This is algorithm 1 but one batch at a time       
-def singleBatch(batch, model:ms.AttackTrainingClassification, train=True):
+def singleBatch(batch, model:ModelStruct.AttackTrainingClassification, train=True):
 
     X,Y = batch
     #Getting the correct column (Nessisary for our label design)

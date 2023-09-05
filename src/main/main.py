@@ -111,7 +111,7 @@ def run_model(measurement=None, graphDefault=False):
     #This array stores the 'history' data, I am not sure what data that is
     history_final = []
     #This gives important information to the endlayer for some of the algorithms
-    model.module.end.prepWeibull(trainset,device,model.module)
+    model.module.end.prepWeibull(train_loader,device,model.module)
 
 
     starttime = time.time()

@@ -316,6 +316,9 @@ class AttackTrainingClassification(nn.Module):
             dictionary of:
                 val_loss - the loss from the validation stage
                 val_acc - the accuract from the validation  stage. Note: this accuracy is not used in the save.
+            
+        known issues:
+            batch size must be greater than 1. 
         """
         self.eval()
         t = time.time()
@@ -419,7 +422,7 @@ class AttackTrainingClassification(nn.Module):
         """
         self.eval()
         self.batchnum = 0
-        outputs = [self.evaluate_batch(batch) for batch in testset]  ### reverted bac
+        outputs = [self.evaluate_batch(batch) for batch in testset if len(batch)>1]  #Note: Some of the processes brake if the batch size is 1. (due to things not being lists.)
         return self.evaluation_epoch_end(outputs)
 
     def accuracy(self, outputs:torch.Tensor, labels):
@@ -501,7 +504,7 @@ class AttackTrainingClassification(nn.Module):
             "parameter_keys": list(Config.parameters.keys()),
             "parameters": Config.parameters
         }
-        if "batchSaveClassMeans" is not None:
+        if not net.batch_saves_class_means is None:
             to_save["batchSaveClassMeans"] = net.batch_saves_class_means
         to_save["parameter_keys"].remove("optimizer")
         to_save["parameter_keys"].remove("Unknowns")
@@ -632,8 +635,10 @@ class AttackTrainingClassification(nn.Module):
         #get class means for intra spread
         if self.end.end_type != "COOL":
             if self.batch_saves_class_means == None:
+                print("Recalculating means Starting",flush=True)
                 self.end.iiLoss_Means(None)
                 self.batch_saves_class_means = self.end.iiLoss_means
+                print("Recalculating means Saved",flush=True)
         
 
 
