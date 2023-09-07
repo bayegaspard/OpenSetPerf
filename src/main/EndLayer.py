@@ -268,7 +268,7 @@ class EndLayers(nn.Module):
         Eng.energyScoreCalc(scores,percentages,self.args)
         scores = torch.tensor(np.array(scores),device=percentages.device)
         #after converting it to a tensor, the wrong dimention is expanded
-        scores = -scores.squeeze().unsqueeze(dim=1)
+        scores = -scores.squeeze(dim=0).unsqueeze(dim=1)
         #This was to print the scores it was going to save
         #print(scores.sum()/len(scores))
         #Just store this for later

@@ -474,6 +474,7 @@ def main_start():
     if hasattr(measurement,"writer"):
         measurement.writer.close()
     GenerateImages.main()
+    print("Finished Completely")
     
 
 

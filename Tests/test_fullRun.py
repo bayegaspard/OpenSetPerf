@@ -33,8 +33,6 @@ def testrunall():
     Tries all of the algorithms. Except Openmax
     """
     main.Config.unit_test_mode = True
-    if "Open" in main.Config.alg:
-        main.Config.alg.remove("Open")
     for x in main.Config.alg:
         main.Config.parameters["OOD Type"][0] = x
         main.run_model(graphDefault=False)
@@ -124,3 +122,19 @@ def testrunFromSave():
     measurement.level = 1
     main.torch.manual_seed(1)
     main.run_model(measurement,graphDefault=False)
+
+def testSingleBatch():
+    """
+    Batches with only single items in them were having problems this should test for them.
+    """
+    main.Config.unit_test_mode = True
+    main.Config.parameters["batch_size"][0] = 1
+    for x in main.Config.alg:
+        main.Config.parameters["OOD Type"][0] = x
+        main.run_model(graphDefault=False)
+
+# def testSingleBatch_Energy():
+#     main.Config.unit_test_mode = True
+#     main.Config.parameters["batch_size"][0] = 1
+#     main.Config.parameters["OOD Type"][0] = "Energy"
+#     main.run_model(graphDefault=False)

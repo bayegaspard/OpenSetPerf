@@ -317,8 +317,6 @@ class AttackTrainingClassification(nn.Module):
                 val_loss - the loss from the validation stage
                 val_acc - the accuract from the validation  stage. Note: this accuracy is not used in the save.
             
-        known issues:
-            batch size must be greater than 1. 
         """
         self.eval()
         t = time.time()
@@ -422,7 +420,7 @@ class AttackTrainingClassification(nn.Module):
         """
         self.eval()
         self.batchnum = 0
-        outputs = [self.evaluate_batch(batch) for batch in testset if len(batch)>1]  #Note: Some of the processes brake if the batch size is 1. (due to things not being lists.)
+        outputs = [self.evaluate_batch(batch) for batch in testset]
         return self.evaluation_epoch_end(outputs)
 
     def accuracy(self, outputs:torch.Tensor, labels):
