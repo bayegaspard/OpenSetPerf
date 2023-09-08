@@ -318,12 +318,12 @@ class EndLayers(nn.Module):
         This score is then checked against the cutoff value and if it is less than the cutoff the unknown column is set to 2.
         The rest of the columns are limited in the range (0,1) so argmax will always evaluate to the unknown if the cutoff is not reached.
         """
-        import CodeFromImplementations.OpenNet as OpenNet
+        import CodeFromImplementations.iiMod as iiMod
         unknowns = []
         for i in range(len(percentages)):
-            unknowns.append(OpenNet.outlier_score(percentages[i],self.iiLoss_means))
+            unknowns.append(iiMod.outlier_score(percentages[i],self.iiLoss_means))
         unknowns = torch.stack(unknowns)
-        percentages = OpenNet.iimod(percentages,self.iiLoss_means).softmax(dim=1)
+        percentages = iiMod.iimod(percentages,self.iiLoss_means).softmax(dim=1)
         
         self.rocData[1] = unknowns#I do not know if this is correct
         unknowns = 2*unknowns.less_equal(self.cutoff)
@@ -378,8 +378,8 @@ class EndLayers(nn.Module):
         """
         This just calculates and saves the means for each class for use in iiUnknown()
         """
-        import CodeFromImplementations.OpenNet as OpenNet
-        self.iiLoss_means = OpenNet.Algorithm_1(self.weibulInfo["loader"],self.weibulInfo["net"])
+        import CodeFromImplementations.iiMod as iiMod
+        self.iiLoss_means = iiMod.Algorithm_1(self.weibulInfo["loader"],self.weibulInfo["net"])
         return percentages
 
     #all functions here return a tensor, sometimes it has an extra column for unknowns
@@ -419,8 +419,8 @@ class EndLayers(nn.Module):
         iimod adds a training function that needs to be used in order to group the output logits.
         (Energy also adds an optional training function as well but we did not add it (iimod was more of a last minute addition))
         """
-        import CodeFromImplementations.OpenNet as OpenNet
-        OpenNet.singleBatch(batch,model)
+        import CodeFromImplementations.iiMod as iiMod
+        iiMod.singleBatch(batch,model)
 
     typesOfTrainMod = {"iiMod":iiTrain}
 
@@ -451,5 +451,8 @@ class EndLayers(nn.Module):
 
 
     def distance_by_batch(self,labels:torch.Tensor,outputs:torch.Tensor,means:list):
-        from CodeFromImplementations.OpenNet import intra_spread
+        """
+        Finds the distances using iiMod's intra_spread function.
+        """
+        from CodeFromImplementations.iiMod import intra_spread
         return intra_spread(outputs[:,Config.parameters["Knowns_clss"][0]][labels!=Config.parameters["CLASSES"][0]],means,labels[labels!=Config.parameters["CLASSES"][0]])
