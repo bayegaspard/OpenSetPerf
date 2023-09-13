@@ -11,7 +11,7 @@ from EndLayer import EndLayers
 import GPU
 import FileHandling
 import helperFunctions
-
+import Distance_Types
 
 import numpy as np
 from sklearn.metrics import (precision_score, recall_score, average_precision_score,accuracy_score,f1_score)
@@ -328,6 +328,7 @@ class AttackTrainingClassification(nn.Module):
         if self.keep_batch_saves:
             self.batch_saves_start()
             self.batch_saves_fucnt("Kind","Testing")
+            # removeHandle = self.sequencePackage.module.register_module_forward_hook(self.batch_fdHook())
         
         out = self(data)  # Generate predictions
         #zeross = GPU.to_device(torch.zeros(len(out),1),device)
@@ -400,6 +401,17 @@ class AttackTrainingClassification(nn.Module):
                 self.batch_saves_fucnt(f"Samples/Guesses of unknown classes",sampleCounts[mask].sum().item()/guessCounts[mask].sum().item())
             if self.end.end_type not in ["COOL","DOC"]:
                 self.batch_saves_fucnt("iiLoss_intra_spread",self.end.distance_by_batch(torch.argmax(out,dim=1).cpu(),out.cpu(),self.batch_saves_class_means).item())
+
+            #Calculating cluster distances
+            self.batch_fdHook.class_vals = out2
+            removeHandle = torch.nn.modules.module.register_module_forward_hook(self.batch_fdHook)
+            for distancetype in ["Cosine_dist","intra_spread"]:
+                self.batch_fdHook.distFunct = distancetype
+                self(data)
+                for name in self.batch_fdHook.distances.keys():
+                    self.batch_saves_fucnt(f"{self.batch_fdHook.distFunct} distance of {name}",self.batch_fdHook.distances[name].item())
+                self.batch_fdHook.distances = {}
+            removeHandle.remove()
             
 
         return {'val_loss': loss.detach(), 'val_acc': acc}
@@ -630,12 +642,17 @@ class AttackTrainingClassification(nn.Module):
         self.batch_saves_fucnt = funct
         self.eval()
 
+        self.batch_fdHook = Distance_Types.forwardHook()
+
         #get class means for intra spread
         if self.end.end_type != "COOL":
             if self.batch_saves_class_means == None:
                 print("Recalculating means Starting",flush=True)
+                removeHandle = self.end.register_forward_hook(self.batch_fdHook)
+                # removeHandle = self.end.weibulInfo["net"].sequencePackage.register_forward_hook()
                 self.end.iiLoss_Means(None)
                 self.batch_saves_class_means = self.end.iiLoss_means
+                removeHandle.remove()
                 print("Recalculating means Saved",flush=True)
         
 
