@@ -31,6 +31,23 @@ def class_means(Z:torch.Tensor,Y:torch.Tensor):
         means.append(sumofz/Cj)
     return means
 
+def class_means_from_loader(weibulInfo):
+    #Note, this masking is only due to how we are handling model outputs.
+    #If I was to design things again I would have designed the model outputs not to need this masking.
+    data_loader = weibulInfo["loader"]
+    model = weibulInfo["net"]
+
+    totalout = []
+    totallabel = []
+    for (X,Y) in data_loader:
+        #Getting the correct column (Nessisary for our label design)
+        y = Y[:,0]
+        Z = model(X).cpu()    #Step 2
+        totalout.append(Z)
+        totallabel.append(y)
+
+    return class_means(torch.cat(totalout,dim=0),torch.cat(totallabel,dim=0))
+
 
 class forwardHook():
     def __init__(self):
@@ -40,6 +57,7 @@ class forwardHook():
         self.distFunct = "intra_spread"
     
     def __call__(self,module:torch.nn.Module,input:torch.Tensor,output:torch.Tensor):
+        print("Forward hook called")
         if self.class_vals is None:
             if output.ndim == 2:
                 self.class_vals = output.argmax(dim=1).cpu()
@@ -56,9 +74,9 @@ class forwardHook():
     
 
 dist_types_dict = {
-    "Cosine_dist": lambda x1,x2: 1-torch.nn.functional.cosine_similarity(x1,x2).sum(),
-    "intra_spread": lambda x,y:torch.linalg.norm(x-y,dim=0).sum(),
-    "Euclidean? Distance": lambda x1,x2: torch.cdist(x1,x2).sum()
+    "Cosine_dist": lambda x1,x2: 1-torch.nn.functional.cosine_similarity(x1,x2[:,:len(x1)]).sum(),
+    "intra_spread": lambda x,y:torch.linalg.norm(x-y[:,:len(x)],dim=0).sum(),
+    "Euclidean? Distance": lambda x1,x2: torch.cdist(x1,x2[:,:len(x1)]).sum()
 }
 
 # torch.nn.modules.module.register_module_forward_hook(forwardHook())

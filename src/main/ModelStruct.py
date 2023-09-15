@@ -35,7 +35,8 @@ class AttackTrainingClassification(nn.Module):
     """This is the Default Model for the project"""
     def __init__(self,mode="Soft",numberOfFeatures=1504):
         super().__init__()
-
+        if not Config.dataparallel:
+            self.module = self #added this to be able to disable dataparalell
         self.maxpooling = [4,2]
         self.convolutional_channels = [32,64]
         
@@ -152,7 +153,8 @@ class AttackTrainingClassification(nn.Module):
         else:
             self.sequencePackage.append(self.COOL)
         
-        self.sequencePackage = nn.DataParallel(self.sequencePackage)
+        if Config.dataparallel:
+            self.sequencePackage = nn.DataParallel(self.sequencePackage)
 
 
         self.batch_saves_identifier = "No Identification Set"
@@ -400,7 +402,8 @@ class AttackTrainingClassification(nn.Module):
             if guessCounts[mask].sum().item()!=0:
                 self.batch_saves_fucnt(f"Samples/Guesses of unknown classes",sampleCounts[mask].sum().item()/guessCounts[mask].sum().item())
             if self.end.end_type not in ["COOL","DOC"]:
-                self.batch_saves_fucnt("iiLoss_intra_spread",self.end.distance_by_batch(torch.argmax(out,dim=1).cpu(),out.cpu(),self.batch_saves_class_means).item())
+                self.batch_saves_fucnt("intra_spread_Endlayer",Distance_Types.distance_measures(out.cpu(),self.batch_fdHook.means["End"],torch.argmax(out,dim=1).cpu(),Distance_Types.dist_types_dict["intra_spread"]).item())
+                self.batch_saves_fucnt("Cosine_dist_Endlayer",Distance_Types.distance_measures(out.cpu(),self.batch_fdHook.means["End"],torch.argmax(out,dim=1).cpu(),Distance_Types.dist_types_dict["Cosine_dist"]).item())
 
             #Calculating cluster distances
             self.batch_fdHook.class_vals = out2
@@ -646,13 +649,13 @@ class AttackTrainingClassification(nn.Module):
 
         #get class means for intra spread
         if self.end.end_type != "COOL":
+            if len(self.batch_fdHook.means) == 0:
+                self.batch_fdHook.means["End"] = Distance_Types.class_means_from_loader(self.end.weibulInfo)
             if self.batch_saves_class_means == None:
                 print("Recalculating means Starting",flush=True)
-                removeHandle = self.end.register_forward_hook(self.batch_fdHook)
                 # removeHandle = self.end.weibulInfo["net"].sequencePackage.register_forward_hook()
                 self.end.iiLoss_Means(None)
                 self.batch_saves_class_means = self.end.iiLoss_means
-                removeHandle.remove()
                 print("Recalculating means Saved",flush=True)
         
 
@@ -681,7 +684,10 @@ class Conv1DClassifier(AttackTrainingClassification):
         sequencePackage.append(self.layer2)
         if self.end.end_type!="DOC":
             sequencePackage.append(self.sequencePackage.module)
-            self.sequencePackage = nn.DataParallel(sequencePackage)
+            if Config.dataparallel:
+                self.sequencePackage = nn.DataParallel(sequencePackage)
+            else:
+                self.sequencePackage = sequencePackage
 
         
         
@@ -709,7 +715,10 @@ class FullyConnected(AttackTrainingClassification):
         sequencePackage.append(self.layer2)
         if self.end.end_type!="DOC":
             sequencePackage.append(self.sequencePackage.module)
-            self.sequencePackage = nn.DataParallel(sequencePackage)
+            if Config.dataparallel:
+                self.sequencePackage = nn.DataParallel(sequencePackage)
+            else:
+                self.sequencePackage = sequencePackage
 
 
 

@@ -59,7 +59,8 @@ def run_model(measurement=None, graphDefault=False):
     model = model_list[Config.parameters["model"][0]](mode=Config.parameters["OOD Type"][0],numberOfFeatures=FileHandling.getDatagroup()[0].data_length) # change index to select a specific architecture.
 
     #This initializes the data-parallization which hopefully splits the training time over all of the connected GPUs
-    model = ModelStruct.ModdedParallel(model)#I dont atcutally think this works the way we are using it, trying something new.
+    if Config.dataparallel:
+        model = ModelStruct.ModdedParallel(model)#I dont atcutally think this works the way we are using it, trying something new.
     assert isinstance(model.module,ModelStruct.AttackTrainingClassification)#adding this purely for the linter, so that it knows exactly what the model is.
 
     #This selects the default cutoff value

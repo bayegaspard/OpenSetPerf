@@ -265,3 +265,4 @@ parameters["Version"] = [f.read(),"The version number"]
 
 save_as_tensorboard = True
 datasetRandomOffset =True
+dataparallel = True
