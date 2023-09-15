@@ -39,14 +39,18 @@ def class_means_from_loader(weibulInfo):
 
     totalout = []
     totallabel = []
+    classmeans = None
     for (X,Y) in data_loader:
         #Getting the correct column (Nessisary for our label design)
         y = Y[:,0]
         Z = model(X).cpu()    #Step 2
-        totalout.append(Z)
-        totallabel.append(y)
+        if len(Z) == Config.parameters["batch_size"][0]:
+            classmeans = [x+y for x,y in zip(classmeans,class_means(Z,y))]
+        elif classmeans is None:
+            classmeans = class_means(Z,y)
 
-    return class_means(torch.cat(totalout,dim=0),torch.cat(totallabel,dim=0))
+
+    return classmeans
 
 
 class forwardHook():

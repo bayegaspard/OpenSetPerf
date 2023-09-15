@@ -132,7 +132,7 @@ class AttackTrainingClassification(nn.Module):
         self.los = False
         self.end.end_type = mode
         self.keep_batch_saves = False
-        self.batch_saves_class_means = None
+        self.batch_fdHook = None
 
 
 
@@ -517,8 +517,8 @@ class AttackTrainingClassification(nn.Module):
             "parameter_keys": list(Config.parameters.keys()),
             "parameters": Config.parameters
         }
-        if not net.batch_saves_class_means is None:
-            to_save["batchSaveClassMeans"] = net.batch_saves_class_means
+        if not net.batch_fdHook is None:
+            to_save["batchSaveClassMeans"] = net.batch_fdHook.means
         to_save["parameter_keys"].remove("optimizer")
         to_save["parameter_keys"].remove("Unknowns")
         torch.save(to_save, path + f"/Epoch{epoch:03d}{Config.parameters['OOD Type'][0]}")
@@ -562,7 +562,8 @@ class AttackTrainingClassification(nn.Module):
                 print(f"Warning: Model trained with {x} as an unknown.")
         net.load_state_dict(loaded["model_state"])
         if "batchSaveClassMeans" in loaded.keys():
-            net.batch_saves_class_means = loaded["batchSaveClassMeans"]
+            net.batch_fdHook = Distance_Types.forwardHook()
+            net.batch_fdHook.means = loaded["batchSaveClassMeans"]
 
         return epochFound
 
@@ -650,13 +651,9 @@ class AttackTrainingClassification(nn.Module):
         #get class means for intra spread
         if self.end.end_type != "COOL":
             if len(self.batch_fdHook.means) == 0:
+                # print("Recalculating means Starting",flush=True)
                 self.batch_fdHook.means["End"] = Distance_Types.class_means_from_loader(self.end.weibulInfo)
-            if self.batch_saves_class_means == None:
-                print("Recalculating means Starting",flush=True)
-                # removeHandle = self.end.weibulInfo["net"].sequencePackage.register_forward_hook()
-                self.end.iiLoss_Means(None)
-                self.batch_saves_class_means = self.end.iiLoss_means
-                print("Recalculating means Saved",flush=True)
+                # print("Recalculating means Saved",flush=True)
         
 
 
@@ -683,10 +680,11 @@ class Conv1DClassifier(AttackTrainingClassification):
         sequencePackage.append(self.layer1)
         sequencePackage.append(self.layer2)
         if self.end.end_type!="DOC":
-            sequencePackage.append(self.sequencePackage.module)
             if Config.dataparallel:
+                sequencePackage.append(self.sequencePackage.module)
                 self.sequencePackage = nn.DataParallel(sequencePackage)
             else:
+                sequencePackage.append(self.sequencePackage)
                 self.sequencePackage = sequencePackage
 
         
@@ -714,10 +712,11 @@ class FullyConnected(AttackTrainingClassification):
         sequencePackage.append(self.layer1)
         sequencePackage.append(self.layer2)
         if self.end.end_type!="DOC":
-            sequencePackage.append(self.sequencePackage.module)
             if Config.dataparallel:
+                sequencePackage.append(self.sequencePackage.module)
                 self.sequencePackage = nn.DataParallel(sequencePackage)
             else:
+                sequencePackage.append(self.sequencePackage)
                 self.sequencePackage = sequencePackage
 
 
