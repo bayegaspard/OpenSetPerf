@@ -1,5 +1,6 @@
 import torch
 import Config
+import math
 
 #Code from the iiMod file
 def distance_measures(Z:torch.Tensor,means:list,Y:torch.Tensor,distFunct)->torch.Tensor:
@@ -15,7 +16,7 @@ def distance_measures(Z:torch.Tensor,means:list,Y:torch.Tensor,distFunct)->torch
         # mask = Y==[0,1,2][j]
         
         #torch.flatten(x,start_dim=1,end_dim=-1)
-        intraspread += distFunct(means[j],Z[mask])
+        intraspread += distFunct(means[j].cpu(),Z.cpu()[mask.cpu()])
     
     return intraspread/N
 
@@ -43,14 +44,28 @@ def class_means_from_loader(weibulInfo):
     for (X,Y) in data_loader:
         #Getting the correct column (Nessisary for our label design)
         y = Y[:,0]
-        Z = model(X).cpu()    #Step 2
-        if len(Z) == Config.parameters["batch_size"][0]:
-            classmeans = [x+y for x,y in zip(classmeans,class_means(Z,y))]
-        elif classmeans is None:
+        Z = model(X)    #Step 2
+        if classmeans is None:
             classmeans = class_means(Z,y)
+        elif len(Z) == Config.parameters["batch_size"][0]:
+            classmeans = [x+y for x,y in zip(classmeans,class_means(Z,y))]
 
 
     return classmeans
+
+#Derived from ChatGPT. Apparently.
+def euclidean_distance(point1, point2):
+    if len(point1) != len(point2):
+        raise ValueError("Points must have the same dimensions")
+
+    squared_distance = sum((p1 - p2) ** 2 for p1, p2 in zip(point1, point2))
+    if squared_distance.dim()>0: #ADDED LINE
+        distance = [math.sqrt(x) for x in squared_distance]#ADDED LINE
+    else:#ADDED LINE
+        distance = math.sqrt(squared_distance)
+    
+    
+    return distance
 
 
 class forwardHook():
@@ -61,7 +76,7 @@ class forwardHook():
         self.distFunct = "intra_spread"
     
     def __call__(self,module:torch.nn.Module,input:torch.Tensor,output:torch.Tensor):
-        print("Forward hook called")
+        # print("Forward hook called")
         if self.class_vals is None:
             if output.ndim == 2:
                 self.class_vals = output.argmax(dim=1).cpu()
@@ -80,7 +95,7 @@ class forwardHook():
 dist_types_dict = {
     "Cosine_dist": lambda x1,x2: 1-torch.nn.functional.cosine_similarity(x1,x2[:,:len(x1)]).sum(),
     "intra_spread": lambda x,y:torch.linalg.norm(x-y[:,:len(x)],dim=0).sum(),
-    "Euclidean? Distance": lambda x1,x2: torch.cdist(x1,x2[:,:len(x1)]).sum()
+    "Euclidean Distance": lambda x1,x2: torch.tensor([euclidean_distance(x1,y2) for y2 in x2[:,:len(x1)]]).sum()
 }
 
 # torch.nn.modules.module.register_module_forward_hook(forwardHook())

@@ -35,8 +35,6 @@ class AttackTrainingClassification(nn.Module):
     """This is the Default Model for the project"""
     def __init__(self,mode="Soft",numberOfFeatures=1504):
         super().__init__()
-        if not Config.dataparallel:
-            self.module = self #added this to be able to disable dataparalell
         self.maxpooling = [4,2]
         self.convolutional_channels = [32,64]
         
@@ -179,7 +177,7 @@ class AttackTrainingClassification(nn.Module):
         x = self.sequencePackage(x)
         return x
         
-    def fit(self, epochs, lr, train_loader, test_loader,val_loader, opt_func, measurement=None, epoch_record_rate = 5):
+    def fit(self, epochs, lr, train_loader, val_loader, opt_func, measurement=None):
         """
         Trains the model on the train_loader and evaluates it off of the val_loader. Also it stores all of the results in model.store.
         It also generates a new line of ScoresAll.csv that stores all of the data for this model. (note: if you are running two threads at once the data will be overriden)
@@ -404,11 +402,12 @@ class AttackTrainingClassification(nn.Module):
             if self.end.end_type not in ["COOL","DOC"]:
                 self.batch_saves_fucnt("intra_spread_Endlayer",Distance_Types.distance_measures(out.cpu(),self.batch_fdHook.means["End"],torch.argmax(out,dim=1).cpu(),Distance_Types.dist_types_dict["intra_spread"]).item())
                 self.batch_saves_fucnt("Cosine_dist_Endlayer",Distance_Types.distance_measures(out.cpu(),self.batch_fdHook.means["End"],torch.argmax(out,dim=1).cpu(),Distance_Types.dist_types_dict["Cosine_dist"]).item())
+                self.batch_saves_fucnt("Euclidean Distance",Distance_Types.distance_measures(out.cpu(),self.batch_fdHook.means["End"],torch.argmax(out,dim=1).cpu(),Distance_Types.dist_types_dict["Cosine_dist"]).item())
 
             #Calculating cluster distances
             self.batch_fdHook.class_vals = out2
             removeHandle = torch.nn.modules.module.register_module_forward_hook(self.batch_fdHook)
-            for distancetype in ["Cosine_dist","intra_spread"]:
+            for distancetype in ["Cosine_dist","intra_spread","Euclidean Distance"]:
                 self.batch_fdHook.distFunct = distancetype
                 self(data)
                 for name in self.batch_fdHook.distances.keys():
