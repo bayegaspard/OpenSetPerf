@@ -77,19 +77,19 @@ class forwardHook():
     
     def __call__(self,module:torch.nn.Module,input:torch.Tensor,output:torch.Tensor):
         # print("Forward hook called")
+        name = f"{module._get_name()}_{id(module)},{output.size()}"
         if self.class_vals is None:
             if output.ndim == 2:
                 self.class_vals = output.argmax(dim=1).cpu()
             else:
                 self.class_vals = output.cpu()
         else:
-            if not module._get_name() in self.means.keys():
-                self.means[module._get_name()] = class_means(output,self.class_vals)
-            if not module._get_name() in self.distances.keys():
-                self.distances[module._get_name()] = distance_measures(output,self.means[module._get_name()],self.class_vals,dist_types_dict[self.distFunct])
+            if not name in self.means.keys():
+                self.means[name] = class_means(output,self.class_vals)
+            if not name in self.distances.keys():
+                self.distances[name] = distance_measures(output,self.means[name],self.class_vals,dist_types_dict[self.distFunct])
             else:
-                pass
-                # self.distances[module._get_name()] += distance_measures(output,self.means[module._get_name()],self.class_vals,dist_types_dict[self.distFunct])
+                self.distances[name] += distance_measures(output,self.means[name],self.class_vals,dist_types_dict[self.distFunct])
     
 
 dist_types_dict = {
