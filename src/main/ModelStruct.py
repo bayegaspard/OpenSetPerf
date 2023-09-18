@@ -11,7 +11,7 @@ from EndLayer import EndLayers
 import GPU
 import FileHandling
 import helperFunctions
-
+import Distance_Types
 
 import numpy as np
 from sklearn.metrics import (precision_score, recall_score, average_precision_score,accuracy_score,f1_score)
@@ -35,7 +35,6 @@ class AttackTrainingClassification(nn.Module):
     """This is the Default Model for the project"""
     def __init__(self,mode="Soft",numberOfFeatures=1504):
         super().__init__()
-
         self.maxpooling = [4,2]
         self.convolutional_channels = [32,64]
         
@@ -131,7 +130,7 @@ class AttackTrainingClassification(nn.Module):
         self.los = False
         self.end.end_type = mode
         self.keep_batch_saves = False
-        self.batch_saves_class_means = None
+        self.batch_fdHook = None
 
 
 
@@ -152,7 +151,8 @@ class AttackTrainingClassification(nn.Module):
         else:
             self.sequencePackage.append(self.COOL)
         
-        self.sequencePackage = nn.DataParallel(self.sequencePackage)
+        if Config.dataparallel:
+            self.sequencePackage = nn.DataParallel(self.sequencePackage)
 
 
         self.batch_saves_identifier = "No Identification Set"
@@ -177,7 +177,7 @@ class AttackTrainingClassification(nn.Module):
         x = self.sequencePackage(x)
         return x
         
-    def fit(self, epochs, lr, train_loader, test_loader,val_loader, opt_func, measurement=None, epoch_record_rate = 5):
+    def fit(self, epochs, lr, train_loader, val_loader, opt_func, measurement=None):
         """
         Trains the model on the train_loader and evaluates it off of the val_loader. Also it stores all of the results in model.store.
         It also generates a new line of ScoresAll.csv that stores all of the data for this model. (note: if you are running two threads at once the data will be overriden)
@@ -317,8 +317,6 @@ class AttackTrainingClassification(nn.Module):
                 val_loss - the loss from the validation stage
                 val_acc - the accuract from the validation  stage. Note: this accuracy is not used in the save.
             
-        known issues:
-            batch size must be greater than 1. 
         """
         self.eval()
         t = time.time()
@@ -330,6 +328,7 @@ class AttackTrainingClassification(nn.Module):
         if self.keep_batch_saves:
             self.batch_saves_start()
             self.batch_saves_fucnt("Kind","Testing")
+            # removeHandle = self.sequencePackage.module.register_module_forward_hook(self.batch_fdHook())
         
         out = self(data)  # Generate predictions
         #zeross = GPU.to_device(torch.zeros(len(out),1),device)
@@ -401,7 +400,20 @@ class AttackTrainingClassification(nn.Module):
             if guessCounts[mask].sum().item()!=0:
                 self.batch_saves_fucnt(f"Samples/Guesses of unknown classes",sampleCounts[mask].sum().item()/guessCounts[mask].sum().item())
             if self.end.end_type not in ["COOL","DOC"]:
-                self.batch_saves_fucnt("iiLoss_intra_spread",self.end.distance_by_batch(torch.argmax(out,dim=1).cpu(),out.cpu(),self.batch_saves_class_means).item())
+                self.batch_saves_fucnt("intra_spread_Endlayer",Distance_Types.distance_measures(out.cpu(),self.batch_fdHook.means["End"],torch.argmax(out,dim=1).cpu(),Distance_Types.dist_types_dict["intra_spread"]).item())
+                self.batch_saves_fucnt("Cosine_dist_Endlayer",Distance_Types.distance_measures(out.cpu(),self.batch_fdHook.means["End"],torch.argmax(out,dim=1).cpu(),Distance_Types.dist_types_dict["Cosine_dist"]).item())
+                self.batch_saves_fucnt("Euclidean Distance",Distance_Types.distance_measures(out.cpu(),self.batch_fdHook.means["End"],torch.argmax(out,dim=1).cpu(),Distance_Types.dist_types_dict["Cosine_dist"]).item())
+
+            #Calculating cluster distances
+            self.batch_fdHook.class_vals = out2
+            removeHandle = torch.nn.modules.module.register_module_forward_hook(self.batch_fdHook)
+            for distancetype in ["Cosine_dist","intra_spread","Euclidean Distance"]:
+                self.batch_fdHook.distFunct = distancetype
+                self(data)
+                for name in self.batch_fdHook.distances.keys():
+                    self.batch_saves_fucnt(f"{self.batch_fdHook.distFunct} distance of {name}",self.batch_fdHook.distances[name].item())
+                self.batch_fdHook.distances = {}
+            removeHandle.remove()
             
 
         return {'val_loss': loss.detach(), 'val_acc': acc}
@@ -422,7 +434,7 @@ class AttackTrainingClassification(nn.Module):
         """
         self.eval()
         self.batchnum = 0
-        outputs = [self.evaluate_batch(batch) for batch in testset if len(batch)>1]  #Note: Some of the processes brake if the batch size is 1. (due to things not being lists.)
+        outputs = [self.evaluate_batch(batch) for batch in testset]
         return self.evaluation_epoch_end(outputs)
 
     def accuracy(self, outputs:torch.Tensor, labels):
@@ -504,8 +516,8 @@ class AttackTrainingClassification(nn.Module):
             "parameter_keys": list(Config.parameters.keys()),
             "parameters": Config.parameters
         }
-        if not net.batch_saves_class_means is None:
-            to_save["batchSaveClassMeans"] = net.batch_saves_class_means
+        if not net.batch_fdHook is None:
+            to_save["batchSaveClassMeans"] = net.batch_fdHook.means
         to_save["parameter_keys"].remove("optimizer")
         to_save["parameter_keys"].remove("Unknowns")
         torch.save(to_save, path + f"/Epoch{epoch:03d}{Config.parameters['OOD Type'][0]}")
@@ -549,7 +561,8 @@ class AttackTrainingClassification(nn.Module):
                 print(f"Warning: Model trained with {x} as an unknown.")
         net.load_state_dict(loaded["model_state"])
         if "batchSaveClassMeans" in loaded.keys():
-            net.batch_saves_class_means = loaded["batchSaveClassMeans"]
+            net.batch_fdHook = Distance_Types.forwardHook()
+            net.batch_fdHook.means = loaded["batchSaveClassMeans"]
 
         return epochFound
 
@@ -632,13 +645,14 @@ class AttackTrainingClassification(nn.Module):
         self.batch_saves_fucnt = funct
         self.eval()
 
+        self.batch_fdHook = Distance_Types.forwardHook()
+
         #get class means for intra spread
         if self.end.end_type != "COOL":
-            if self.batch_saves_class_means == None:
-                print("Recalculating means Starting",flush=True)
-                self.end.iiLoss_Means(None)
-                self.batch_saves_class_means = self.end.iiLoss_means
-                print("Recalculating means Saved",flush=True)
+            if len(self.batch_fdHook.means) == 0:
+                # print("Recalculating means Starting",flush=True)
+                self.batch_fdHook.means["End"] = Distance_Types.class_means_from_loader(self.end.weibulInfo)
+                # print("Recalculating means Saved",flush=True)
         
 
 
@@ -665,8 +679,12 @@ class Conv1DClassifier(AttackTrainingClassification):
         sequencePackage.append(self.layer1)
         sequencePackage.append(self.layer2)
         if self.end.end_type!="DOC":
-            sequencePackage.append(self.sequencePackage.module)
-            self.sequencePackage = nn.DataParallel(sequencePackage)
+            if Config.dataparallel:
+                sequencePackage.append(self.sequencePackage.module)
+                self.sequencePackage = nn.DataParallel(sequencePackage)
+            else:
+                sequencePackage.append(self.sequencePackage)
+                self.sequencePackage = sequencePackage
 
         
         
@@ -693,8 +711,12 @@ class FullyConnected(AttackTrainingClassification):
         sequencePackage.append(self.layer1)
         sequencePackage.append(self.layer2)
         if self.end.end_type!="DOC":
-            sequencePackage.append(self.sequencePackage.module)
-            self.sequencePackage = nn.DataParallel(sequencePackage)
+            if Config.dataparallel:
+                sequencePackage.append(self.sequencePackage.module)
+                self.sequencePackage = nn.DataParallel(sequencePackage)
+            else:
+                sequencePackage.append(self.sequencePackage)
+                self.sequencePackage = sequencePackage
 
 
 

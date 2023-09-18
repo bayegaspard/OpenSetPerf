@@ -21,47 +21,45 @@ main.Config.parameters["MaxPerClass"][0] = 10
 main.Config.parameters["LOOP"][0] = 0
 main.Config.datasetRandomOffset = False
 
-def testrun():
-    """
-    Tests if everything runs properly in a single run.
-    """
-    main.Config.unit_test_mode = True
-    main.run_model(graphDefault=False)
+# def testrun():
+#     """
+#     Tests if everything runs properly in a single run.
+#     """
+#     main.Config.unit_test_mode = True
+#     main.run_model(graphDefault=False)
 
 def testrunall():
     """
     Tries all of the algorithms. Except Openmax
     """
     main.Config.unit_test_mode = True
-    if "Open" in main.Config.alg:
-        main.Config.alg.remove("Open")
     for x in main.Config.alg:
         main.Config.parameters["OOD Type"][0] = x
         main.run_model(graphDefault=False)
 
-def testrunEnergy():
-    """
-    Tries Energy as it gets some of the more intresting outputs even if it does not train much.
-    """
-    main.Config.unit_test_mode = True
-    main.Config.parameters["OOD Type"][0] = "Energy"
-    main.run_model(graphDefault=False)
+# def testrunEnergy():
+#     """
+#     Tries Energy as it gets some of the more intresting outputs even if it does not train much.
+#     """
+#     main.Config.unit_test_mode = True
+#     main.Config.parameters["OOD Type"][0] = "Energy"
+#     main.run_model(graphDefault=False)
 
-def testrunDOC():
-    """
-    DOC is being problematic.
-    """
-    main.Config.unit_test_mode = True
-    main.Config.parameters["OOD Type"][0] = "DOC"
-    main.run_model(graphDefault=False)
+# def testrunDOC():
+#     """
+#     DOC is being problematic.
+#     """
+#     main.Config.unit_test_mode = True
+#     main.Config.parameters["OOD Type"][0] = "DOC"
+#     main.run_model(graphDefault=False)
 
-def testrunOpen():
-    """
-    Openmax is being problematic.
-    """
-    main.Config.unit_test_mode = True
-    main.Config.parameters["OOD Type"][0] = "Open"
-    main.run_model(graphDefault=False)
+# def testrunOpen():
+#     """
+#     Openmax is being problematic.
+#     """
+#     main.Config.unit_test_mode = True
+#     main.Config.parameters["OOD Type"][0] = "Open"
+#     main.run_model(graphDefault=False)
 
 def testLoadDataset():
     main.torch.manual_seed(1)

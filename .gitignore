@@ -28,5 +28,6 @@ test concat scores.py
 test copy.py
 test concat duplication problems.py
 log.txt
+log_*.txt
 Saves/Scoresall.csv
 runs/*

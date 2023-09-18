@@ -24,7 +24,7 @@ def test_images():
         pytest.skip("No score file to test graphing with.")
     GenerateImages.main(save=False)
 
-def test_validation():
+def test_validation_dataset():
     train, test, val = FileHandling.checkAttempLoad("")
     val = DataLoader(val, parameters["batch_size"][0], shuffle=True, num_workers=0, pin_memory=False)
     for batch in val:

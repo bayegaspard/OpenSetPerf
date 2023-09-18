@@ -142,6 +142,10 @@ def testConsecutaveDimentions_c():
     assert torch.all(consecutive_tensor[consecutive_tensor.max(dim=1)[0].gt(0)].argmax(dim=1)==consecutive_labels[consecutive_tensor.max(dim=1)[0].gt(0),0])
 
 def testRemovedVals():
+    """
+    Removes empty values using helperfunctions.relabel and then adds them back using helperfunctions.rerelabel
+    Then checks if the initial tensor is the same as the new tensor.
+    """
     tensor = torch.tensor(list(range(Config.parameters["CLASSES"][0])))
     newTensor = tensor.clone()
     newTensor = helperFunctions.renameClasses(newTensor)

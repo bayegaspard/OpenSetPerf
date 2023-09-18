@@ -1,6 +1,4 @@
 import torch
-import pandas as pd
-import os
 import sys
 import argparse
 
@@ -265,3 +263,4 @@ parameters["Version"] = [f.read(),"The version number"]
 
 save_as_tensorboard = True
 datasetRandomOffset =True
+dataparallel = True
