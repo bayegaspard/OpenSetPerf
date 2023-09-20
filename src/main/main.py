@@ -8,6 +8,7 @@ from sklearn.metrics import roc_auc_score, roc_curve, RocCurveDisplay
 import pandas as pd
 from torch.utils.tensorboard import SummaryWriter           #https://pytorch.org/docs/stable/tensorboard.html
 import tqdm
+import resource
 
 # user defined modules
 import GPU, FileHandling
@@ -27,6 +28,7 @@ if __name__ == "__main__":
 #useful variables
 opt_func = Config.parameters["optimizer"]
 device = GPU.get_default_device() # selects a device, cpu or gpu
+memuse = -1
 
 def run_model(measurement=None, graphDefault=False):
     """
@@ -240,7 +242,15 @@ def run_model(measurement=None, graphDefault=False):
     del trainset._iterator
     del validationset._iterator
     del testset._iterator
+    global memuse
+    if memuse < 0:
+        memuse = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+    else:
+        new_memuse = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+        print(f"Mem Usage: {new_memuse - memuse}")
+        memuse = new_memuse
     plt.close()
+    model.savePoint("Saves/models",epoch=model.epoch)
 
 def runExistingModel(model:ModelStruct.AttackTrainingClassification,data,name,history_final,class_names,measurement=None,graphDefault = False, print_vals = False):
     """
