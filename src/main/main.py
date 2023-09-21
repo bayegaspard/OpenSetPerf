@@ -265,6 +265,7 @@ def runExistingModel(model:ModelStruct.AttackTrainingClassification,data,name,hi
         measurement (optional) - Function that is passed the results from the model in the form of (type_of_data,value_of_data)
         graphDefault - the default for desplaying graphs, normally False
     """
+    print(f"Running model with data/section: {name}")
     if measurement is None:
         measurement = FileHandling.Score_saver()
     #Resets the stored values that are used to generate the above values.

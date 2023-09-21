@@ -649,9 +649,10 @@ class AttackTrainingClassification(nn.Module):
         
 
         #get class means for intra spread
+        if self.batch_fdHook is None:
+            self.batch_fdHook = Distance_Types.forwardHook()
         if self.end.end_type != "COOL":
-            if (not self.batch_fdHook is None) and len(self.batch_fdHook.means) == 0:
-                self.batch_fdHook = Distance_Types.forwardHook()
+            if len(self.batch_fdHook.means) == 0:
                 # print("Recalculating means Starting",flush=True)
                 self.batch_fdHook.means["End"] = Distance_Types.class_means_from_loader(self.end.weibulInfo)
                 # print("Recalculating means Saved",flush=True)
