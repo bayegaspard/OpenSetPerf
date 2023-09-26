@@ -77,7 +77,7 @@ class forwardHook():
     
     def __call__(self,module:torch.nn.Module,input:torch.Tensor,output:torch.Tensor):
         # print("Forward hook called")
-        name = f"{module._get_name()}_{id(module)},{output.size()}"
+        name = f"{module._get_name()}_{output[0].size()}"
         if self.class_vals is None:
             if output.ndim == 2:
                 self.class_vals = output.argmax(dim=1).cpu()

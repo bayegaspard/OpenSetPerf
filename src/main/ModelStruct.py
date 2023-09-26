@@ -264,6 +264,7 @@ class AttackTrainingClassification(nn.Module):
 
                     history.append(result)
                     self.los.collect(measurement)
+                    self.epoch = epoch+startingEpoch
         else:
             # Validation phase
             epoch = self.loadPoint("Saves/models")
@@ -272,6 +273,7 @@ class AttackTrainingClassification(nn.Module):
             self.epoch_end(epoch, result)
             #print("result", result)
             history.append(result)
+            self.epoch = epoch
         return history
 
 
@@ -644,10 +646,11 @@ class AttackTrainingClassification(nn.Module):
             function(name,val,fileName="BatchSaves.csv")
         self.batch_saves_fucnt = funct
         self.eval()
-
-        self.batch_fdHook = Distance_Types.forwardHook()
+        
 
         #get class means for intra spread
+        if self.batch_fdHook is None:
+            self.batch_fdHook = Distance_Types.forwardHook()
         if self.end.end_type != "COOL":
             if len(self.batch_fdHook.means) == 0:
                 # print("Recalculating means Starting",flush=True)
