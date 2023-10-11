@@ -13,7 +13,7 @@ if __name__ != "Config":
     #         pass
     #     raise doubleImport
     print(f"A POSSIBLE PROBLEM HAS OCCURED, Config was loaded improperly, from {__name__} instead of directly\
-    this might break some global variables by having two copies",file=sys.stderr)
+    this might break some global variables by having two copies", file=sys.stderr)
 
 #TODO: Rework config so that it is less janky and uses less bad practices of global variables. 
 # Possibly by moving HelperFunctions Loop functions to outside of the program 
@@ -41,24 +41,25 @@ def loopOverUnknowns(unknownlist=False):
     if len(knownVals)<2:
         print("Too few knowns, things might break")
     parameters["Unknowns"] = f"{len(unknownlist)} Unknowns"
-    parameters["Unknowns_clss"] = [unknownlist,"Values used for testing"]
-    parameters["Knowns_clss"] = [knownVals,"Values used for training"]
+    parameters["Unknowns_clss"] = [unknownlist, "Values used for testing"]
+    parameters["Knowns_clss"] = [knownVals, "Values used for training"]
     return knownVals
 
 #This is the diffrent optimization functions
-opt_func = {"Adam":torch.optim.Adam,"SGD":torch.optim.SGD, "RMSprop":torch.optim.RMSprop}
+opt_func = {"Adam":torch.optim.Adam, "SGD":torch.optim.SGD, "RMSprop":torch.optim.RMSprop}
 
 
 #Here are all of the paremeters for the model.
 parameters = {
     #These parameters are orginized like this:
-    #"ParamName":[Value,"Description",[possible values]]
+    #"ParamName":[Value, "Description", [possible values]]
     #for a parameter called "ParamName" with a value of Value
     "batch_size":[100000, "Number of items per batch"],
     "num_workers":[14, "Number of threads working on building batches"],
-    "attemptLoad":[0, "0: do not use saves\n1:use saves"],
+    "attemptLoadModel":[0, "0: do not use saves for the model\n1:use saves for the model"],
+    "attemptLoadData":[0, "0: do not use saves for the dataset\n1:use saves for the dataset"],
     "testlength":[1/4, "[0,1) percentage of training to test with"],
-    "Mix unknowns and validation": [1,"0 or 1, 0 means that the test set is purely unknowns and 1 means that the testset is the validation set plus unknowns (for testing)"],
+    "Mix unknowns and validation": [0,"0 or 1, 0 means that the test set is purely unknowns and 1 means that the testset is the validation set plus unknowns (for testing)"],
     "MaxPerClass": [1000, "Maximum number of samples per class\n if Dataloader_Variation is Cluster and this value is a float it interprets it as the maximum percentage of the class instead."],
     "num_epochs":[150,"Number of times it trains on the whole trainset"],
     "learningRate":[0.001, "a modifier for training"],
@@ -83,46 +84,47 @@ parameters = {
     "4: Loop through predefined hyperparameters found in datasets/hyperparamList.csv"],
     "Dataset": ["Payload_data_CICIDS2017", "This is what dataset we are using,", ["Payload_data_CICIDS2017","Payload_data_UNSW"]],
     "SchedulerStepSize": [10, "This is how often the scheduler takes a step, 3 means every third epoch"],
-    "SchedulerStep": [0.9,"This is how big a step the scheduler takes, leave 0 for no step"]
+    "SchedulerStep": [0.9,"This is how big a step the scheduler takes, leave 0 for no step"],
+    "ApplyPrelimSoft": [1, "This says to use a preliminary softmax and only use unknown detection on things that fail the softmax unknown detection"]
 }
 
 
 #Argparse tutorial: https://docs.python.org/3/howto/argparse.html 
 parser = argparse.ArgumentParser()
 for x in parameters.keys():
-    if x in ["batch_size","num_workers","MaxPerClass","num_epochs","Degree of Overcompleteness","Number of Layers","Nodes","SchedulerStepSize"]:
-        parser.add_argument(f"--{x}",type=int,default=parameters[x][0],help=parameters[x][1],required=False)
-    if x in ["testlength","learningRate","threshold","Dropout","Temperature","SchedulerStep"]:
-        parser.add_argument(f"--{x}",type=float,default=parameters[x][0],help=parameters[x][1],required=False)
-    if x in ["attemptLoad","Mix unknowns and validation"]:
-        parser.add_argument(f"--{x}",type=int,choices=[1,0],default=parameters[x][0],help=parameters[x][1],required=False)
+    if x in ["batch_size", "num_workers", "MaxPerClass", "num_epochs", "Degree of Overcompleteness", "Number of Layers", "Nodes", "SchedulerStepSize"]:
+        parser.add_argument(f"--{x}", type=int, default=parameters[x][0], help=parameters[x][1], required=False)
+    if x in ["testlength", "learningRate", "threshold", "Dropout", "Temperature", "SchedulerStep"]:
+        parser.add_argument(f"--{x}", type=float, default=parameters[x][0], help=parameters[x][1], required=False)
+    if x in ["attemptLoadModel", "attemptLoadData","Mix unknowns and validation","ApplyPrelimSoft"]:
+        parser.add_argument(f"--{x}", type=int, choices=[1, 0], default=parameters[x][0], help=parameters[x][1], required=False)
     if x in ["LOOP"]:
-        parser.add_argument(f"--{x}",type=int,choices=[0,1,2,3,4],default=parameters[x][0],help=parameters[x][1],required=False)
-    if x in ["model","OOD Type","Dataloader_Variation","Activation","Dataset"]:
-        parser.add_argument(f"--{x}",choices=parameters[x].pop(),default=parameters[x][0],help=parameters[x][1],required=False)
+        parser.add_argument(f"--{x}", type=int, choices=[0, 1, 2, 3, 4], default=parameters[x][0], help=parameters[x][1], required=False)
+    if x in ["model", "OOD Type", "Dataloader_Variation", "Activation", "Dataset"]:
+        parser.add_argument(f"--{x}", choices=parameters[x].pop(), default=parameters[x][0], help=parameters[x][1], required=False)
     if x in ["Unknowns_clss"]:
-        parser.add_argument(f"--{x}",default=f"{parameters[x][0]}",help=parameters[x][1],required=False)
-if "pytest" not in sys.modules: #The argument parser appears to have issues with the pytest tests. I have no idea why.
+        parser.add_argument(f"--{x}", default=f"{parameters[x][0]}", help=parameters[x][1], required=False)
+if "pytest" not in sys.modules:  # The argument parser appears to have issues with the pytest tests. I have no idea why.
     args = parser.parse_args()
     for x in args._get_kwargs():
         parameters[x[0]][0] = x[1]
 
-if isinstance(parameters["Unknowns_clss"][0],str):
+if isinstance(parameters["Unknowns_clss"][0], str):
     if len(parameters["Unknowns_clss"][0])>0 and len(parameters["Unknowns_clss"][0])!=2: #Not sure why I need this specifier but it breaks if the default is []
         # print(len(parameters["Unknowns_clss"][0]))
-        parameters["Unknowns_clss"][0] = [int(y) for y in parameters["Unknowns_clss"][0].removesuffix("]").removeprefix("[").split(sep=",")]
+        parameters["Unknowns_clss"][0] = [int(y) for y in parameters["Unknowns_clss"][0].removesuffix("]").removeprefix("[").split(sep=", ")]
     else:
         parameters["Unknowns_clss"][0] = []
 
 
-DOC_kernels = [3,4,5]
+DOC_kernels = [3, 4, 5]
 
 #Set Number of classes:
 if parameters["Dataset"][0] == "Payload_data_UNSW":
     parameters["CLASSES"][0] = 10
     UnusedClasses = []
 else:
-    UnusedClasses = [8,9,10]
+    UnusedClasses = [8, 9, 10]
 UnusedClasses = []
 
 #Dendrogram chunk uses a slightly diffrent output on the model structure.
@@ -140,34 +142,34 @@ num_epochs = parameters["num_epochs"][0]
 
 
 #This is to test all of the algorithms one after the other. (Loop 1 values)
-alg = ["Soft","Open","Energy","COOL","DOC","iiMod"]
-batch = [100,1000,10000,100000]
-datapoints_per_class = [10,100,1000]
-thresholds = [0.1,1,10]
-thresholds = [30,20,15,5]
+alg = ["Soft", "Open", "Energy", "COOL", "DOC", "iiMod"]
+batch = [100, 1000, 10000, 100000]
+datapoints_per_class = [10, 100, 1000]
+thresholds = [0.1, 1, 10]
+thresholds = [30, 20, 15, 5]
 thresholds = [parameters["threshold"][0]]
-learning_rates = [0.1,0.01,0.001,0.0001]
-activation = ["ReLU", "Tanh", "Sigmoid","Leaky"]
-groups = [[],[2],[2,3],[2,3,4],[2,3,4,5],[2,3,4,5,6],[2,3,4,5,6,7],[1,2,3,4,5,6,7],[1,2,3,4,5,6,7,8]]
-#groups = [[7,8,9]]
+learning_rates = [0.1, 0.01, 0.001, 0.0001]
+activation = ["ReLU", "Tanh", "Sigmoid", "Leaky"]
+groups = [[], [2], [2, 3], [2, 3, 4], [2, 3, 4, 5], [2, 3, 4, 5, 6], [2, 3, 4, 5, 6, 7], [1, 2, 3, 4, 5, 6, 7], [1, 2, 3, 4, 5, 6, 7, 8]]
+#groups = [[7, 8, 9]]
 if parameters["Dataset"][0] == "Payload_data_CICIDS2017":
-    incGroups = [[2,3,4,5,6,7,8,9,10,11,12,13,14],[3,4,5,6,7,8,9,10,11,12,13,14],[4,5,6,7,8,9,10,11,12,13,14],[5,6,7,8,9,10,11,12,13,14],[6,7,8,9,10,11,12,13,14],[7,8,9,10,11,12,13,14],[8,9,10,11,12,13,14],[9,10,11,12,13,14],[10,11,12,13,14],[11,12,13,14],[12,13,14],[13,14],[14]] 
+    incGroups = [[2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14], [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14], [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14], [5, 6, 7, 8, 9, 10, 11, 12, 13, 14], [6, 7, 8, 9, 10, 11, 12, 13, 14], [7, 8, 9, 10, 11, 12, 13, 14], [8, 9, 10, 11, 12, 13, 14], [9, 10, 11, 12, 13, 14], [10, 11, 12, 13, 14], [11, 12, 13, 14], [12, 13, 14], [13, 14], [14]] 
 #This one list is for loop 2. Note: array size should be decreasing.
 else:
-    incGroups = [[2,3,4,5,6,7,8,9],[3,4,5,6,7,8,9],[4,5,6,7,8,9],[5,6,7,8,9],[6,7,8,9],[7,8,9],[8,9],[9]]
+    incGroups = [[2, 3, 4, 5, 6, 7, 8, 9], [3, 4, 5, 6, 7, 8, 9], [4, 5, 6, 7, 8, 9], [5, 6, 7, 8, 9], [6, 7, 8, 9], [7, 8, 9], [8, 9], [9]]
 epochs= []
-epochs = [1,10,100,150]
+epochs = [1, 10, 100, 150]
 
 
-# groups = [list(range(2,parameters["CLASSES"][0]))]
+# groups = [list(range(2, parameters["CLASSES"][0]))]
 # #Little bit of code that generates incremental numbers of unknowns.
 # while len(groups[0])>2:
 #     new = groups[0].copy()
 #     new.pop(0)
 #     new.pop(0)
-#     groups.insert(0,new)
+#     groups.insert(0, new)
 # #Little bit of code that generates decrementing numbers of unknowns.
-# incGroups = [list(range(2,parameters["CLASSES"][0]))]
+# incGroups = [list(range(2, parameters["CLASSES"][0]))]
 # while len(incGroups[-1])>1:
 #     new = incGroups[-1].copy()
 #     new.pop(0)
@@ -194,29 +196,29 @@ optim = [opt_func["Adam"]]
 #Adds in everything in config:
 
 # #learning_rates.remove(Config.parameters["learningRate"][0])
-# learning_rates.insert(0,parameters["learningRate"][0])
+# learning_rates.insert(0, parameters["learningRate"][0])
 # #epochs.remove(Config.parameters["num_epochs"][0])
-# epochs.insert(0,parameters["num_epochs"][0])
-# groups.insert(0,helper_variables["unknowns_clss"])
+# epochs.insert(0, parameters["num_epochs"][0])
+# groups.insert(0, helper_variables["unknowns_clss"])
 
 # #Always starts with the configured activation type
 # alg.remove(parameters["OOD Type"][0])
-# alg.insert(0,parameters["OOD Type"][0])
+# alg.insert(0, parameters["OOD Type"][0])
 
 #This is an array to eaiser loop through everything.
-loops = [batch,learning_rates,activation,["Standard","Cluster"],groups]
+loops = [batch, learning_rates, activation, ["Standard", "Cluster"], groups]
 # loops = [groups]
-loops2 = ["batch_size","learningRate","Activation","Dataloader_Variation","Unknowns"]
+loops2 = ["batch_size", "learningRate", "Activation", "Dataloader_Variation", "Unknowns"]
 # loops2 = ["Unknowns"]
 for i in range(len(loops)):
     if loops2[i] == "Unknowns":
-        loops[i].insert(0,parameters["Unknowns_clss"][0])
+        loops[i].insert(0, parameters["Unknowns_clss"][0])
     elif loops2[i] == "optimizer":
-        loops[i].insert(0,parameters[loops2[i]])
+        loops[i].insert(0, parameters[loops2[i]])
     elif loops2[i] == "None":
         pass
     else:
-        loops[i].insert(0,parameters[loops2[i]][0])
+        loops[i].insert(0, parameters[loops2[i]][0])
 
 #Override the unknowns because model is kept
 if parameters["LOOP"][0] == 2:
@@ -237,30 +239,30 @@ def algorithmSpecificSettings(alg="None"):
     
     
     # match alg:
-    if alg == "Soft":
-        pass
-    if alg == "Open":
-        parameters["threshold"][0] = 0.8
-    if alg == "Energy":
-        parameters["threshold"][0] = 0.474
-    if alg == "COOL":
-        parameters["threshold"][0] = 0.516034961
-    if alg == "DOC":
-        parameters["threshold"][0] = 0.06449493
-    if alg == "iiMod":
-        parameters["threshold"][0] = 102064.4453
+    # if alg == "Soft":
+    #     pass
+    # if alg == "Open":
+    #     parameters["threshold"][0] = 0.8
+    # if alg == "Energy":
+    #     parameters["threshold"][0] = 0.474
+    # if alg == "COOL":
+    #     parameters["threshold"][0] = 0.516034961
+    # if alg == "DOC":
+    #     parameters["threshold"][0] = 0.06449493
+    # if alg == "iiMod":
+    #     parameters["threshold"][0] = 102064.4453
     
 if parameters["LOOP"][0] == 3:
     # parameters["num_epochs"][0] = 0
-    parameters["loopLevel"] = [0,"What percentages the model is on"]
+    parameters["loopLevel"] = [0, "What percentages the model is on"]
     parameters["MaxSamples"] = [parameters["MaxPerClass"][0], "Max number of samples total"]
 
 
 #Getting version number
 #https://gist.github.com/sg-s/2ddd0fe91f6037ffb1bce28be0e74d4e
-f = open("build_number.txt","r")
-parameters["Version"] = [f.read(),"The version number"]
+f = open("build_number.txt", "r")
+parameters["Version"] = [f.read(), "The version number"]
 
 save_as_tensorboard = True
-datasetRandomOffset =True
+datasetRandomOffset = True
 dataparallel = True

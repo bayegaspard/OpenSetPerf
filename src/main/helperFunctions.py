@@ -162,7 +162,8 @@ def incrementLoop(notes=(0)):
         False - outputs false when the loop has been entirely completed.
     
     """
-    Config.parameters["attemptLoad"][0] = 1
+    Config.parameters["attemptLoadModel"][0] = 1
+    Config.parameters["attemptLoadData"][0] = 1
     notes = notes+1
     if notes >= len(Config.incGroups):
         Config.parameters["LOOP"][0] = False

@@ -119,7 +119,7 @@ def run_model(measurement=None, graphDefault=False):
     #Model.fit is what actually runs the model. It outputs some kind of history array?
     history_final += model.fit(Config.parameters["num_epochs"][0], Config.parameters["learningRate"][0], train_loader, val_loader, opt_func=opt_func, measurement=measurement)
 
-    model.batchSaveMode(function=measurement)
+    # model.batchSaveMode(function=measurement)
 
     #This big block of commented code is to create confusion matricies that we thought could be misleading,
     #   so it is commented out.
@@ -168,7 +168,7 @@ def run_model(measurement=None, graphDefault=False):
         # roc = RocCurveDisplay.from_predictions(model.end.rocData[0],model.end.rocData[1],name=model.end.type)
         # roc.plot()
         # plt.show()
-    if (not torch.all(model.end.rocData[0])) and (not torch.all(model.end.rocData[0]==False)):
+    if False and (not torch.all(model.end.rocData[0])) and (not torch.all(model.end.rocData[0]==False)):
         #NOTE: The definitions of the rocData are as follows:
         #First row (rocData[0]) - the true values of unknown or known TODO: look to see if 1 is unknown or known
         #Second row (rocData[1]) - the associated thresholds for each value.
@@ -229,7 +229,7 @@ def run_model(measurement=None, graphDefault=False):
 
     if False:
         #Use Softmax to test.
-        model.end.type = "Soft"
+        model.end.end_type = "Soft"
         model.storeReset()
         runExistingModel(model,val_loader,"Soft_Val",history_final,class_names,measurement=measurement)
         model.storeReset()
@@ -297,7 +297,7 @@ def runExistingModel(model:ModelStruct.AttackTrainingClassification,data,name,hi
     measurement(f"{name}_Found_Unknowns",unknowns_scores[0]) #recall
     measurement(f"{name}_Unknowns_accuracy",unknowns_scores[1])
 
-    FileHandling.create_params_Fscore(root_path,f1)
+    # FileHandling.create_params_Fscore(root_path,f1)
 
     if not Config.parameters["LOOP"][0] and graphDefault:
         #More matrix stuff that we removed.

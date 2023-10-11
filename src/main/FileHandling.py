@@ -59,7 +59,7 @@ def getDatagroup():
 def checkAttempLoad(root_path=""):
     """
     Creates the training, testing, and validaton datasets and saves them in Saves/Data.pt, Saves/DataTest.pt, and Saves/DataVal.pt.
-    if Config's "attemptLoad" is true it instead loads the datasets from the files and does not create them. 
+    if Config's "attemptLoadData" is true it instead loads the datasets from the files and does not create them. 
     This is so that the validation and testing data does not get mixed up which would invalidate the validation data.
     """
     # get the data and create a test set and train set
@@ -80,7 +80,7 @@ def checkAttempLoad(root_path=""):
     if Config.unit_test_mode:
         return train, test, val
 
-    if Config.parameters["attemptLoad"][0] and os.path.exists(os.path.join(root_path,"Saves","Data.pt")):
+    if Config.parameters["attemptLoadData"][0] and os.path.exists(os.path.join(root_path,"Saves","Data.pt")):
         print("Found prior dataset to load")
         try:
             train = torch.load(os.path.join(root_path,"Saves","Data.pt"))
@@ -101,7 +101,7 @@ def checkAttempLoad(root_path=""):
         torch.save(train,os.path.join(root_path,"Saves","Data.pt"))
         torch.save(test,os.path.join(root_path,"Saves","DataTest.pt"))
         torch.save(val,os.path.join(root_path,"Saves","DataVal.pt"))
-        if Config.parameters["attemptLoad"][0]:
+        if Config.parameters["attemptLoadData"][0]:
             print("No model train and test checkpoint was found, saving datacheckpoints ...")
     return train, test, val
 

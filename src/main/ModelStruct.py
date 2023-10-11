@@ -64,35 +64,11 @@ class AttackTrainingClassification(nn.Module):
             self.fullyConnectedStart -= np.array([x-1 for x in Config.DOC_kernels]).sum()
             self.fullyConnectedStart+= numberOfFeatures*len(Config.DOC_kernels)
 
-        #This (poorly made) menu switches between the diffrent options for activation functions.
+        #This menu switches between the diffrent options for activation functions.
         self.activation = nn.ReLU()
-        if Config.parameters["Activation"][0] == "Sigmoid":
-            self.activation = nn.Sigmoid()
-        if Config.parameters["Activation"][0] == "Tanh":
-            self.activation = nn.Tanh()
-        if Config.parameters["Activation"][0] == "Leaky":
-            self.activation = nn.LeakyReLU()
-        if Config.parameters["Activation"][0] == "Elu":
-            self.activation = nn.ELU()
-        if Config.parameters["Activation"][0] == "PRElu":
-            self.activation = nn.PReLU(device=device)
-        if Config.parameters["Activation"][0] == "Swish":
-            print("Swish is not implemented yet")
-        if Config.parameters["Activation"][0] == "maxout":
-            print("maxout is not implemented yet")
-        if Config.parameters["Activation"][0] == "Softplus":
-            self.activation = nn.Softplus()
-        if Config.parameters["Activation"][0] == "Softmax":
-            #why softmax?
-            self.activation = nn.Softmax(dim=1)
+        activations = {"Sigmoid": nn.Sigmoid(), "Tanh": nn.Tanh(),"Leaky":nn.LeakyReLU(),"Elu":nn.ELU(),"PRElu":nn.PReLU(device=device),"Softplus":nn.Softplus(),"Softmax":nn.Softmax(dim=1)}
+        self.activation = activations[Config.parameters["Activation"][0]] if Config.parameters["Activation"][0] in activations.keys() else self.activation
 
-
-        if Config.parameters["Activation"][0] == "PRElu":
-            self.activation = self.activation(device=device)
-        elif Config.parameters["Activation"][0] == "Softmax":
-            self.activation = self.activation(dim=-1)
-        else:
-            self.activation = self.activation
 
         #We use two normal fully connected layers after the CNN specific layers (or substiute layers)
         self.fc1 = nn.Linear(self.fullyConnectedStart, Config.parameters["Nodes"][0],device=device)
@@ -122,6 +98,7 @@ class AttackTrainingClassification(nn.Module):
         self.dropout = nn.Dropout(int(Config.parameters["Dropout"][0]))
 
         self.end = EndLayers(numClasses, type="Soft", cutoff=Config.parameters["threshold"][0])
+        self.end_soft = EndLayers(numClasses, type="SoftThresh", cutoff=Config.parameters["threshold"][0])
         self.batchnum = 0
         self.storeReset()
         #COOL neeeds its own outputl layer.
@@ -199,7 +176,7 @@ class AttackTrainingClassification(nn.Module):
         """
         if measurement is None:
             measurement = FileHandling.Score_saver()
-        if Config.parameters["attemptLoad"][0] == 1:
+        if Config.parameters["attemptLoadModel"][0] == 1:
             startingEpoch = self.loadPoint("Saves/models")
             #If it cannot find a model to load because of some error, the epoch number starts at -1 to avoid overwriting a possilby working model
         else:
@@ -332,12 +309,16 @@ class AttackTrainingClassification(nn.Module):
             self.batch_saves_fucnt("Kind","Testing")
             # removeHandle = self.sequencePackage.module.register_module_forward_hook(self.batch_fdHook())
         
-        out = self(data)  # Generate predictions
+        out_pre_endlayer = self(data)  # Generate predictions
         #zeross = GPU.to_device(torch.zeros(len(out),1),device)
-        zeross = GPU.to_device(torch.zeros(len(out),1),device)
-        loss = F.cross_entropy(torch.cat((out,zeross),dim=1), labels)  # Calculate loss
-        out = self.end(out,
-                                labels).to(labels.device)  # <----Here is where it is using Softmax TODO: make this be able to run all of the versions and save the outputs.
+        zeross = GPU.to_device(torch.zeros(len(out_pre_endlayer),1),device)
+        loss = F.cross_entropy(torch.cat((out_pre_endlayer,zeross),dim=1), labels)  # Calculate loss
+        out_post_endlayer = self.end(out_pre_endlayer, labels).to(labels.device)  # <----Here is where it is using Softmax TODO: make this be able to run all of the versions and save the outputs.
+        out_soft_threshold = self.end_soft(out_pre_endlayer, labels).to(labels.device)
+
+        if Config.parameters["ApplyPrelimSoft"][0] and self.end.end_type not in ["COOL","DOC"]:
+            out_post_endlayer[torch.argmax(out_soft_threshold,dim=1)!=Config.parameters["CLASSES"][0]] = out_soft_threshold[[torch.argmax(out_soft_threshold,dim=1)!=Config.parameters["CLASSES"][0]]]
+
         #loss = F.cross_entropy(torch.cat((out,zeross),dim=1), labels)  # Calculate loss
         # out = self.end.endlayer(out, labels, type="Open")
         # out = self.end.endlayer(out, labels, type="Energy")
@@ -352,12 +333,12 @@ class AttackTrainingClassification(nn.Module):
         #This is just for datacollection.
         if self.los:
             if self.end.end_type == "DOC" or self.end.end_type == "COOL":
-                self.los.addloss(out,labels)
+                self.los.addloss(out_post_endlayer,labels)
             else:
-                self.los.addloss(torch.argmax(out,dim=1),labels)
+                self.los.addloss(torch.argmax(out_post_endlayer,dim=1),labels)
 
-        out = GPU.to_device(out, device)
-        acc = self.accuracy(out, labels_extended)  # Calculate accuracy
+        out_post_endlayer = GPU.to_device(out_post_endlayer, device)
+        acc = self.accuracy(out_post_endlayer, labels_extended)  # Calculate accuracy
         #FileHandling.write_batch_to_file(loss, self.batchnum, self.end.type, "Saves")
         #print("validation accuracy: ", acc)
 
@@ -368,11 +349,11 @@ class AttackTrainingClassification(nn.Module):
             else:
                 self.batch_saves_fucnt(f"Average unknown threshold possibilities",np.array(self.end.rocData[1]).mean().item())
             self.batch_saves_fucnt("Overall Accuracy",acc.item())
-            if out.ndim == 2:
-                out2 = torch.argmax(out, dim=1).cpu()
+            if out_post_endlayer.ndim == 2:
+                out2 = torch.argmax(out_post_endlayer, dim=1).cpu()
             else:
                 #DOC already applies an argmax equivalent so we do not apply one here.
-                out2 = out.cpu()
+                out2 = out_post_endlayer.cpu()
             prec = precision_score(labels_extended[:,0].cpu(),out2, labels=[Config.parameters["CLASSES"][0]],average="weighted",zero_division=0)
             rec = recall_score(labels_extended[:,0].cpu(),out2, labels=[Config.parameters["CLASSES"][0]],average="weighted",zero_division=0)
             self.batch_saves_fucnt("Knowns/Unknowns_Precision",prec)
@@ -385,7 +366,7 @@ class AttackTrainingClassification(nn.Module):
             
             # torch.Tensor.bincount(minlength=Config.parameters["CLASSES"][0])
             sampleCounts = labels.bincount(minlength=Config.parameters["CLASSES"][0]+1)
-            guessCounts = out.argmax(dim=-1).bincount(minlength=Config.parameters["CLASSES"][0]+1)
+            guessCounts = out_post_endlayer.argmax(dim=-1).bincount(minlength=Config.parameters["CLASSES"][0]+1)
             # for i in range(Config.parameters["CLASSES"][0]):
             #     self.batch_saves_fucnt(f"Samples of class {i}",sampleCounts[i].item())
             #     self.batch_saves_fucnt(f"Guesses of class {i}",guessCounts[i].item())
@@ -402,9 +383,9 @@ class AttackTrainingClassification(nn.Module):
             if guessCounts[mask].sum().item()!=0:
                 self.batch_saves_fucnt(f"Samples/Guesses of unknown classes",sampleCounts[mask].sum().item()/guessCounts[mask].sum().item())
             if self.end.end_type not in ["COOL","DOC"]:
-                self.batch_saves_fucnt("intra_spread_Endlayer",Distance_Types.distance_measures(out.cpu(),self.batch_fdHook.means["End"],torch.argmax(out,dim=1).cpu(),Distance_Types.dist_types_dict["intra_spread"]).item())
-                self.batch_saves_fucnt("Cosine_dist_Endlayer",Distance_Types.distance_measures(out.cpu(),self.batch_fdHook.means["End"],torch.argmax(out,dim=1).cpu(),Distance_Types.dist_types_dict["Cosine_dist"]).item())
-                self.batch_saves_fucnt("Euclidean Distance",Distance_Types.distance_measures(out.cpu(),self.batch_fdHook.means["End"],torch.argmax(out,dim=1).cpu(),Distance_Types.dist_types_dict["Cosine_dist"]).item())
+                self.batch_saves_fucnt("intra_spread_Endlayer",Distance_Types.distance_measures(out_post_endlayer.cpu(),self.batch_fdHook.means["End"],torch.argmax(out_post_endlayer,dim=1).cpu(),Distance_Types.dist_types_dict["intra_spread"]).item())
+                self.batch_saves_fucnt("Cosine_dist_Endlayer",Distance_Types.distance_measures(out_post_endlayer.cpu(),self.batch_fdHook.means["End"],torch.argmax(out_post_endlayer,dim=1).cpu(),Distance_Types.dist_types_dict["Cosine_dist"]).item())
+                self.batch_saves_fucnt("Euclidean Distance",Distance_Types.distance_measures(out_post_endlayer.cpu(),self.batch_fdHook.means["End"],torch.argmax(out_post_endlayer,dim=1).cpu(),Distance_Types.dist_types_dict["Cosine_dist"]).item())
 
             #Calculating cluster distances
             self.batch_fdHook.class_vals = out2
@@ -619,7 +600,7 @@ class AttackTrainingClassification(nn.Module):
             precision = precision_score(y_tested_against,y_pred,average='weighted',zero_division=0)
             f1 = 2 * (precision * recall) / (precision + recall)
             #save the f1 score
-            FileHandling.create_params_Fscore("",f1,x)
+            # FileHandling.create_params_Fscore("",f1,x)
             measurement(f"Threshold {x} Fscore",f1)
 
 
