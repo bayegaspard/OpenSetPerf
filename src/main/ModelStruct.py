@@ -115,6 +115,7 @@ class AttackTrainingClassification(nn.Module):
         if self.end.end_type=="DOC":
             self.sequencePackage.append(DOC_Module())
         
+        
         self.sequencePackage.append(self.flatten)
         self.sequencePackage.append(self.fc1)
         if self.keep_batch_saves:
@@ -303,6 +304,14 @@ class AttackTrainingClassification(nn.Module):
         data, labels_extended = batch
         self.batchnum += 1
         labels = labels_extended[:,0]
+        cumulative_logit_data = FileHandling.Score_saver(path="Distances.csv")
+        item_logit_data = FileHandling.items_with_classes_record(labels)
+        rm = []
+        # rm.append(self.fc1.register_forward_hook(lambda x,y,z: item_logit_data.storeItems(y[0])))
+        rm.append(self.fc1.register_forward_hook(lambda x,y,z: cumulative_logit_data("Average standard Div",torch.mean(torch.std(y[0])).item())))
+        rm.append(self.fc1.register_forward_hook(lambda x,y,z: cumulative_logit_data("Average mean",torch.mean(y[0]).item())))
+        rm.append(self.fc1.register_forward_hook(lambda x,y,z: cumulative_logit_data(f"Item Count Class", labels.bincount(minlength=Config.parameters['CLASSES'][0]).numpy(),recursiveList=1)))
+        # rm = self.fc1.register_forward_hook(lambda x,y,z: print(f"Average standard Div: {torch.mean(torch.std(y[0]))}, Average mean {torch.mean(y[0])}, Labels Dist{labels.bincount(minlength=Config.parameters['CLASSES'][0]).numpy()}"))
 
         if self.keep_batch_saves:
             self.batch_saves_start()
@@ -310,6 +319,8 @@ class AttackTrainingClassification(nn.Module):
             # removeHandle = self.sequencePackage.module.register_module_forward_hook(self.batch_fdHook())
         
         out_pre_endlayer = self(data)  # Generate predictions
+        item_logit_data.storeItems(out_pre_endlayer)
+        [x.remove() for x in rm]
         #zeross = GPU.to_device(torch.zeros(len(out),1),device)
         zeross = GPU.to_device(torch.zeros(len(out_pre_endlayer),1),device)
         loss = F.cross_entropy(torch.cat((out_pre_endlayer,zeross),dim=1), labels)  # Calculate loss
@@ -323,7 +334,14 @@ class AttackTrainingClassification(nn.Module):
         # out = self.end.endlayer(out, labels, type="Open")
         # out = self.end.endlayer(out, labels, type="Energy")
 
-        
+        if out_post_endlayer.ndim == 2:
+            out_argmax = torch.argmax(out_post_endlayer, dim=1).cpu()
+        else:
+            #DOC already applies an argmax equivalent so we do not apply one here.
+            out_argmax = out_post_endlayer.cpu()
+
+        item_logit_data.storePredictions(out_argmax)
+        item_logit_data.useItems()
 
         # Y_pred = out
         # Y_test = labels
@@ -349,19 +367,15 @@ class AttackTrainingClassification(nn.Module):
             else:
                 self.batch_saves_fucnt(f"Average unknown threshold possibilities",np.array(self.end.rocData[1]).mean().item())
             self.batch_saves_fucnt("Overall Accuracy",acc.item())
-            if out_post_endlayer.ndim == 2:
-                out2 = torch.argmax(out_post_endlayer, dim=1).cpu()
-            else:
-                #DOC already applies an argmax equivalent so we do not apply one here.
-                out2 = out_post_endlayer.cpu()
-            prec = precision_score(labels_extended[:,0].cpu(),out2, labels=[Config.parameters["CLASSES"][0]],average="weighted",zero_division=0)
-            rec = recall_score(labels_extended[:,0].cpu(),out2, labels=[Config.parameters["CLASSES"][0]],average="weighted",zero_division=0)
+            
+            prec = precision_score(labels_extended[:,0].cpu(),out_argmax, labels=[Config.parameters["CLASSES"][0]],average="weighted",zero_division=0)
+            rec = recall_score(labels_extended[:,0].cpu(),out_argmax, labels=[Config.parameters["CLASSES"][0]],average="weighted",zero_division=0)
             self.batch_saves_fucnt("Knowns/Unknowns_Precision",prec)
             self.batch_saves_fucnt("Knowns/Unknowns_False Positive Rate",1-prec)
             self.batch_saves_fucnt("Knowns/Unknowns_Recall",rec)
             self.batch_saves_fucnt("Knowns/Unknowns_False Negative Rate",1-rec)
-            self.batch_saves_fucnt("Knowns/Unknowns_F1_Score",f1_score(labels_extended[:,0].cpu(),out2, labels=[Config.parameters["CLASSES"][0]],average="weighted",zero_division=0))
-            self.batch_saves_fucnt("Total F1_Score",f1_score(labels_extended[:,0].cpu(),out2,average="weighted",zero_division=0))
+            self.batch_saves_fucnt("Knowns/Unknowns_F1_Score",f1_score(labels_extended[:,0].cpu(),out_argmax, labels=[Config.parameters["CLASSES"][0]],average="weighted",zero_division=0))
+            self.batch_saves_fucnt("Total F1_Score",f1_score(labels_extended[:,0].cpu(),out_argmax,average="weighted",zero_division=0))
             self.batch_saves_fucnt("Time",time.time()-t)
             
             # torch.Tensor.bincount(minlength=Config.parameters["CLASSES"][0])
@@ -388,7 +402,7 @@ class AttackTrainingClassification(nn.Module):
                 self.batch_saves_fucnt("Euclidean Distance",Distance_Types.distance_measures(out_post_endlayer.cpu(),self.batch_fdHook.means["End"],torch.argmax(out_post_endlayer,dim=1).cpu(),Distance_Types.dist_types_dict["Cosine_dist"]).item())
 
             #Calculating cluster distances
-            self.batch_fdHook.class_vals = out2
+            self.batch_fdHook.class_vals = out_argmax
             removeHandle = torch.nn.modules.module.register_module_forward_hook(self.batch_fdHook)
             for distancetype in ["Cosine_dist","intra_spread","Euclidean Distance"]:
                 self.batch_fdHook.distFunct = distancetype

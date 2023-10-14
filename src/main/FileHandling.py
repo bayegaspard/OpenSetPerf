@@ -302,7 +302,7 @@ def create_params_Fscore(path, score, threshold = None):
 
 class Score_saver():
 
-    def __init__(self,path="Scoresall.csv"):
+    def __init__(self,path="Scoresall.csv",Record_Hyperparams=True):
         """
         Score_saver() is a class to consolidate the saving of data to the csv files. 
         When a Score_saver() object is initialized then it creates a new row onto the file, 
@@ -312,13 +312,16 @@ class Score_saver():
         self.writer = None
         self.path = path #unused at the moment
         self.name_all = {path:0}
-        self.create_params_All()
+        if Record_Hyperparams:
+            self.create_params_All()
+        else:
+            pd.DataFrame().to_csv(self.path)
         if Config.save_as_tensorboard:
             self.tensorboard_start()
         
         
 
-    def __call__(self,name:str,val,path="",fileName=None):
+    def __call__(self,name:str,val,path="",fileName=None, recursiveList=False):
         """
         Adds the measurement to the file. The __call__ version allows the Score_saver to be called like this:
         scoresaver = Score_saver()
@@ -331,7 +334,7 @@ class Score_saver():
         """
         if fileName is None:
             fileName = self.path
-        self.addMeasurement(name,val,path,fileName)
+        self.addMeasurement(name,val,path,fileName,recursiveList=recursiveList)
 
     def create_params_All(self,name=None):
         """
@@ -389,7 +392,7 @@ class Score_saver():
         #hist = hist.transpose()
         hist.to_csv(os.path.join("Saves",name))
 
-    def addMeasurement(self,name:str,val,path="",fileName=None,step=0):
+    def addMeasurement(self,name:str,val,path="",fileName=None,step=0, recursiveList=0):
         """
         Adds a measurement to the LATEST line in the Scoresall.csv file. This may cause problems if you are running two versions at once.
         we reccomend only running one version at once. 
@@ -404,6 +407,10 @@ class Score_saver():
             Last valid index in the CSV
         """
         if Config.unit_test_mode:
+            return
+        if recursiveList>0 and (hasattr(val, '__iter__')):
+            for num,v in enumerate(val):
+                self.addMeasurement(name+f"_{num}", v, path, fileName, step, recursiveList-1)
             return
         if fileName is None:
             fileName = self.path
@@ -490,3 +497,33 @@ class Score_saver():
             self.writer = None
         self.tensorboard_start()
         self.create_params_All()
+
+class items_with_classes_record():
+    def __init__(self, labels:torch.Tensor):
+        self.labels = labels.unsqueeze(dim=-1)
+        self.items = None
+        self.predict = None
+    
+    def __call__(self, items:torch.Tensor, file = "Saves/items.csv"):
+        self.storeItems(items)
+        self.useItems(file)
+
+    def storeItems(self, items:torch.Tensor):
+        self.items = items
+
+    def useItems(self, file = "Saves/items.csv"):
+        index_names = [f"Logit{x}" for x in range(len(self.items[0]))]
+        if self.predict is None:
+            items_with_labels = torch.concat([self.items,self.labels],dim=1)
+        else:
+            items_with_labels = torch.concat([self.items,self.predict,self.labels],dim=1)
+            index_names.append("Prediction")
+        index_names.append("Label")
+        df = pd.DataFrame(items_with_labels.T,index=index_names).T
+        df.to_csv(file,mode="a",header=(not os.path.exists(file)))
+        self.items = None
+        self.predict = None
+
+    def storePredictions(self, predictions:torch.Tensor):
+        assert predictions.dim() == 1
+        self.predict = predictions.unsqueeze(dim=-1)
