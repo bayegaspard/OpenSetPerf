@@ -70,7 +70,8 @@ def testLoadDataset():
         assert torch.all(x[0] == y[0])
     
 def testLoadDatasetfromSave():
-    main.Config.parameters["attemptLoad"][0] = 1
+    main.Config.parameters["attemptLoadModel"][0] = 1
+    main.Config.parameters["attemptLoadData"][0] = 1
     main.torch.manual_seed(1)
     train1, test1, val1 = FileHandling.checkAttempLoad("")
     main.torch.manual_seed(1)
