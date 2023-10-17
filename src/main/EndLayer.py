@@ -330,9 +330,18 @@ class EndLayers(nn.Module):
 
         return torch.cat([percentages,unknowns.unsqueeze(dim=-1)],dim=-1)
 
+    def varmax_final(self, logits):
+        import CodeFromImplementations.Varmax
+        varmax_mask = torch.var(torch.abs(logits), dim = 1) > self.cutoff
+        shape = logits.shape
+        unknown = torch.zeros([shape[0],1])
+        unknown[varmax_mask] = 2
+        output = torch.concat([torch.softmax(logits, dim=-1), unknown], dim = -1)
+        return output
+
 
     #all functions here return a mask with 1 in all valid locations and 0 in all invalid locations
-    typesOfUnknown = {"Soft":softMaxUnknown, "Open":openMaxUnknown, "Energy":energyUnknown, "Odin":odinUnknown, "COOL":normalThesholdUnknown, "SoftThresh":normalThesholdUnknown, "DOC":DOCUnknown, "iiMod": iiUnknown}
+    typesOfUnknown = {"Soft":softMaxUnknown, "Open":openMaxUnknown, "Energy":energyUnknown, "Odin":odinUnknown, "COOL":normalThesholdUnknown, "SoftThresh":normalThesholdUnknown, "DOC":DOCUnknown, "iiMod": iiUnknown, "Var":varmax_final}
 
     #---------------------------------------------------------------------------------------------
     #This is the section for modifying the outputs for the final layer
@@ -382,8 +391,9 @@ class EndLayers(nn.Module):
         self.iiLoss_means = iiMod.Algorithm_1(self.weibulInfo["loader"],self.weibulInfo["net"])
         return percentages
 
+
     #all functions here return a tensor, sometimes it has an extra column for unknowns
-    typesOfMod = {"Soft":softMaxMod, "Odin":odinMod, "COOL":FittedLearningEval, "SoftThresh":softMaxMod, "DOC":DOCmod, "iiMod":iiLoss_Means, "none":noChange}
+    typesOfMod = {"Soft":softMaxMod, "Odin":odinMod, "COOL":FittedLearningEval, "SoftThresh":softMaxMod, "DOC":DOCmod, "iiMod":iiLoss_Means, "none":noChange, "Var": noChange}
 
     #---------------------------------------------------------------------------------------------
     #This is the section for training label modification

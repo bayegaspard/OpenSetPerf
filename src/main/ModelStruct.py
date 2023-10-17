@@ -305,7 +305,6 @@ class AttackTrainingClassification(nn.Module):
         self.batchnum += 1
         labels = labels_extended[:,0]
         cumulative_logit_data = FileHandling.Score_saver(path="Distances.csv")
-        item_logit_data = FileHandling.items_with_classes_record(labels)
         rm = []
         # rm.append(self.fc1.register_forward_hook(lambda x,y,z: item_logit_data.storeItems(y[0])))
         rm.append(self.fc1.register_forward_hook(lambda x,y,z: cumulative_logit_data("Average standard Div",torch.mean(torch.std(y[0])).item())))
@@ -319,7 +318,10 @@ class AttackTrainingClassification(nn.Module):
             # removeHandle = self.sequencePackage.module.register_module_forward_hook(self.batch_fdHook())
         
         out_pre_endlayer = self(data)  # Generate predictions
-        item_logit_data.storeItems(out_pre_endlayer)
+        if Config.parameters["ItemLogitData"][0] == 0:
+            item_logit_data = FileHandling.items_with_classes_record(labels)
+            item_logit_data.storeItems(out_pre_endlayer)
+        
         [x.remove() for x in rm]
         #zeross = GPU.to_device(torch.zeros(len(out),1),device)
         zeross = GPU.to_device(torch.zeros(len(out_pre_endlayer),1),device)
@@ -340,8 +342,9 @@ class AttackTrainingClassification(nn.Module):
             #DOC already applies an argmax equivalent so we do not apply one here.
             out_argmax = out_post_endlayer.cpu()
 
-        item_logit_data.storePredictions(out_argmax)
-        item_logit_data.useItems()
+        if Config.parameters["ItemLogitData"][0] == 0:
+            item_logit_data.storePredictions(out_argmax)
+            item_logit_data.useItems()
 
         # Y_pred = out
         # Y_test = labels
