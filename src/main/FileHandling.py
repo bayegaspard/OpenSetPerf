@@ -500,7 +500,7 @@ class Score_saver():
 
 class items_with_classes_record():
     def __init__(self, labels:torch.Tensor):
-        self.labels = labels.unsqueeze(dim=-1)
+        self.labels = labels.unsqueeze(dim=-1).cpu()
         self.items = None
         self.predict = None
     
@@ -509,7 +509,7 @@ class items_with_classes_record():
         self.useItems(file)
 
     def storeItems(self, items:torch.Tensor):
-        self.items = items
+        self.items = items.cpu()
 
     def useItems(self, file = "Saves/items.csv"):
         index_names = [f"Logit{x}" for x in range(len(self.items[0]))]
@@ -526,4 +526,4 @@ class items_with_classes_record():
 
     def storePredictions(self, predictions:torch.Tensor):
         assert predictions.dim() == 1
-        self.predict = predictions.unsqueeze(dim=-1)
+        self.predict = predictions.unsqueeze(dim=-1).cpu()
