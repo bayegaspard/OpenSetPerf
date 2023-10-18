@@ -330,11 +330,11 @@ class EndLayers(nn.Module):
 
         return torch.cat([percentages,unknowns.unsqueeze(dim=-1)],dim=-1)
 
-    def varmax_final(self, logits):
+    def varmax_final(self, logits:torch.Tensor):
         import CodeFromImplementations.Varmax
         varmax_mask = torch.var(torch.abs(logits), dim = 1) > self.cutoff
         shape = logits.shape
-        unknown = torch.zeros([shape[0],1])
+        unknown = torch.zeros([shape[0],1], device=logits.device)
         unknown[varmax_mask] = 2
         output = torch.concat([torch.softmax(logits, dim=-1), unknown], dim = -1)
         return output
