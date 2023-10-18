@@ -63,9 +63,9 @@ parameters = {
     "MaxPerClass": [1000, "Maximum number of samples per class\n if Dataloader_Variation is Cluster and this value is a float it interprets it as the maximum percentage of the class instead."],
     "num_epochs":[150,"Number of times it trains on the whole trainset"],
     "learningRate":[0.001, "a modifier for training"],
-    "threshold":[0.5,"When to declare something to be unknown"],
+    "threshold":[3,"When to declare something to be unknown"],
     "model":["Convolutional","Model type",["Fully_Connected","Convolutional"]],
-    "OOD Type":["Soft","type of out of distribution detection", ["Soft","Open","Energy","COOL","DOC","iiMod"]],
+    "OOD Type":["Soft","type of out of distribution detection", ["Soft","Open","Energy","COOL","DOC","iiMod", "Var"]],
     "Dropout":[0.1,"percent of nodes that are skipped per run, larger numbers for more complex models [0,1)"],
     "Dataloader_Variation":["Standard","Defines the style of Dataloader used. This affects sampling from the dataset", ["Standard","Cluster","Flows"]],
     "optimizer":opt_func["Adam"],
@@ -85,7 +85,8 @@ parameters = {
     "Dataset": ["Payload_data_CICIDS2017", "This is what dataset we are using,", ["Payload_data_CICIDS2017","Payload_data_UNSW"]],
     "SchedulerStepSize": [10, "This is how often the scheduler takes a step, 3 means every third epoch"],
     "SchedulerStep": [0.9,"This is how big a step the scheduler takes, leave 0 for no step"],
-    "ApplyPrelimSoft": [1, "This says to use a preliminary softmax and only use unknown detection on things that fail the softmax unknown detection"]
+    "ApplyPrelimSoft": [0, "This says to use a preliminary softmax and only use unknown detection on things that fail the softmax unknown detection"],
+    "ItemLogitData": [0, "1: use item logit data and store it in 'Saves/item.csv', 0: disabled"]
 }
 
 
@@ -96,7 +97,7 @@ for x in parameters.keys():
         parser.add_argument(f"--{x}", type=int, default=parameters[x][0], help=parameters[x][1], required=False)
     if x in ["testlength", "learningRate", "threshold", "Dropout", "Temperature", "SchedulerStep"]:
         parser.add_argument(f"--{x}", type=float, default=parameters[x][0], help=parameters[x][1], required=False)
-    if x in ["attemptLoadModel", "attemptLoadData","Mix unknowns and validation","ApplyPrelimSoft"]:
+    if x in ["attemptLoadModel", "attemptLoadData","Mix unknowns and validation","ApplyPrelimSoft","ItemLogitData"]:
         parser.add_argument(f"--{x}", type=int, choices=[1, 0], default=parameters[x][0], help=parameters[x][1], required=False)
     if x in ["LOOP"]:
         parser.add_argument(f"--{x}", type=int, choices=[0, 1, 2, 3, 4], default=parameters[x][0], help=parameters[x][1], required=False)
