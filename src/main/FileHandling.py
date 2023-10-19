@@ -94,7 +94,7 @@ def checkAttempLoad(root_path=""):
         #test = unknowns
         global attemptload_message
         if attemptload_message:
-            print("Saving data. Use -attemptLoad 1 to use saved data and model")
+            print("Saving data. Use -attemptLoad[Data,Model] 1 to use saved data or model")
             attemptload_message = False
         else:
             print("Saving data.")

@@ -119,7 +119,8 @@ def run_model(measurement=None, graphDefault=False):
     #Model.fit is what actually runs the model. It outputs some kind of history array?
     history_final += model.fit(Config.parameters["num_epochs"][0], Config.parameters["learningRate"][0], train_loader, val_loader, opt_func=opt_func, measurement=measurement)
 
-    # model.batchSaveMode(function=measurement)
+    if Config.parameters["SaveBatchData"][0]:
+        model.batchSaveMode(function=measurement)
 
     #This big block of commented code is to create confusion matricies that we thought could be misleading,
     #   so it is commented out.

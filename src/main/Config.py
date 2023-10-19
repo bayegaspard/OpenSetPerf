@@ -86,7 +86,8 @@ parameters = {
     "SchedulerStepSize": [10, "This is how often the scheduler takes a step, 3 means every third epoch"],
     "SchedulerStep": [0.9,"This is how big a step the scheduler takes, leave 0 for no step"],
     "ApplyPrelimSoft": [0, "This says to use a preliminary softmax and only use unknown detection on things that fail the softmax unknown detection"],
-    "ItemLogitData": [0, "1: use item logit data and store it in 'Saves/item.csv', 0: disabled"]
+    "ItemLogitData": [0, "1: use item logit data and store it in 'Saves/item.csv', 0: disabled"],
+    "SaveBatchData": [0, "1: Save some data from each batch in 'Saves/BatchSaves.csv', 0: disabled"]
 }
 
 
@@ -97,7 +98,7 @@ for x in parameters.keys():
         parser.add_argument(f"--{x}", type=int, default=parameters[x][0], help=parameters[x][1], required=False)
     if x in ["testlength", "learningRate", "threshold", "Dropout", "Temperature", "SchedulerStep"]:
         parser.add_argument(f"--{x}", type=float, default=parameters[x][0], help=parameters[x][1], required=False)
-    if x in ["attemptLoadModel", "attemptLoadData","Mix unknowns and validation","ApplyPrelimSoft","ItemLogitData"]:
+    if x in ["attemptLoadModel", "attemptLoadData","Mix unknowns and validation","ApplyPrelimSoft","ItemLogitData","SaveBatchData"]:
         parser.add_argument(f"--{x}", type=int, choices=[1, 0], default=parameters[x][0], help=parameters[x][1], required=False)
     if x in ["LOOP"]:
         parser.add_argument(f"--{x}", type=int, choices=[0, 1, 2, 3, 4], default=parameters[x][0], help=parameters[x][1], required=False)

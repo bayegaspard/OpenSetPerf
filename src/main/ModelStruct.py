@@ -307,9 +307,9 @@ class AttackTrainingClassification(nn.Module):
         cumulative_logit_data = FileHandling.Score_saver(path="Distances.csv")
         rm = []
         # rm.append(self.fc1.register_forward_hook(lambda x,y,z: item_logit_data.storeItems(y[0])))
-        rm.append(self.fc1.register_forward_hook(lambda x,y,z: cumulative_logit_data("Average standard Div",torch.mean(torch.std(y[0])).item())))
-        rm.append(self.fc1.register_forward_hook(lambda x,y,z: cumulative_logit_data("Average mean",torch.mean(y[0]).item())))
-        rm.append(self.fc1.register_forward_hook(lambda x,y,z: cumulative_logit_data(f"Item Count Class", labels.bincount(minlength=Config.parameters['CLASSES'][0]).numpy(),recursiveList=1)))
+        # rm.append(self.fc1.register_forward_hook(lambda x,y,z: cumulative_logit_data("Average standard Div",torch.mean(torch.std(y[0])).item())))
+        # rm.append(self.fc1.register_forward_hook(lambda x,y,z: cumulative_logit_data("Average mean",torch.mean(y[0]).item())))
+        # rm.append(self.fc1.register_forward_hook(lambda x,y,z: cumulative_logit_data(f"Item Count Class", labels.bincount(minlength=Config.parameters['CLASSES'][0]).numpy(),recursiveList=1)))
         # rm = self.fc1.register_forward_hook(lambda x,y,z: print(f"Average standard Div: {torch.mean(torch.std(y[0]))}, Average mean {torch.mean(y[0])}, Labels Dist{labels.bincount(minlength=Config.parameters['CLASSES'][0]).numpy()}"))
 
         if self.keep_batch_saves:
