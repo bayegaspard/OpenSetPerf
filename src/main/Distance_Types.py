@@ -41,14 +41,16 @@ def class_means_from_loader(weibulInfo):
     totalout = []
     totallabel = []
     classmeans = None
-    for (X,Y) in data_loader:
+    for num,X,Y in enumerate(data_loader):
         #Getting the correct column (Nessisary for our label design)
         y = Y[:,0]
         Z = model(X)    #Step 2
         if classmeans is None:
             classmeans = class_means(Z,y)
         elif len(Z) == Config.parameters["batch_size"][0]:
-            classmeans = [x+y for x,y in zip(classmeans,class_means(Z,y))]
+            classmeans = [(x * num + y) / (num + 1) for x, y in zip(classmeans, class_means(Z, y))]
+        else:
+            classmeans = [(x * num * Config.parameters["batch_size"][0] + y) / (num * Config.parameters["batch_size"][0] + len(y)) for x, y in zip(classmeans, class_means(Z, y))]
 
 
     return classmeans

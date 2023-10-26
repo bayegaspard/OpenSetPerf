@@ -368,7 +368,7 @@ class AttackTrainingClassification(nn.Module):
             if isinstance(self.end.rocData[1],torch.Tensor):
                 self.batch_saves_fucnt(f"Average unknown threshold possibilities",self.end.rocData[1].mean().item())
             else:
-                self.batch_saves_fucnt(f"Average unknown threshold possibilities",np.array(self.end.rocData[1]).mean().item())
+                self.batch_saves_fucnt(f"Average unknown threshold possibilities",np.array(self.end.rocData[1]).mean())
             self.batch_saves_fucnt("Overall Accuracy",acc.item())
             
             prec = precision_score(labels_extended[:,0].cpu(),out_argmax, labels=[Config.parameters["CLASSES"][0]],average="weighted",zero_division=0)

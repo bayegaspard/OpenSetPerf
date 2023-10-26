@@ -77,11 +77,12 @@ parameters = {
     "Number of Layers": [3,"Number of layers to add to the base model"],
     "Nodes": [512,"The number of nodes per added layer"],
     "Activation": ["Leaky","The type of activation function to use",["ReLU", "Tanh", "Sigmoid","Leaky"]],
-    "LOOP": [0,"This is a parameter that determines if we want to loop over the algorithms.\n "\
-    "0: no loop, 1:loop through variations of algorithms,thresholds,learning rates, groups and numbers of epochs, \n"\
-    "2: Loop while adding more unknowns into the training data (making them knowns) without resetting the model, \n"\
-    "3: Loop through different data distributions without training the model.\n"\
-    "4: Loop through predefined hyperparameters found in datasets/hyperparamList.csv"],
+    "LOOP": [0, "This is a parameter that determines if we want to loop over the algorithms.\n "\
+                "0: no loop, \n"\
+                "1:loop through variations of algorithms,thresholds,learning rates, groups and numbers of epochs, \n"\
+                "2: Loop while adding more unknowns into the training data (making them knowns) without resetting the model, \n"\
+                "3: Loop through different data distributions without training the model.\n"\
+                "4: Loop through predefined hyperparameters found in datasets/hyperparamList.csv"],
     "Dataset": ["Payload_data_CICIDS2017", "This is what dataset we are using,", ["Payload_data_CICIDS2017","Payload_data_UNSW"]],
     "SchedulerStepSize": [10, "This is how often the scheduler takes a step, 3 means every third epoch"],
     "SchedulerStep": [0.9,"This is how big a step the scheduler takes, leave 0 for no step"],
