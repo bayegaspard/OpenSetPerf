@@ -41,7 +41,7 @@ def class_means_from_loader(weibulInfo):
     totalout = []
     totallabel = []
     classmeans = None
-    for num,X,Y in enumerate(data_loader):
+    for num,(X,Y) in enumerate(data_loader):
         #Getting the correct column (Nessisary for our label design)
         y = Y[:,0]
         Z = model(X)    #Step 2
