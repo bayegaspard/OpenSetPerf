@@ -402,7 +402,7 @@ class AttackTrainingClassification(nn.Module):
             if self.end.end_type not in ["COOL","DOC"]:
                 self.batch_saves_fucnt("intra_spread_Endlayer",Distance_Types.distance_measures(out_post_endlayer.cpu(),self.batch_fdHook.means["End"],torch.argmax(out_post_endlayer,dim=1).cpu(),Distance_Types.dist_types_dict["intra_spread"]).item())
                 self.batch_saves_fucnt("Cosine_dist_Endlayer",Distance_Types.distance_measures(out_post_endlayer.cpu(),self.batch_fdHook.means["End"],torch.argmax(out_post_endlayer,dim=1).cpu(),Distance_Types.dist_types_dict["Cosine_dist"]).item())
-                self.batch_saves_fucnt("Euclidean Distance",Distance_Types.distance_measures(out_post_endlayer.cpu(),self.batch_fdHook.means["End"],torch.argmax(out_post_endlayer,dim=1).cpu(),Distance_Types.dist_types_dict["Cosine_dist"]).item())
+                self.batch_saves_fucnt("Euclidean_Distance_Endlayer",Distance_Types.distance_measures(out_post_endlayer.cpu(),self.batch_fdHook.means["End"],torch.argmax(out_post_endlayer,dim=1).cpu(),Distance_Types.dist_types_dict["Cosine_dist"]).item())
 
             #Calculating cluster distances
             if False:

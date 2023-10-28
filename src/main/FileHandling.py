@@ -513,7 +513,7 @@ class items_with_classes_record():
 
     def useItems(self, file = "Saves/items.csv"):
         index_names = [f"Logit{x}" for x in range(len(self.items[0]))]
-        items_with_varience = torch.concat([self.items,self.items.var(dim=1).unsqueeze(dim=0)],dim=1)
+        items_with_varience = torch.concat([self.items,self.items.var(dim=1).unsqueeze(dim=-1)],dim=1)
         index_names.append("Variance")
         if self.predict is None:
             items_with_labels = torch.concat([items_with_varience,self.labels],dim=1)

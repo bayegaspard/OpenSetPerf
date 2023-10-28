@@ -142,6 +142,7 @@ def run_model(measurement=None, graphDefault=False):
 
     #Validation values
     f1, recall, precision, accuracy = helperFunctions.getFscore(model.store)
+    print(f"Final Validation F1 score: {(f1*100):.2f}%")
     measurement("Val_F1",f1)
     measurement("Val_Recall",recall)
     measurement("Val_Precision",precision)
