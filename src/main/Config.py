@@ -272,6 +272,6 @@ if parameters["LOOP"][0] == 3:
 f = open("build_number.txt", "r")
 parameters["Version"] = [f.read(), "The version number"]
 
-save_as_tensorboard = True
+save_as_tensorboard = False
 datasetRandomOffset = True
 dataparallel = True

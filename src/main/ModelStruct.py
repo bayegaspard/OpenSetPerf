@@ -405,15 +405,16 @@ class AttackTrainingClassification(nn.Module):
                 self.batch_saves_fucnt("Euclidean Distance",Distance_Types.distance_measures(out_post_endlayer.cpu(),self.batch_fdHook.means["End"],torch.argmax(out_post_endlayer,dim=1).cpu(),Distance_Types.dist_types_dict["Cosine_dist"]).item())
 
             #Calculating cluster distances
-            self.batch_fdHook.class_vals = out_argmax
-            removeHandle = torch.nn.modules.module.register_module_forward_hook(self.batch_fdHook)
-            for distancetype in ["Cosine_dist","intra_spread","Euclidean Distance"]:
-                self.batch_fdHook.distFunct = distancetype
-                self(data)
-                for name in self.batch_fdHook.distances.keys():
-                    self.batch_saves_fucnt(f"{self.batch_fdHook.distFunct} distance of {name}",self.batch_fdHook.distances[name].item())
-                self.batch_fdHook.distances = {}
-            removeHandle.remove()
+            if False:
+                self.batch_fdHook.class_vals = out_argmax
+                removeHandle = torch.nn.modules.module.register_module_forward_hook(self.batch_fdHook)
+                for distancetype in ["Cosine_dist","intra_spread","Euclidean Distance"]:
+                    self.batch_fdHook.distFunct = distancetype
+                    self(data)
+                    for name in self.batch_fdHook.distances.keys():
+                        self.batch_saves_fucnt(f"{self.batch_fdHook.distFunct} distance of {name}",self.batch_fdHook.distances[name].item())
+                    self.batch_fdHook.distances = {}
+                removeHandle.remove()
             
 
         return {'val_loss': loss.detach(), 'val_acc': acc}
