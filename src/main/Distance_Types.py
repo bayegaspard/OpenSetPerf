@@ -25,7 +25,7 @@ def distance_measures(Z:torch.Tensor,means:list,Y:torch.Tensor,distFunct)->torch
 #Equation 2 from iiMod file
 def class_means(Z:torch.Tensor,Y:torch.Tensor):
     means = []
-    print(Y.bincount())
+    # print(Y.bincount())
     for y in Config.parameters["Knowns_clss"][0]:
     # for y in [0,1,2]:
         #Technically only this part is actually equation 2 but it seems to want to output a value for each class.
