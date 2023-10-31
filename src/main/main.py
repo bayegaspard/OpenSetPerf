@@ -119,7 +119,8 @@ def run_model(measurement=None, graphDefault=False):
     #Model.fit is what actually runs the model. It outputs some kind of history array?
     history_final += model.fit(Config.parameters["num_epochs"][0], Config.parameters["learningRate"][0], train_loader, val_loader, opt_func=opt_func, measurement=measurement)
 
-    # model.batchSaveMode(function=measurement)
+    if Config.parameters["SaveBatchData"][0]:
+        model.batchSaveMode(function=measurement)
 
     #This big block of commented code is to create confusion matricies that we thought could be misleading,
     #   so it is commented out.
@@ -141,6 +142,7 @@ def run_model(measurement=None, graphDefault=False):
 
     #Validation values
     f1, recall, precision, accuracy = helperFunctions.getFscore(model.store)
+    print(f"Final Validation F1 score: {(f1*100):.2f}%")
     measurement("Val_F1",f1)
     measurement("Val_Recall",recall)
     measurement("Val_Precision",precision)
@@ -481,7 +483,7 @@ def main_start():
     loopType2(run_model,measurement)
     loopType3(run_model,measurement)
     loopType4(run_model,measurement)
-    if hasattr(measurement,"writer"):
+    if hasattr(measurement,"writer") and measurement.writer is not None:
         measurement.writer.close()
     GenerateImages.main()
     print("Finished Completely")

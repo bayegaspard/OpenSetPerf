@@ -281,11 +281,12 @@ def definedLoops(path="datasets/hyperparamList.csv",row=0):
     """
     This function is for LOOP 4 where the function loops through a predefined sequence of hyperparameters.
     """
+    Config.parameters["Hyperparameter_row"] = [row, "Row of hyperparamiters.csv being used at the moment"]
     hyperparamsFile = pd.read_csv(path)
     if len(hyperparamsFile)>row:
         hyperparams = hyperparamsFile.iloc[row]
         for x in Config.parameters.keys():
-            if x in hyperparams.keys() and x not in ["Unknowns","Knowns_clss","Version","optimizer","LOOP"]:
+            if x in hyperparams.keys() and x not in ["Unknowns","Knowns_clss","Version","optimizer","LOOP","Hyperparameter_row"]:
                 Config.parameters[x][0] = hyperparams[x]
                 if isinstance(Config.parameters[x][0],np.generic):
                     Config.parameters[x][0] = Config.parameters[x][0].item()

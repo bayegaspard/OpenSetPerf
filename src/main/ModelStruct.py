@@ -307,9 +307,9 @@ class AttackTrainingClassification(nn.Module):
         cumulative_logit_data = FileHandling.Score_saver(path="Distances.csv")
         rm = []
         # rm.append(self.fc1.register_forward_hook(lambda x,y,z: item_logit_data.storeItems(y[0])))
-        rm.append(self.fc1.register_forward_hook(lambda x,y,z: cumulative_logit_data("Average standard Div",torch.mean(torch.std(y[0])).item())))
-        rm.append(self.fc1.register_forward_hook(lambda x,y,z: cumulative_logit_data("Average mean",torch.mean(y[0]).item())))
-        rm.append(self.fc1.register_forward_hook(lambda x,y,z: cumulative_logit_data(f"Item Count Class", labels.bincount(minlength=Config.parameters['CLASSES'][0]).numpy(),recursiveList=1)))
+        # rm.append(self.fc1.register_forward_hook(lambda x,y,z: cumulative_logit_data("Average standard Div",torch.mean(torch.std(y[0])).item())))
+        # rm.append(self.fc1.register_forward_hook(lambda x,y,z: cumulative_logit_data("Average mean",torch.mean(y[0]).item())))
+        # rm.append(self.fc1.register_forward_hook(lambda x,y,z: cumulative_logit_data(f"Item Count Class", labels.bincount(minlength=Config.parameters['CLASSES'][0]).numpy(),recursiveList=1)))
         # rm = self.fc1.register_forward_hook(lambda x,y,z: print(f"Average standard Div: {torch.mean(torch.std(y[0]))}, Average mean {torch.mean(y[0])}, Labels Dist{labels.bincount(minlength=Config.parameters['CLASSES'][0]).numpy()}"))
 
         if self.keep_batch_saves:
@@ -368,7 +368,7 @@ class AttackTrainingClassification(nn.Module):
             if isinstance(self.end.rocData[1],torch.Tensor):
                 self.batch_saves_fucnt(f"Average unknown threshold possibilities",self.end.rocData[1].mean().item())
             else:
-                self.batch_saves_fucnt(f"Average unknown threshold possibilities",np.array(self.end.rocData[1]).mean().item())
+                self.batch_saves_fucnt(f"Average unknown threshold possibilities",np.array(self.end.rocData[1]).mean())
             self.batch_saves_fucnt("Overall Accuracy",acc.item())
             
             prec = precision_score(labels_extended[:,0].cpu(),out_argmax, labels=[Config.parameters["CLASSES"][0]],average="weighted",zero_division=0)
@@ -402,18 +402,19 @@ class AttackTrainingClassification(nn.Module):
             if self.end.end_type not in ["COOL","DOC"]:
                 self.batch_saves_fucnt("intra_spread_Endlayer",Distance_Types.distance_measures(out_post_endlayer.cpu(),self.batch_fdHook.means["End"],torch.argmax(out_post_endlayer,dim=1).cpu(),Distance_Types.dist_types_dict["intra_spread"]).item())
                 self.batch_saves_fucnt("Cosine_dist_Endlayer",Distance_Types.distance_measures(out_post_endlayer.cpu(),self.batch_fdHook.means["End"],torch.argmax(out_post_endlayer,dim=1).cpu(),Distance_Types.dist_types_dict["Cosine_dist"]).item())
-                self.batch_saves_fucnt("Euclidean Distance",Distance_Types.distance_measures(out_post_endlayer.cpu(),self.batch_fdHook.means["End"],torch.argmax(out_post_endlayer,dim=1).cpu(),Distance_Types.dist_types_dict["Cosine_dist"]).item())
+                self.batch_saves_fucnt("Euclidean_Distance_Endlayer",Distance_Types.distance_measures(out_post_endlayer.cpu(),self.batch_fdHook.means["End"],torch.argmax(out_post_endlayer,dim=1).cpu(),Distance_Types.dist_types_dict["Cosine_dist"]).item())
 
             #Calculating cluster distances
-            self.batch_fdHook.class_vals = out_argmax
-            removeHandle = torch.nn.modules.module.register_module_forward_hook(self.batch_fdHook)
-            for distancetype in ["Cosine_dist","intra_spread","Euclidean Distance"]:
-                self.batch_fdHook.distFunct = distancetype
-                self(data)
-                for name in self.batch_fdHook.distances.keys():
-                    self.batch_saves_fucnt(f"{self.batch_fdHook.distFunct} distance of {name}",self.batch_fdHook.distances[name].item())
-                self.batch_fdHook.distances = {}
-            removeHandle.remove()
+            if False:
+                self.batch_fdHook.class_vals = out_argmax
+                removeHandle = torch.nn.modules.module.register_module_forward_hook(self.batch_fdHook)
+                for distancetype in ["Cosine_dist","intra_spread","Euclidean Distance"]:
+                    self.batch_fdHook.distFunct = distancetype
+                    self(data)
+                    for name in self.batch_fdHook.distances.keys():
+                        self.batch_saves_fucnt(f"{self.batch_fdHook.distFunct} distance of {name}",self.batch_fdHook.distances[name].item())
+                    self.batch_fdHook.distances = {}
+                removeHandle.remove()
             
 
         return {'val_loss': loss.detach(), 'val_acc': acc}

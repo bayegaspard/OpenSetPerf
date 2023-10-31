@@ -77,16 +77,18 @@ parameters = {
     "Number of Layers": [3,"Number of layers to add to the base model"],
     "Nodes": [512,"The number of nodes per added layer"],
     "Activation": ["Leaky","The type of activation function to use",["ReLU", "Tanh", "Sigmoid","Leaky"]],
-    "LOOP": [0,"This is a parameter that determines if we want to loop over the algorithms.\n "\
-    "0: no loop, 1:loop through variations of algorithms,thresholds,learning rates, groups and numbers of epochs, \n"\
-    "2: Loop while adding more unknowns into the training data (making them knowns) without resetting the model, \n"\
-    "3: Loop through different data distributions without training the model.\n"\
-    "4: Loop through predefined hyperparameters found in datasets/hyperparamList.csv"],
+    "LOOP": [0, "This is a parameter that determines if we want to loop over the algorithms.\n "\
+                "0: no loop, \n"\
+                "1:loop through variations of algorithms,thresholds,learning rates, groups and numbers of epochs, \n"\
+                "2: Loop while adding more unknowns into the training data (making them knowns) without resetting the model, \n"\
+                "3: Loop through different data distributions without training the model.\n"\
+                "4: Loop through predefined hyperparameters found in datasets/hyperparamList.csv"],
     "Dataset": ["Payload_data_CICIDS2017", "This is what dataset we are using,", ["Payload_data_CICIDS2017","Payload_data_UNSW"]],
     "SchedulerStepSize": [10, "This is how often the scheduler takes a step, 3 means every third epoch"],
     "SchedulerStep": [0.9,"This is how big a step the scheduler takes, leave 0 for no step"],
     "ApplyPrelimSoft": [0, "This says to use a preliminary softmax and only use unknown detection on things that fail the softmax unknown detection"],
-    "ItemLogitData": [0, "1: use item logit data and store it in 'Saves/item.csv', 0: disabled"]
+    "ItemLogitData": [0, "1: use item logit data and store it in 'Saves/item.csv', 0: disabled"],
+    "SaveBatchData": [1, "1: Save some data from each batch in 'Saves/BatchSaves.csv', 0: disabled"]
 }
 
 
@@ -97,7 +99,7 @@ for x in parameters.keys():
         parser.add_argument(f"--{x}", type=int, default=parameters[x][0], help=parameters[x][1], required=False)
     if x in ["testlength", "learningRate", "threshold", "Dropout", "Temperature", "SchedulerStep"]:
         parser.add_argument(f"--{x}", type=float, default=parameters[x][0], help=parameters[x][1], required=False)
-    if x in ["attemptLoadModel", "attemptLoadData","Mix unknowns and validation","ApplyPrelimSoft","ItemLogitData"]:
+    if x in ["attemptLoadModel", "attemptLoadData","Mix unknowns and validation","ApplyPrelimSoft","ItemLogitData","SaveBatchData"]:
         parser.add_argument(f"--{x}", type=int, choices=[1, 0], default=parameters[x][0], help=parameters[x][1], required=False)
     if x in ["LOOP"]:
         parser.add_argument(f"--{x}", type=int, choices=[0, 1, 2, 3, 4], default=parameters[x][0], help=parameters[x][1], required=False)
@@ -270,6 +272,6 @@ if parameters["LOOP"][0] == 3:
 f = open("build_number.txt", "r")
 parameters["Version"] = [f.read(), "The version number"]
 
-save_as_tensorboard = True
+save_as_tensorboard = False
 datasetRandomOffset = True
 dataparallel = True
