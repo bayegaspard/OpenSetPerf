@@ -85,7 +85,7 @@ def intra_spread(Z:torch.Tensor,means:list,Y:torch.Tensor)->torch.Tensor:
         # mask = Y==[0,1,2][j]
         distanceVector = means[j]-Z[mask]
         
-        intraspread += torch.linalg.norm(distanceVector,dim=0).sum()
+        intraspread += (torch.linalg.norm(distanceVector,dim=0)**2).sum()
     
     return intraspread/N
 

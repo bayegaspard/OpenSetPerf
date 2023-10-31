@@ -88,7 +88,7 @@ parameters = {
     "SchedulerStep": [0.9,"This is how big a step the scheduler takes, leave 0 for no step"],
     "ApplyPrelimSoft": [0, "This says to use a preliminary softmax and only use unknown detection on things that fail the softmax unknown detection"],
     "ItemLogitData": [0, "1: use item logit data and store it in 'Saves/item.csv', 0: disabled"],
-    "SaveBatchData": [0, "1: Save some data from each batch in 'Saves/BatchSaves.csv', 0: disabled"]
+    "SaveBatchData": [1, "1: Save some data from each batch in 'Saves/BatchSaves.csv', 0: disabled"]
 }
 
 

@@ -483,7 +483,7 @@ def main_start():
     loopType2(run_model,measurement)
     loopType3(run_model,measurement)
     loopType4(run_model,measurement)
-    if hasattr(measurement,"writer"):
+    if hasattr(measurement,"writer") and measurement.writer is not None:
         measurement.writer.close()
     GenerateImages.main()
     print("Finished Completely")
