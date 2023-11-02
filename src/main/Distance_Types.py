@@ -101,8 +101,8 @@ class forwardHook():
     
 
 dist_types_dict = {
-    "Cosine_dist": lambda x1,x2: 1-(torch.nn.functional.cosine_similarity(x1,x2[:,:len(x1)])**2).sum(),
-    "intra_spread": lambda x,y:torch.linalg.norm(x-y[:,:len(x)],dim=0).sum(),
+    "Cosine_dist": lambda x1,x2: 1-torch.nn.functional.cosine_similarity(x1,x2[:,:len(x1)]).sum(),
+    "intra_spread": lambda x,y:(torch.linalg.norm(x-y[:,:len(x)],dim=0)**2).sum(),
     "Euclidean Distance": lambda x1,x2: torch.tensor([euclidean_distance(x1,y2) for y2 in x2[:,:len(x1)]]).sum()
 }
 
