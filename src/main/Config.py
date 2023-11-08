@@ -54,7 +54,7 @@ parameters = {
     #These parameters are orginized like this:
     #"ParamName":[Value, "Description", [possible values]]
     #for a parameter called "ParamName" with a value of Value
-    "batch_size":[100000, "Number of items per batch"],
+    "batch_size":[1000, "Number of items per batch"],
     "num_workers":[14, "Number of threads working on building batches"],
     "attemptLoadModel":[0, "0: do not use saves for the model\n1:use saves for the model"],
     "attemptLoadData":[0, "0: do not use saves for the dataset\n1:use saves for the dataset"],
@@ -62,19 +62,19 @@ parameters = {
     "Mix unknowns and validation": [1,"0 or 1, 0 means that the test set is purely unknowns and 1 means that the testset is the validation set plus unknowns (for testing)"],
     "MaxPerClass": [1000, "Maximum number of samples per class\n if Dataloader_Variation is Cluster and this value is a float it interprets it as the maximum percentage of the class instead."],
     "num_epochs":[150,"Number of times it trains on the whole trainset"],
-    "learningRate":[0.001, "a modifier for training"],
-    "threshold":[3,"When to declare something to be unknown"],
+    "learningRate":[0.01, "a modifier for training"],
+    "threshold":[0.25,"When to declare something to be unknown"],
     "model":["Convolutional","Model type",["Fully_Connected","Convolutional"]],
     "OOD Type":["Soft","type of out of distribution detection", ["Soft","Open","Energy","COOL","DOC","iiMod", "Var"]],
-    "Dropout":[0.1,"percent of nodes that are skipped per run, larger numbers for more complex models [0,1)"],
     "Dataloader_Variation":["Standard","Defines the style of Dataloader used. This affects sampling from the dataset", ["Standard","Cluster","Flows"]],
+    "Dropout":[0.01,"percent of nodes that are skipped per run, larger numbers for more complex models [0,1)"],
     "optimizer":opt_func["Adam"],
     "Unknowns":["UNUSED"],
     "Unknowns_clss": [[7,8,9],"Class indexes used as unknowns."],
     "CLASSES":[15,"Number of classes, do not change"],
     "Temperature":[1,"Energy OOD scaling parameter"],
     "Degree of Overcompleteness": [3,"Parameter for Fitted Learning"],
-    "Number of Layers": [3,"Number of layers to add to the base model"],
+    "Number of Layers": [2,"Number of layers to add to the base model"],
     "Nodes": [512,"The number of nodes per added layer"],
     "Activation": ["Leaky","The type of activation function to use",["ReLU", "Tanh", "Sigmoid","Leaky"]],
     "LOOP": [0, "This is a parameter that determines if we want to loop over the algorithms.\n "\
@@ -85,10 +85,10 @@ parameters = {
                 "4: Loop through predefined hyperparameters found in datasets/hyperparamList.csv"],
     "Dataset": ["Payload_data_CICIDS2017", "This is what dataset we are using,", ["Payload_data_CICIDS2017","Payload_data_UNSW"]],
     "SchedulerStepSize": [10, "This is how often the scheduler takes a step, 3 means every third epoch"],
-    "SchedulerStep": [0.9,"This is how big a step the scheduler takes, leave 0 for no step"],
+    "SchedulerStep": [0.8,"This is how big a step the scheduler takes, leave 0 for no step"],
     "ApplyPrelimSoft": [0, "This says to use a preliminary softmax and only use unknown detection on things that fail the softmax unknown detection"],
     "ItemLogitData": [0, "1: use item logit data and store it in 'Saves/item.csv', 0: disabled"],
-    "SaveBatchData": [1, "1: Save some data from each batch in 'Saves/BatchSaves.csv', 0: disabled"]
+    "SaveBatchData": [0, "1: Save some data from each batch in 'Saves/BatchSaves.csv', 0: disabled"]
 }
 
 
@@ -153,7 +153,7 @@ thresholds = [30, 20, 15, 5]
 thresholds = [parameters["threshold"][0]]
 learning_rates = [0.1, 0.01, 0.001, 0.0001]
 activation = ["ReLU", "Tanh", "Sigmoid", "Leaky"]
-groups = [[], [2], [2, 3], [2, 3, 4], [2, 3, 4, 5], [2, 3, 4, 5, 6], [2, 3, 4, 5, 6, 7], [1, 2, 3, 4, 5, 6, 7], [1, 2, 3, 4, 5, 6, 7, 8]]
+groups = [[2], [2, 3], [2, 3, 4], [2, 3, 4, 5], [2, 3, 4, 5, 6], [2, 3, 4, 5, 6, 7], [1, 2, 3, 4, 5, 6, 7], [1, 2, 3, 4, 5, 6, 7, 8]]
 #groups = [[7, 8, 9]]
 if parameters["Dataset"][0] == "Payload_data_CICIDS2017":
     incGroups = [[2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14], [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14], [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14], [5, 6, 7, 8, 9, 10, 11, 12, 13, 14], [6, 7, 8, 9, 10, 11, 12, 13, 14], [7, 8, 9, 10, 11, 12, 13, 14], [8, 9, 10, 11, 12, 13, 14], [9, 10, 11, 12, 13, 14], [10, 11, 12, 13, 14], [11, 12, 13, 14], [12, 13, 14], [13, 14], [14]] 

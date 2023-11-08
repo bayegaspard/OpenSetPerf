@@ -500,7 +500,12 @@ class Score_saver():
 
 class items_with_classes_record():
     def __init__(self, labels:torch.Tensor):
-        self.labels = labels.unsqueeze(dim=-1).cpu()
+        if labels.dim() == 2:
+            self.labels = labels[:, 1].unsqueeze(dim=-1).cpu()
+            self.known_binary = (labels[:, 0] == labels[:, 1]).unsqueeze(dim=-1).cpu()
+        else:
+            self.labels = labels.unsqueeze(dim=-1).cpu()
+            self.known_binary = None
         self.items = None
         self.predict = None
     
@@ -521,6 +526,11 @@ class items_with_classes_record():
             items_with_labels = torch.concat([items_with_varience,self.predict,self.labels],dim=1)
             index_names.append("Prediction")
         index_names.append("Label")
+
+        if self.known_binary is not None:
+            items_with_labels = torch.concat([items_with_labels,self.known_binary],dim=1)
+            index_names.append("Known Data")
+        
         df = pd.DataFrame(items_with_labels.T,index=index_names).T
         df.to_csv(file,mode="a",header=(not os.path.exists(file)))
         self.items = None

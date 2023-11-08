@@ -239,7 +239,7 @@ def main(save=True,show=False, minimumVersion=None, bysection=False, latex=False
     if not os.path.exists("Saves/images/"):
         os.mkdir("Saves/images")
     
-    whole_table = pd.read_csv("Saves/Scoresall.csv")
+    whole_table = pd.read_csv("Saves/Scoresall-ArchivedForPaper.csv")
     if "Type of modification" in whole_table:
         whole_table = whole_table[whole_table["Version"]!="OLD"] #Sort out all unreadable versions
         whole_table = whole_table[whole_table["Version"].astype(int)>=minimumVersion] #Only accept version numbers above value
