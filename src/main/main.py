@@ -476,8 +476,9 @@ def main_start():
 
     measurement = FileHandling.Score_saver()
 
-    #Runs the model
-    run_model(measurement=measurement)
+    if Config.parameters["LOOP"][0] not in [4]:
+        #Runs the model
+        run_model(measurement=measurement)
 
     loopType1(run_model,measurement)
     loopType2(run_model,measurement)

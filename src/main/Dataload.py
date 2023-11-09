@@ -13,14 +13,14 @@ import random
 
 #List of conversions:
 if Config.parameters["Dataset"][0] == "Payload_data_CICIDS2017":
-    CLASSLIST = {0: 'BENIGN', 1: 'Infiltration', 2: 'Bot', 3: 'PortScan', 4: 'DDoS', 5: 'FTP-Patator', 6: 'SSH-Patator', 7: 'DoS slowloris', 8: 'DoS Slowhttptest', 9: 'DoS Hulk', 10: 'DoS GoldenEye', 11: 'Heartbleed', 12: 'Web Attack – Brute Force', 13: 'Web Attack – XSS', 14:'Web Attack – Sql Injection'}
+    CLASSLIST = {'BENIGN': 0, 'Infiltration': 1, 'Bot': 2, 'PortScan': 3, 'DDoS': 4, 'FTP-Patator': 5, 'SSH-Patator': 6, 'DoS slowloris': 7, 'DoS Slowhttptest': 8, 'DoS Hulk': 9, 'DoS GoldenEye': 10, 'Heartbleed': 11, 'Web Attack – Brute Force': 12, 'Web Attack – XSS': 13, 'Web Attack – Sql Injection': 14}
 elif Config.parameters["Dataset"][0] == "Payload_data_UNSW":
-    CLASSLIST = {0:"analysis",1:"backdoor",2:"dos",3:"exploits",4:"fuzzers",5:"generic",6:"normal",7:"reconnaissance",8:"shellcode",9:"worms"}
+    CLASSLIST = {"normal": 0,"backdoor": 1, "dos": 2, "exploits": 3, "fuzzers": 4, "generic": 5, "analysis": 6, "reconnaissance": 7, "shellcode": 8, "worms": 9}
 else:
     print("ERROR, Dataset not implemented")
 #PROTOCOLS = {"udp":0,"tcp":1}
 PROTOCOLS = {"udp":0,"tcp":1,"others":2,"ospf":3,"sctp":4,"gre":5,"swipe":6,"mobile":7,"sun-nd":8,"sep":9,"unas":10,"pim":11,"secure-vmtp":12,"pipe":13,"etherip":14,"ib":15,"ax.25":16,"ipip":17,"sps":18,"iplt":19,"hmp":20,"ggp":21,"ipv6":22,"rdp":23,"rsvp":24,"sccopmce":25,"egp":26,"vmtp":27,"snp":28,"crtp":29,"emcon":30,"nvp":31,"fire":32,"crudp":33,"gmtp":34,"dgp":35,"micp":36,"leaf-2":37,"arp":38,"fc":39,"icmp":40,"other":41}
-LISTCLASS = {CLASSLIST[x]:x for x in range(Config.parameters["CLASSES"][0])}
+LISTCLASS = {CLASSLIST[x]:x for x in CLASSLIST.keys()}
 CHUNKSIZE = 10000
 
 def groupDoS(x):
@@ -32,7 +32,8 @@ def classConvert(x):
     """
     Does a conversion based on the dictionaries
     """
-    return LISTCLASS[x]
+    return CLASSLIST[x]
+
 def protocalConvert(x):
     """
     Does a conversion based on the dictionaries
@@ -45,7 +46,7 @@ def get_class_names(lst):
     """
     new_class_list = []
     for i in lst:
-        new_class_list.append(CLASSLIST[i])
+        new_class_list.append(LISTCLASS[i])
     return new_class_list
 
 def get_default_device():
@@ -104,7 +105,7 @@ class ClassDivDataset(Dataset):
         If you want to make a dataloader that only reads benign data:
           train = Dataload.Dataset("Payload_data_CICIDS2017_Sorted",use=[0])
         "Payload_data_CICIDS2017_Sorted" is the main name for where the chunked data folder is
-        use = [0] means that we are only using CLASSLIST[0] which is benign
+        use = [0] means that we are only using LISTCLASS[0] which is benign
         """
 
         self.unknownData=unknownData
@@ -121,16 +122,16 @@ class ClassDivDataset(Dataset):
 
         #This is setting what classes are considered to be knowns.
         if use is not None:
-            self.use = [False for i in range(len(CLASSLIST))] 
+            self.use = [False for i in LISTCLASS.keys()] 
             self.usedDict = {}
             use.sort()
             for case in use:
                 self.use[case] = True
                 #OK this requires you to have the use list be sorted, but otherwise it works.
-                self.usedDict[len(self.usedDict)] = CLASSLIST[case]
+                self.usedDict[len(self.usedDict)] = LISTCLASS[case]
         else:
-            self.use = [True for i in range(len(CLASSLIST))] 
-            self.usedDict = CLASSLIST
+            self.use = [True for i in range(len(LISTCLASS))] 
+            self.usedDict = LISTCLASS
         
         #this will check if the file is chunked and chunk it if it is not
         self.checkIfSplit(path)
@@ -286,7 +287,7 @@ class ClassDivDataset(Dataset):
 
             #this stores the data in dataframes
             runningDataFrames = []
-            for c in CLASSLIST:
+            for c in LISTCLASS:
                 runningDataFrames.append(pd.DataFrame())
 
             #this is just to keep track of how many files exist of each class
@@ -300,13 +301,13 @@ class ClassDivDataset(Dataset):
                     mask = chunk["label"]==j         #this deturmines if things are in this class
                     runningDataFrames[j] = pd.concat((runningDataFrames[j],chunk[mask]))
                     if len(runningDataFrames[j])>=10000:
-                        runningDataFrames[j][:10000].to_csv(path+f"/chunk{CLASSLIST[j]}{filecount[j]}.csv",index_label=False,index=False)
+                        runningDataFrames[j][:10000].to_csv(path+f"/chunk{LISTCLASS[j]}{filecount[j]}.csv",index_label=False,index=False)
                         runningDataFrames[j] = runningDataFrames[j][10000:]
                         filecount[j] += 1
 
             count = [x*10000 for x in filecount]
             for j in range(len(runningDataFrames)):
-                runningDataFrames[j].to_csv(path+f"/chunk{CLASSLIST[j]}{filecount[j]}.csv",index_label=False,index=False)
+                runningDataFrames[j].to_csv(path+f"/chunk{LISTCLASS[j]}{filecount[j]}.csv",index_label=False,index=False)
                 count[j] += len(runningDataFrames[j])
             
             count = pd.DataFrame(count)
@@ -345,7 +346,7 @@ class ClusterDivDataset(ClassDivDataset):
         If you want to make a dataloader that only reads benign data:
           train = Dataload.Dataset("Payload_data_CICIDS2017_Sorted",use=[0])
         "Payload_data_CICIDS2017_Sorted" is the main name for where the chunked data folder is
-        use = [0] means that we are only using CLASSLIST[0] which is benign
+        use = [0] means that we are only using LISTCLASS[0] which is benign
         """
         
 
@@ -511,7 +512,7 @@ class ClusterDivDataset(ClassDivDataset):
                 counts.iloc[x] = bincount
                 for i in range(self.clusters):
                     X3 = X[lst==i]
-                    X3.to_csv(self.path+"_Clustered"+f"/chunk{CLASSLIST[x]}-type{i:03d}.csv",index_label=False,index=False)
+                    X3.to_csv(self.path+"_Clustered"+f"/chunk{LISTCLASS[x]}-type{i:03d}.csv",index_label=False,index=False)
             counts.to_csv(f"{path}/counts.csv",index_label=False)
 
     def seriesprocess(self,x:pd.Series,classNumber:int) -> tuple([torch.Tensor,torch.Tensor]):
@@ -578,7 +579,7 @@ class ClusterLimitDataset(ClusterDivDataset):
         If you want to make a dataloader that only reads benign data:
           train = Dataload.Dataset("Payload_data_CICIDS2017_Sorted",use=[0])
         "Payload_data_CICIDS2017_Sorted" is the main name for where the chunked data folder is
-        use = [0] means that we are only using CLASSLIST[0] which is benign
+        use = [0] means that we are only using LISTCLASS[0] which is benign
         
         """
         self.perclassgroups = None
@@ -721,8 +722,8 @@ class DatasetWithFlows(IterableDataset):
             raise ValueError("Invalid name of dataset")
         self.df = Data_set_with_flows(dataset=self.dataset_name,subset=["Payload-Bytes"],files="all")
         
-        self.use = [CLASSLIST[x] for x in use]
-        self.notuse = [CLASSLIST[x] for x in range(Config.parameters["CLASSES"][0]) if CLASSLIST[x] not in self.use]
+        self.use = [LISTCLASS[x] for x in use]
+        self.notuse = [LISTCLASS[x] for x in range(Config.parameters["CLASSES"][0]) if LISTCLASS[x] not in self.use]
         if 'Web Attack – Sql Injection' in self.use:
             self.use[self.use.index('Web Attack – Sql Injection')] = 'Web Attack – SQL Injection'
         if 'Web Attack – Sql Injection' in self.notuse:
@@ -845,7 +846,7 @@ class DatasetWithFlows(IterableDataset):
         """
         item["protocol"] = protocalConvert(item["protocol"])
         if item["attack_label"] == 'Web Attack – SQL Injection':
-            item["attack_label"] = LISTCLASS['Web Attack – Sql Injection']
+            item["attack_label"] = CLASSLIST['Web Attack – Sql Injection']
         else:
             item["attack_label"] = classConvert(item["attack_label"])
         for a,x in enumerate(item.pop("destination_ip").split(sep='.')):
@@ -888,7 +889,7 @@ class ClassDivDataset_flows(Dataset):
         If you want to make a dataloader that only reads benign data:
           train = Dataload.Dataset("Payload_data_CICIDS2017",use=[0])
         "Payload_data_CICIDS2017" is the main name for where the chunked data folder is
-        use = [0] means that we are only using CLASSLIST[0] which is benign
+        use = [0] means that we are only using LISTCLASS[0] which is benign
         """
         from nids_datasets import DatasetInfo
         self.unknownData=unknownData
@@ -910,15 +911,15 @@ class ClassDivDataset_flows(Dataset):
         
         self.use_numerical = use.copy()
         #This is setting what classes are considered to be knowns.
-        self.classlist_with_uppercase = CLASSLIST.copy()
+        self.classlist_with_uppercase = LISTCLASS.copy()
         # print(self.listOfCounts.keys())
         self.classlist_with_uppercase[14] = 'Web Attack – SQL Injection'
         if use is not None:
             self.use_mask = [case in [self.classlist_with_uppercase[x] for x in use] for case in self.listOfCounts.keys()]
-            self.usedDict = {count:CLASSLIST[case] for count,case in enumerate(use)}
+            self.usedDict = {count:LISTCLASS[case] for count,case in enumerate(use)}
         else:
             self.use_mask = [case in [self.classlist_with_uppercase[x] for x in self.classlist_with_uppercase.keys()] for case in self.listOfCounts.keys()]
-            self.usedDict = CLASSLIST.copy()
+            self.usedDict = LISTCLASS.copy()
 
         #this will check if the file is chunked and chunk it if it is not
         self.checkIfSplit(path)
@@ -991,7 +992,7 @@ class ClassDivDataset_flows(Dataset):
 
         t_start = time.time()
         try:
-            chunk = pd.read_csv(self.path+f"/{CLASSLIST[clas]}.csv", index_col=False,chunksize=1,skiprows=range(1,index),header=0).get_chunk()
+            chunk = pd.read_csv(self.path+f"/{LISTCLASS[clas]}.csv", index_col=False,chunksize=1,skiprows=range(1,index),header=0).get_chunk()
         except:
             print(f"Original index {index_before_offset}, Index with offset {index}, Class number {clas}, Offset {0}",flush=True)
             raise
@@ -1058,11 +1059,11 @@ class ClassDivDataset_flows(Dataset):
         """
         if path is None:
             path = self.path
-        if False in [os.path.exists(f"datasets/{Config.parameters['Dataset'][0]}_with_flows/{CLASSLIST[clas]}.csv") for clas in self.use_numerical]:
+        if False in [os.path.exists(f"datasets/{Config.parameters['Dataset'][0]}_with_flows/{LISTCLASS[clas]}.csv") for clas in self.use_numerical]:
             if False in [os.path.exists(f"datasets/{Config.parameters['Dataset'][0]}_with_flows/file{x+1}") for x in range(18)]:
                 files_to_refresh = [x+1 for x in range(18) if not os.path.exists(f"datasets/{Config.parameters['Dataset'][0]}_with_flows/file{x+1}")]
                 run_demo(self.split_flows_dataset,len(files_to_refresh),files_to_refresh)
-            self.join_split_flows_dataset([x for x in LISTCLASS.keys() if not os.path.exists(f"datasets/{Config.parameters['Dataset'][0]}_with_flows/{x}.csv")])
+            self.join_split_flows_dataset([x for x in CLASSLIST.keys() if not os.path.exists(f"datasets/{Config.parameters['Dataset'][0]}_with_flows/{x}.csv")])
 
     @staticmethod
     def split_flows_dataset(worker=None, worldsize=18,file=None):
@@ -1097,7 +1098,7 @@ class ClassDivDataset_flows(Dataset):
         def fixes(item:dict):
             item["protocol"] = protocalConvert(item["protocol"])
             if item["attack_label"] == 'Web Attack – SQL Injection':
-                item["label"] = LISTCLASS['Web Attack – Sql Injection']
+                item["label"] = CLASSLIST['Web Attack – Sql Injection']
             else:
                 item["label"] = classConvert(item["attack_label"])
             item.pop("attack_label")
@@ -1119,10 +1120,10 @@ class ClassDivDataset_flows(Dataset):
                 item["index"]=num
                 #https://stackoverflow.com/a/68206394
                 item_df = pd.Series(item).to_frame().T
-                if os.path.exists(f"datasets/{Config.parameters['Dataset'][0]}_with_flows/file{file}/{CLASSLIST[item['label']]}.csv"):
-                    item_df.to_csv(f"datasets/{Config.parameters['Dataset'][0]}_with_flows/file{file}/{CLASSLIST[item['label']]}.csv",mode='a',header=False,index_label="index")
+                if os.path.exists(f"datasets/{Config.parameters['Dataset'][0]}_with_flows/file{file}/{LISTCLASS[item['label']]}.csv"):
+                    item_df.to_csv(f"datasets/{Config.parameters['Dataset'][0]}_with_flows/file{file}/{LISTCLASS[item['label']]}.csv",mode='a',header=False,index_label="index")
                 else:
-                    item_df.to_csv(f"datasets/{Config.parameters['Dataset'][0]}_with_flows/file{file}/{CLASSLIST[item['label']]}.csv",index_label="index")
+                    item_df.to_csv(f"datasets/{Config.parameters['Dataset'][0]}_with_flows/file{file}/{LISTCLASS[item['label']]}.csv",index_label="index")
                 if num%10000 == 0:
                     print(f"{num} rows finished in file {file}")
         print(f"{file} finished.")
