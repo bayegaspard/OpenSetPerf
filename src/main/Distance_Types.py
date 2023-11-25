@@ -2,9 +2,16 @@ import torch
 import Config
 import math
 
-#Code from the iiMod file
+#Code from the iiMod file (Very Modified)
 def distance_measures(Z:torch.Tensor,means:list,Y:torch.Tensor,distFunct)->torch.Tensor:
+    """
+    Returns a distance created by distFunct between the means and the predicted outputs.
+    Z is the output of the model that should be in the form of (I,C) where I is the number of items in the batch and C is the total number of classes.
+    means is a list of means for each of the C classes.
+    Y is the final predicted class label in the form of (I) where I is the number of items in the batch.
 
+    Returns a zero dimentional Tensor
+    """
     intraspread = torch.tensor(0,dtype=torch.float32)
     N = len(Y)
     K = range(len(Config.parameters["Knowns_clss"][0]))
@@ -25,6 +32,14 @@ def distance_measures(Z:torch.Tensor,means:list,Y:torch.Tensor,distFunct)->torch
 
 #Equation 2 from iiMod file
 def class_means(Z:torch.Tensor,Y:torch.Tensor):
+    """
+    Creates the class means from the final batch output and the true labels.
+
+    Z is the output of the model that should be in the form of (I,C) where I is the number of items in the batch and C is the total number of classes.
+    Y is the final true class label in the form of (I) where I is the number of items in the batch.
+
+    Returns a list of X dementional tensors, one row for each class where X is also the number of classes.
+    """
     means = [torch.tensor(0) for x in range(Config.parameters["CLASSES"][0])]
     # print(Y.bincount())
     for y in Config.parameters["Knowns_clss"][0]:
@@ -40,6 +55,14 @@ def class_means(Z:torch.Tensor,Y:torch.Tensor):
     return means
 
 def class_means_from_loader(weibulInfo):
+    """
+    Creates the class means from the information gathered for the weibul model using the final batch output and the true labels.
+
+    inputs:
+        weibulInfo - a dictonary containing:
+                loader - a Dataloader containing the training data to be used to find the means
+                net - the network that is being trained    
+    """
     #Note, this masking is only due to how we are handling model outputs.
     #If I was to design things again I would have designed the model outputs not to need this masking.
     data_loader = weibulInfo["loader"]
