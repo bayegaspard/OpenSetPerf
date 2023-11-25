@@ -20,12 +20,13 @@ else:
     print("ERROR, Dataset not implemented")
 #PROTOCOLS = {"udp":0,"tcp":1}
 PROTOCOLS = {"udp":0,"tcp":1,"others":2,"ospf":3,"sctp":4,"gre":5,"swipe":6,"mobile":7,"sun-nd":8,"sep":9,"unas":10,"pim":11,"secure-vmtp":12,"pipe":13,"etherip":14,"ib":15,"ax.25":16,"ipip":17,"sps":18,"iplt":19,"hmp":20,"ggp":21,"ipv6":22,"rdp":23,"rsvp":24,"sccopmce":25,"egp":26,"vmtp":27,"snp":28,"crtp":29,"emcon":30,"nvp":31,"fire":32,"crudp":33,"gmtp":34,"dgp":35,"micp":36,"leaf-2":37,"arp":38,"fc":39,"icmp":40,"other":41}
-LISTCLASS = {CLASSLIST[x]:x for x in CLASSLIST.keys()}
+LISTCLASS = {CLASSLIST[x]:x for x in CLASSLIST.keys() if x not in Config.UnusedClasses}
 CHUNKSIZE = 10000
 
 def groupDoS(x):
     if False and Config.parameters["Dataset"][0] == "Payload_data_CICIDS2017":
         x[x>=7 and x<=10] = 7
+        x[x>10] = x[x>10] - 3
     return x
 
 def classConvert(x):
@@ -81,7 +82,7 @@ def recreateDL(dl:torch.utils.data.DataLoader,shuffle=True):
         persistant_workers = True
     else:
         persistant_workers = False
-    return DataLoader(combinedList, Config.parameters["batch_size"][0], shuffle=shuffle, num_workers=Config.parameters["num_workers"][0],pin_memory=False, persistent_workers=persistant_workers)
+    return DataLoader(combinedList, Config.parameters["batch_size"][0], shuffle=shuffle, num_workers=Config.parameters["num_workers"][0],pin_memory=True, persistent_workers=persistant_workers)
 
 
 device = get_default_device()
@@ -122,16 +123,20 @@ class ClassDivDataset(Dataset):
 
         #This is setting what classes are considered to be knowns.
         if use is not None:
-            self.use = [False for i in LISTCLASS.keys()] 
+            # self.use is a booliean array of a length for all of the classes in the file (not just the classes being used)
+            self.use = [False for i in range(Config.parameters["CLASSES"][0])] 
             self.usedDict = {}
             use.sort()
             for case in use:
-                self.use[case] = True
-                #OK this requires you to have the use list be sorted, but otherwise it works.
-                self.usedDict[len(self.usedDict)] = LISTCLASS[case]
+                if case not in Config.UnusedClasses:
+                    self.use[case] = True
+                    #OK this requires you to have the use list be sorted, but otherwise it works.
+                    self.usedDict[len(self.usedDict)] = LISTCLASS[case]
         else:
-            self.use = [True for i in range(len(LISTCLASS))] 
-            self.usedDict = LISTCLASS
+            # self.use is a booliean array of a length for all of the classes in the file (not just the classes being used)
+            self.use = [(i not in Config.UnusedClasses) for i in range(Config.parameters["CLASSES"][0])] 
+            # self.usedDict is a continuous number mapping to file names
+            self.usedDict = {keypair[0]: LISTCLASS[keypair[1]] for keypair in enumerate(LISTCLASS.keys())}
         
         #this will check if the file is chunked and chunk it if it is not
         self.checkIfSplit(path)

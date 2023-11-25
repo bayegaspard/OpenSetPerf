@@ -252,7 +252,9 @@ def run_model(measurement=None, graphDefault=False):
         print(f"Mem Usage: {new_memuse - memuse}")
         memuse = new_memuse
     plt.close()
-    model.savePoint("Saves/models",epoch=model.epoch)
+    
+    if Config.parameters["attemptLoadModel"][0] == 0:
+        model.savePoint("Saves/models",epoch=model.epoch)
 
 def runExistingModel(model:ModelStruct.AttackTrainingClassification,data,name,history_final,class_names,measurement=None,graphDefault = False, print_vals = False):
     """

@@ -245,7 +245,9 @@ class AttackTrainingClassification(nn.Module):
                     self.epoch = epoch+startingEpoch
         else:
             # Validation phase
-            epoch = self.loadPoint("Saves/models")
+            if Config.parameters["attemptLoadModel"][0] == 0:
+                # don't double load
+                epoch = self.loadPoint("Saves/models")
             result = self.evaluate(val_loader)
             result['train_loss'] = -1
             self.epoch_end(epoch, result)
@@ -521,7 +523,7 @@ class AttackTrainingClassification(nn.Module):
             to_save["batchSaveClassMeans"] = net.batch_fdHook.means
         to_save["parameter_keys"].remove("optimizer")
         to_save["parameter_keys"].remove("Unknowns")
-        torch.save(to_save, path + f"/Epoch{epoch:03d}{Config.parameters['OOD Type'][0]}")
+        torch.save(to_save, path + f"/Epoch{epoch:03d}{Config.parameters['OOD Type'][0]}.pth")
 
         oldPath = AttackTrainingClassification.findloadPath(epoch-5,path)
         if os.path.exists(oldPath):
@@ -576,13 +578,13 @@ class AttackTrainingClassification(nn.Module):
         i = 999
         epochFound = -1
         for i in range(1000,-1,-1):
-            if os.path.exists(path + f"/Epoch{i:03d}{Config.parameters['OOD Type'][0]}"):
+            if os.path.exists(path + f"/Epoch{i:03d}{Config.parameters['OOD Type'][0]}.pth"):
                 return i
         return -1
 
     @staticmethod
     def findloadPath(epoch:int, path="Saves/models"):
-        return path + f"/Epoch{epoch:03d}{Config.parameters['OOD Type'][0]}"
+        return path + f"/Epoch{epoch:03d}{Config.parameters['OOD Type'][0]}.pth"
     
     #This loops through all the thresholds without resetting the model.
     def thresholdTest(net,val_loader,measurement=None):
@@ -657,6 +659,49 @@ class AttackTrainingClassification(nn.Module):
                 # print("Recalculating means Saved",flush=True)
         
 
+class expand_bitPackets(nn.Module):
+    def __init__(self,lenExpand=1500, device=torch.cpu):
+        """
+        Expands the bit packets and then performs a convolution on them before returning them to the same dimentions.
+        The theory behind this is that a convolution will extract better information than just treating each byte as its own integer.
+        It has not worked so far.
+        
+        """
+        super().__init__()
+        self.length_to_expand = lenExpand
+
+        kernel = (50,4)
+        self.cnn = nn.Conv2d(1,20,kernel,device=device)
+
+        #equations from: https://pytorch.org/docs/stable/generated/torch.nn.Conv2d.html
+        #Simplified for our purposes
+        Hout = (lenExpand - (kernel[0]-1)) // 1
+        Wout = (8 - (kernel[1]-1)) // 1
+
+        self.fc = nn.Linear(Hout*Wout*20, lenExpand,device=device)
+
+    def forward(self, input:torch.Tensor):
+        #Gets  the bits out from the packet header information
+        toMod = input[:, :, :self.length_to_expand]
+
+        #the apply function does not work with gradients so we need to do everything inside of a nograd block
+        with torch.no_grad():
+            toMod = toMod.clone().cpu()
+            # Integer to binary from here: https://www.geeksforgeeks.org/python-decimal-to-binary-list-conversion/
+            #int(i) for i in bin(test_num)[2:]
+        
+            toMod.unsqueeze_(-1)
+            toMod = toMod.expand(-1, 1, self.length_to_expand,8)
+            for x in range(8):
+                #Format command from: https://stackoverflow.com/a/16926357
+                toMod[:, :, x].apply_(lambda y: int(format(int(y), '#010b')[x+2]))
+
+        
+        afterMod = torch.flatten(self.cnn(toMod),start_dim=1).to(input.device)
+
+        input[:, :, :self.length_to_expand] = self.fc(afterMod).unsqueeze(1)
+        return input
+
 
 
 
@@ -665,11 +710,19 @@ class AttackTrainingClassification(nn.Module):
 class Conv1DClassifier(AttackTrainingClassification):
     def __init__(self,mode="Soft",numberOfFeatures=1504):
         super().__init__(mode,numberOfFeatures)
-        self.layer1 = nn.Sequential(
-            nn.Conv1d(1, self.convolutional_channels[0], 3,device=device),
-            self.activation,
-            nn.MaxPool1d(self.maxpooling[0]),
-            nn.Dropout(int(Config.parameters["Dropout"][0])))
+        if Config.parameters["Experimental_bitConvolution"][0] == 1:
+            self.layer1 = nn.Sequential(
+                expand_bitPackets(numberOfFeatures,device=device),
+                nn.Conv1d(1, self.convolutional_channels[0], 3,device=device),
+                self.activation,
+                nn.MaxPool1d(self.maxpooling[0]),
+                nn.Dropout(int(Config.parameters["Dropout"][0])))
+        else:
+            self.layer1 = nn.Sequential(
+                nn.Conv1d(1, self.convolutional_channels[0], 3,device=device),
+                self.activation,
+                nn.MaxPool1d(self.maxpooling[0]),
+                nn.Dropout(int(Config.parameters["Dropout"][0])))
         self.layer2 = nn.Sequential(
             nn.Conv1d(self.convolutional_channels[0], self.convolutional_channels[1], 3,device=device),
             self.activation,

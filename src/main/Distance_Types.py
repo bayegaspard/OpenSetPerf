@@ -11,20 +11,21 @@ def distance_measures(Z:torch.Tensor,means:list,Y:torch.Tensor,distFunct)->torch
     # K = range(len([0,1,2]))
     #For each class in the knowns
     for j in K:
-        #The mask will only select items of the correct class
-        mask = (Y==Config.parameters["Knowns_clss"][0][j]).cpu()
-        # mask = Y==[0,1,2][j]
-        
-        #torch.flatten(x,start_dim=1,end_dim=-1)
-        dist = abs(distFunct(means[j].cpu(),Z.cpu()[mask.cpu()]))
-        if not math.isnan(dist):
-            intraspread += dist
+        if means[j].dim() != 0:
+            #The mask will only select items of the correct class
+            mask = (Y==Config.parameters["Knowns_clss"][0][j]).cpu()
+            # mask = Y==[0,1,2][j]
+            
+            #torch.flatten(x,start_dim=1,end_dim=-1)
+            dist = abs(distFunct(means[j].cpu(),Z.cpu()[mask.cpu()]))
+            if not math.isnan(dist):
+                intraspread += dist
     
     return intraspread/N
 
 #Equation 2 from iiMod file
 def class_means(Z:torch.Tensor,Y:torch.Tensor):
-    means = []
+    means = [torch.tensor(0) for x in range(Config.parameters["CLASSES"][0])]
     # print(Y.bincount())
     for y in Config.parameters["Knowns_clss"][0]:
     # for y in [0,1,2]:
@@ -33,9 +34,9 @@ def class_means(Z:torch.Tensor,Y:torch.Tensor):
         Cj = mask.sum().item()
         sumofz = Z[mask].sum(dim=0)
         if Cj != 0:
-            means.append(sumofz/Cj)
+            means[y] = sumofz/Cj
         else:
-            means.append(sumofz)
+            means[y] = sumofz
     return means
 
 def class_means_from_loader(weibulInfo):
@@ -56,7 +57,9 @@ def class_means_from_loader(weibulInfo):
         elif len(Z) == Config.parameters["batch_size"][0]:
             classmeans = [(x * num + y) / (num + 1) for x, y in zip(classmeans, class_means(Z, y))]
         else:
-            classmeans = [(x * num * Config.parameters["batch_size"][0] + y) / (num * Config.parameters["batch_size"][0] + len(y)) for x, y in zip(classmeans, class_means(Z, y))]
+            means = class_means(Z, y)
+            if means.dim > 0:
+                classmeans = [(x * num * Config.parameters["batch_size"][0] + y) / (num * Config.parameters["batch_size"][0] + len(y)) for x, y in zip(classmeans, means)]
 
 
     return classmeans

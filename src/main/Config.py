@@ -67,7 +67,7 @@ parameters = {
     "model":["Convolutional","Model type",["Fully_Connected","Convolutional"]],
     "OOD Type":["Soft","type of out of distribution detection", ["Soft","Open","Energy","COOL","DOC","iiMod", "Var"]],
     "Dataloader_Variation":["Standard","Defines the style of Dataloader used. This affects sampling from the dataset", ["Standard","Cluster","Flows"]],
-    "Dropout":[0.01,"percent of nodes that are skipped per run, larger numbers for more complex models [0,1)"],
+    "Dropout":[0.05,"percent of nodes that are skipped per run, larger numbers for more complex models [0,1)"],
     "optimizer":opt_func["Adam"],
     "Unknowns":["UNUSED"],
     "Unknowns_clss": [[7,8,9],"Class indexes used as unknowns."],
@@ -88,14 +88,16 @@ parameters = {
     "SchedulerStep": [0.8,"This is how big a step the scheduler takes, leave 0 for no step"],
     "ApplyPrelimSoft": [0, "This says to use a preliminary softmax and only use unknown detection on things that fail the softmax unknown detection"],
     "ItemLogitData": [0, "1: use item logit data and store it in 'Saves/item.csv', 0: disabled"],
-    "SaveBatchData": [0, "1: Save some data from each batch in 'Saves/BatchSaves.csv', 0: disabled"]
+    "SaveBatchData": [0, "1: Save some data from each batch in 'Saves/BatchSaves.csv', 0: disabled"],
+    "Var_filtering_threshold": [20, "If not -1, the model will first apply a varmax layer to the endlayer to know if the 'OOD Type' algorithm should be applied. This will use the number given as the threshold."],
+    "Experimental_bitConvolution": [1, "Convolutional network contains an experimental 2 bit convolution over the bits"]
 }
 
 
 #Argparse tutorial: https://docs.python.org/3/howto/argparse.html 
 parser = argparse.ArgumentParser()
 for x in parameters.keys():
-    if x in ["batch_size", "num_workers", "MaxPerClass", "num_epochs", "Degree of Overcompleteness", "Number of Layers", "Nodes", "SchedulerStepSize"]:
+    if x in ["batch_size", "num_workers", "MaxPerClass", "num_epochs", "Degree of Overcompleteness", "Number of Layers", "Nodes", "SchedulerStepSize", "Var_filtering_threshold"]:
         parser.add_argument(f"--{x}", type=int, default=parameters[x][0], help=parameters[x][1], required=False)
     if x in ["testlength", "learningRate", "threshold", "Dropout", "Temperature", "SchedulerStep"]:
         parser.add_argument(f"--{x}", type=float, default=parameters[x][0], help=parameters[x][1], required=False)

@@ -41,19 +41,6 @@ def setrelabel():
     temp = None
 setrelabel()
 
-def makeConsecutive(logits:torch.Tensor,labels:torch.Tensor):
-    """
-    OUTDATED: USE renameClasses() AND renameClassesLabeled()
-    This function renames all of the classes so that all of the known classes are consecutive. This makes them easier to work with
-    I wish I had just made the model have x outputs where x is the number of knowns instead of c outputs where c is the number of classes
-    """
-    global mask
-    loge = logits[mask]
-    newlabels = labels.clone()
-    for x in Config.parameters["Knowns_clss"][0]:
-        newlabels[labels==x] = relabel[x]
-    return loge, newlabels
-
     
 def deleteSaves():
     """
@@ -281,7 +268,7 @@ def definedLoops(path="datasets/hyperparamList.csv",row=0):
     """
     This function is for LOOP 4 where the function loops through a predefined sequence of hyperparameters.
     """
-    Config.parameters["Hyperparameter_row"] = [row, "Row of hyperparamiters.csv being used at the moment"]
+    Config.parameters["Hyperparameter_row"] = [row+1, "Row of hyperparamiters.csv being used at the moment"]
     hyperparamsFile = pd.read_csv(path)
     if len(hyperparamsFile)>row:
         hyperparams = hyperparamsFile.iloc[row]
@@ -290,10 +277,12 @@ def definedLoops(path="datasets/hyperparamList.csv",row=0):
                 Config.parameters[x][0] = hyperparams[x]
                 if isinstance(Config.parameters[x][0],np.generic):
                     Config.parameters[x][0] = Config.parameters[x][0].item()
-                if x == "Unknowns_clss":
+                if x in ["Unknowns_clss","Knowns_clss"]:
                     # str.removesuffix("]").removeprefix("[").split(sep=",")
                     Config.parameters[x][0] = [int(y) for y in Config.parameters[x][0].removesuffix("]").removeprefix("[").split(sep=",")]
-        Config.loopOverUnknowns()
+        if "Knowns_clss" not in Config.parameters.keys():
+            #If the Known classes are not explicitly stated then they will be regenerated
+            Config.loopOverUnknowns()
         return row+1
     Config.parameters["LOOP"][0] = 0
     return row+1
