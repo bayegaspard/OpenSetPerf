@@ -1176,11 +1176,16 @@ DataloaderTypes = {"Standard":ClassDivDataset,"Old_Cluster":ClusterDivDataset,"C
 if __name__ == "__main__":
     # run_demo(testing,18)
     # print("Testing if this waits for the data to finish.")
-    from nids_datasets import DatasetInfo
-    print(DatasetInfo('CIC-IDS2017').sum())
+    # from nids_datasets import DatasetInfo
+    # print(DatasetInfo('CIC-IDS2017').sum())
     if False:
         t = DataLoader(DatasetWithFlows(use=[0,1,2,3,4,5],unknownData=False,state_worker_loads=True), Config.parameters["batch_size"][0], num_workers=5,pin_memory=True,worker_init_fn=DatasetWithFlows.worker_init_fn)
         startTime = time.time()
         for b,a in tqdm.tqdm(enumerate(t)):
             pass
         print(f"Finished in:{time.time()-startTime}")
+    
+    t = DataLoader(ClassDivDataset(os.path.join("datasets",Config.parameters["Dataset"][0])),batch_size=10000)
+    for batch in t:
+        labels = batch[1][:, 0]
+        print(torch.bincount(labels))

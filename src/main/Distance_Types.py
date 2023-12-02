@@ -40,7 +40,7 @@ def class_means(Z:torch.Tensor,Y:torch.Tensor):
 
     Returns a list of X dementional tensors, one row for each class where X is also the number of classes.
     """
-    means = [torch.tensor(0) for x in range(Config.parameters["CLASSES"][0])]
+    means = [torch.zeros(len(Config.parameters["Knowns_clss"][0])) for x in range(Config.parameters["CLASSES"][0])]
     # print(Y.bincount())
     for y in Config.parameters["Knowns_clss"][0]:
     # for y in [0,1,2]:
@@ -83,7 +83,9 @@ def class_means_from_loader(weibulInfo):
             means = class_means(Z, y)
             if means.dim > 0:
                 classmeans = [(x * num * Config.parameters["batch_size"][0] + y) / (num * Config.parameters["batch_size"][0] + len(y)) for x, y in zip(classmeans, means)]
-
+        del(X)
+        del(Y)
+        del(Z)
 
     return classmeans
 

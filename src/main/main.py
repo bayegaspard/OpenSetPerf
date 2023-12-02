@@ -120,7 +120,7 @@ def run_model(measurement=None, graphDefault=False):
     history_final += model.fit(Config.parameters["num_epochs"][0], Config.parameters["learningRate"][0], train_loader, val_loader, opt_func=opt_func, measurement=measurement)
 
     if Config.parameters["SaveBatchData"][0]:
-        model.batchSaveMode(function=measurement)
+        model.batchSaveMode()
 
     #This big block of commented code is to create confusion matricies that we thought could be misleading,
     #   so it is commented out.
@@ -488,7 +488,7 @@ def main_start():
     loopType4(run_model,measurement)
     if hasattr(measurement,"writer") and measurement.writer is not None:
         measurement.writer.close()
-    GenerateImages.main()
+    # GenerateImages.main()
     print("Finished Completely")
     
 

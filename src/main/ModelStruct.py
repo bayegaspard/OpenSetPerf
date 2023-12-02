@@ -39,6 +39,9 @@ class AttackTrainingClassification(nn.Module):
         self.convolutional_channels = [32,64]
         
 
+        # This is for doing a convolution of the bits
+        self.bitpack = expand_bitPackets(numberOfFeatures,device=device)
+
         #This is the length of the packets in the dataset we are currently using.
         self.fullyConnectedStart = ((numberOfFeatures)/(self.maxpooling[0])//1)-1
         self.fullyConnectedStart =  ((self.fullyConnectedStart)/(self.maxpooling[1])//1)-1
@@ -119,6 +122,7 @@ class AttackTrainingClassification(nn.Module):
         self.sequencePackage.append(self.flatten)
         self.sequencePackage.append(self.fc1)
         if self.keep_batch_saves:
+            #I just realized this never activates. I made this 3 months ago.
             self.sequencePackage.append(RecordBatchVals_afterFC1(self.activation))
         else:
             self.sequencePackage.append(self.activation)
@@ -151,7 +155,8 @@ class AttackTrainingClassification(nn.Module):
         # x = to_device(x, device)
         x_before_model = x_before_model.float()
         x = x_before_model.unsqueeze(1)
-        
+        if Config.parameters["Experimental_bitConvolution"][0] == 1:
+            x = self.bitpack(x)
         x = self.sequencePackage(x)
         return x
         
@@ -248,6 +253,8 @@ class AttackTrainingClassification(nn.Module):
             if Config.parameters["attemptLoadModel"][0] == 0:
                 # don't double load
                 epoch = self.loadPoint("Saves/models")
+            else:
+                epoch = startingEpoch
             result = self.evaluate(val_loader)
             result['train_loss'] = -1
             self.epoch_end(epoch, result)
@@ -630,22 +637,18 @@ class AttackTrainingClassification(nn.Module):
         """
         self.store = GPU.to_device(torch.tensor([]), device), GPU.to_device(torch.tensor([]), device), GPU.to_device(torch.tensor([]), device)
     
-    def batchSaveMode(self,function=None,start_function=None):
+    def batchSaveMode(self,function=None):
         """
         This wraps the saving scores so that the values recorded are piped to a specific file.
         """
         if function is None:
             function = FileHandling.Score_saver()
-        if start_function is None:
-            start_function = function.create_params_All
-        def funct2():
-            start_function(name="BatchSaves.csv")
+        def start():
+            function.create_params_All(name="BatchSaves.csv")
             function("Current threshold",self.end.cutoff,fileName="BatchSaves.csv")
-        self.batch_saves_start = funct2
+        self.batch_saves_start = start
         self.keep_batch_saves = True
-        def funct(name,val):
-            function(name,val,fileName="BatchSaves.csv")
-        self.batch_saves_fucnt = funct
+        self.batch_saves_fucnt = function
         self.eval()
         
 
@@ -671,7 +674,7 @@ class expand_bitPackets(nn.Module):
         self.length_to_expand = lenExpand
 
         kernel = (50,4)
-        self.cnn = nn.Conv2d(1,20,kernel,device=device)
+        self.cnn = nn.Conv2d(1,20,kernel,device="cpu")
 
         #equations from: https://pytorch.org/docs/stable/generated/torch.nn.Conv2d.html
         #Simplified for our purposes
@@ -696,7 +699,7 @@ class expand_bitPackets(nn.Module):
                 #Format command from: https://stackoverflow.com/a/16926357
                 toMod[:, :, x].apply_(lambda y: int(format(int(y), '#010b')[x+2]))
 
-        
+
         afterMod = torch.flatten(self.cnn(toMod),start_dim=1).to(input.device)
 
         input[:, :, :self.length_to_expand] = self.fc(afterMod).unsqueeze(1)
@@ -710,19 +713,11 @@ class expand_bitPackets(nn.Module):
 class Conv1DClassifier(AttackTrainingClassification):
     def __init__(self,mode="Soft",numberOfFeatures=1504):
         super().__init__(mode,numberOfFeatures)
-        if Config.parameters["Experimental_bitConvolution"][0] == 1:
-            self.layer1 = nn.Sequential(
-                expand_bitPackets(numberOfFeatures,device=device),
-                nn.Conv1d(1, self.convolutional_channels[0], 3,device=device),
-                self.activation,
-                nn.MaxPool1d(self.maxpooling[0]),
-                nn.Dropout(int(Config.parameters["Dropout"][0])))
-        else:
-            self.layer1 = nn.Sequential(
-                nn.Conv1d(1, self.convolutional_channels[0], 3,device=device),
-                self.activation,
-                nn.MaxPool1d(self.maxpooling[0]),
-                nn.Dropout(int(Config.parameters["Dropout"][0])))
+        self.layer1 = nn.Sequential(
+            nn.Conv1d(1, self.convolutional_channels[0], 3,device=device),
+            self.activation,
+            nn.MaxPool1d(self.maxpooling[0]),
+            nn.Dropout(int(Config.parameters["Dropout"][0])))
         self.layer2 = nn.Sequential(
             nn.Conv1d(self.convolutional_channels[0], self.convolutional_channels[1], 3,device=device),
             self.activation,

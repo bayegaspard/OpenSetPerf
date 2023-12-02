@@ -103,6 +103,15 @@ def checkAttempLoad(root_path=""):
         torch.save(val,os.path.join(root_path,"Saves","DataVal.pt"))
         if Config.parameters["attemptLoadData"][0]:
             print("No model train and test checkpoint was found, saving datacheckpoints ...")
+
+    # tr = Dataload.DataLoader(train,batch_size=10000)
+    # v = Dataload.DataLoader(val,batch_size=10000)
+    # te = Dataload.DataLoader(test,batch_size=10000)
+    # for batch_a, batch_b, batch_c in zip(tr,v,te):
+    #     labels_a = batch_a[1][:, 0]
+    #     labels_b = batch_b[1][:, 0]
+    #     print(torch.bincount(labels_a)+torch.bincount(labels_b))
+    #     print(f"Sum of train {len(labels_a)} sum of test {len(labels_b)}")
     return train, test, val
 
 def incrementLoopModData(changed:list):
