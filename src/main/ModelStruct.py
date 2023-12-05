@@ -642,7 +642,7 @@ class AttackTrainingClassification(nn.Module):
         This wraps the saving scores so that the values recorded are piped to a specific file.
         """
         if function is None:
-            function = FileHandling.Score_saver()
+            function = FileHandling.Score_saver(path="BatchSaves.csv")
         def start():
             function.create_params_All(name="BatchSaves.csv")
             function("Current threshold",self.end.cutoff,fileName="BatchSaves.csv")
