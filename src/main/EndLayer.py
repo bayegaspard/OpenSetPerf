@@ -80,7 +80,8 @@ class EndLayers(nn.Module):
             output_m_soft = self.typesOfMod.get("Soft",self.typesOfMod["none"])(self,output_true)
             output_c_soft = self.typesOfUnknown["Soft"](self,output_m_soft)
             var_mask = ~self.varmax_mask(output_true)
-            output_complete[var_mask] = output_c_soft[var_mask]
+            thresh_mask = output_true.max(dim=1)[0].less(0.5)
+            output_complete[var_mask&thresh_mask] = output_c_soft[var_mask&thresh_mask]
 
 
         if False:

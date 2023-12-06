@@ -642,7 +642,7 @@ class AttackTrainingClassification(nn.Module):
         This wraps the saving scores so that the values recorded are piped to a specific file.
         """
         if function is None:
-            function = FileHandling.Score_saver(path="BatchSaves.csv")
+            function = FileHandling.Score_saver(path="BatchSaves.csv",newline=False)
         def start():
             function.create_params_All(name="BatchSaves.csv")
             function("Current threshold",self.end.cutoff,fileName="BatchSaves.csv")
@@ -657,9 +657,9 @@ class AttackTrainingClassification(nn.Module):
             self.batch_fdHook = Distance_Types.forwardHook()
         if self.end.end_type != "COOL":
             if len(self.batch_fdHook.means) == 0:
-                # print("Recalculating means Starting",flush=True)
+                print("Recalculating means Starting",flush=True)
                 self.batch_fdHook.means["End"] = Distance_Types.class_means_from_loader(self.end.weibulInfo)
-                # print("Recalculating means Saved",flush=True)
+                print("Recalculating means Saved",flush=True)
         
 
 class expand_bitPackets(nn.Module):

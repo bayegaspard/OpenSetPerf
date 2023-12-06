@@ -311,7 +311,7 @@ def create_params_Fscore(path, score, threshold = None):
 
 class Score_saver():
 
-    def __init__(self,path="Scoresall.csv",Record_Hyperparams=True):
+    def __init__(self,path="Scoresall.csv",Record_Hyperparams=True, newline=True):
         """
         Score_saver() is a class to consolidate the saving of data to the csv files. 
         When a Score_saver() object is initialized then it creates a new row onto the file, 
@@ -321,10 +321,11 @@ class Score_saver():
         self.writer = None
         self.path = path #unused at the moment
         self.name_all = {path:0}
-        if Record_Hyperparams:
-            self.create_params_All()
-        else:
-            pd.DataFrame().to_csv(self.path)
+        if newline:
+            if Record_Hyperparams:
+                self.create_params_All()
+            else:
+                pd.DataFrame().to_csv(self.path)
         if Config.save_as_tensorboard:
             self.tensorboard_start()
         
