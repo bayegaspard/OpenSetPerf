@@ -72,7 +72,7 @@ def testAllEndlayers():
     net = sampleNet()
     end = EndLayer.EndLayers(Config.parameters["CLASSES"][0])
     end.prepWeibull([net.testingTensor()],torch.device('cpu'),net)
-    for x in ["Soft","Open","Energy","COOL","DOC","iiMod", "SoftThresh"]:
+    for x in ["Soft","Open","Energy","COOL","DOC","iiMod", "SoftThresh","Var"]:
         end.end_type = x
         example_tensor = torch.Tensor([range(Config.parameters["CLASSES"][0])]*2)
         targets = torch.Tensor([[4,4],[5,Config.parameters["CLASSES"][0]]])

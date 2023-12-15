@@ -74,8 +74,13 @@ def run_model(measurement=None, graphDefault=False):
         trainset = DataLoader(test, Config.parameters["batch_size"][0], num_workers=Config.parameters["num_workers"][0],shuffle=True,pin_memory=True)
     else:
         trainset = DataLoader(train, Config.parameters["batch_size"][0], num_workers=Config.parameters["num_workers"][0],shuffle=True,pin_memory=True)  # for faster processing enable pin memory to true and num_workers=4
-    #Validationset is for checking if the model got things correct with the same type of data as the trainset
-    validationset = DataLoader(val, Config.parameters["batch_size"][0], shuffle=True, num_workers=Config.parameters["num_workers"][0],pin_memory=True)
+    
+    if  Config.parameters["testlength"][0] == 0:
+        validationset = DataLoader(test, Config.parameters["batch_size"][0], shuffle=True, num_workers=Config.parameters["num_workers"][0],pin_memory=True)
+    else:
+        #Validationset is for checking if the model got things correct with the same type of data as the trainset
+        validationset = DataLoader(val, Config.parameters["batch_size"][0], shuffle=True, num_workers=Config.parameters["num_workers"][0],pin_memory=True)
+    
     #Testset is for checking if the model got things correct with the Validationset+unknowns.
     testset = DataLoader(test, Config.parameters["batch_size"][0], shuffle=True, num_workers=Config.parameters["num_workers"][0], pin_memory=False)
 
@@ -120,7 +125,7 @@ def run_model(measurement=None, graphDefault=False):
     history_final += model.fit(Config.parameters["num_epochs"][0], Config.parameters["learningRate"][0], train_loader, val_loader, opt_func=opt_func, measurement=measurement)
 
     if Config.parameters["SaveBatchData"][0]:
-        model.batchSaveMode(function=measurement)
+        model.batchSaveMode()
 
     #This big block of commented code is to create confusion matricies that we thought could be misleading,
     #   so it is commented out.
@@ -165,11 +170,14 @@ def run_model(measurement=None, graphDefault=False):
 
     #AUTOTHRESHOLD
 
-    # if model.end.type != "Soft":
+    if model.end.end_type != "Soft":
         # model.thresholdTest(test_loader)
-        # roc = RocCurveDisplay.from_predictions(model.end.rocData[0],model.end.rocData[1],name=model.end.type)
-        # roc.plot()
-        # plt.show()
+        roc = RocCurveDisplay.from_predictions(model.end.rocData[0],model.end.rocData[1],name=model.end.end_type)
+        roc.plot()
+        plt.show()
+        x = roc_curve(model.end.rocData[0],model.end.rocData[1])
+        pd.DataFrame(x, index=["FP","TP","Threhsold"]).T.to_csv("Saves/ROC.csv",mode="a")
+        pd.DataFrame([f1,model.end.end_type]).to_csv("Saves/ROC.csv",mode="a")
     if False and (not torch.all(model.end.rocData[0])) and (not torch.all(model.end.rocData[0]==False)):
         #NOTE: The definitions of the rocData are as follows:
         #First row (rocData[0]) - the true values of unknown or known TODO: look to see if 1 is unknown or known
@@ -252,7 +260,9 @@ def run_model(measurement=None, graphDefault=False):
         print(f"Mem Usage: {new_memuse - memuse}")
         memuse = new_memuse
     plt.close()
-    model.savePoint("Saves/models",epoch=model.epoch)
+    
+    if Config.parameters["attemptLoadModel"][0] == 0:
+        model.savePoint("Saves/models",epoch=model.epoch)
 
 def runExistingModel(model:ModelStruct.AttackTrainingClassification,data,name,history_final,class_names,measurement=None,graphDefault = False, print_vals = False):
     """
@@ -486,7 +496,7 @@ def main_start():
     loopType4(run_model,measurement)
     if hasattr(measurement,"writer") and measurement.writer is not None:
         measurement.writer.close()
-    GenerateImages.main()
+    # GenerateImages.main()
     print("Finished Completely")
     
 

@@ -2,29 +2,45 @@ import torch
 import Config
 import math
 
-#Code from the iiMod file
+#Code from the iiMod file (Very Modified)
 def distance_measures(Z:torch.Tensor,means:list,Y:torch.Tensor,distFunct)->torch.Tensor:
+    """
+    Returns a distance created by distFunct between the means and the predicted outputs.
+    Z is the output of the model that should be in the form of (I,C) where I is the number of items in the batch and C is the total number of classes.
+    means is a list of means for each of the C classes.
+    Y is the final predicted class label in the form of (I) where I is the number of items in the batch.
 
+    Returns a zero dimentional Tensor
+    """
     intraspread = torch.tensor(0,dtype=torch.float32)
     N = len(Y)
     K = range(len(Config.parameters["Knowns_clss"][0]))
     # K = range(len([0,1,2]))
     #For each class in the knowns
     for j in K:
-        #The mask will only select items of the correct class
-        mask = (Y==Config.parameters["Knowns_clss"][0][j]).cpu()
-        # mask = Y==[0,1,2][j]
-        
-        #torch.flatten(x,start_dim=1,end_dim=-1)
-        dist = abs(distFunct(means[j].cpu(),Z.cpu()[mask.cpu()]))
-        if not math.isnan(dist):
-            intraspread += dist
+        if means[j].dim() != 0:
+            #The mask will only select items of the correct class
+            mask = (Y==Config.parameters["Knowns_clss"][0][j]).cpu()
+            # mask = Y==[0,1,2][j]
+            
+            #torch.flatten(x,start_dim=1,end_dim=-1)
+            dist = abs(distFunct(means[j].cpu(),Z.cpu()[mask.cpu()]))
+            if not math.isnan(dist):
+                intraspread += dist
     
     return intraspread/N
 
 #Equation 2 from iiMod file
 def class_means(Z:torch.Tensor,Y:torch.Tensor):
-    means = []
+    """
+    Creates the class means from the final batch output and the true labels.
+
+    Z is the output of the model that should be in the form of (I,C) where I is the number of items in the batch and C is the total number of classes.
+    Y is the final true class label in the form of (I) where I is the number of items in the batch.
+
+    Returns a list of X dementional tensors, one row for each class where X is also the number of classes.
+    """
+    means = [torch.zeros(len(Config.parameters["Knowns_clss"][0])) for x in range(Config.parameters["CLASSES"][0])]
     # print(Y.bincount())
     for y in Config.parameters["Knowns_clss"][0]:
     # for y in [0,1,2]:
@@ -33,12 +49,20 @@ def class_means(Z:torch.Tensor,Y:torch.Tensor):
         Cj = mask.sum().item()
         sumofz = Z[mask].sum(dim=0)
         if Cj != 0:
-            means.append(sumofz/Cj)
+            means[y] = sumofz/Cj
         else:
-            means.append(sumofz)
+            means[y] = sumofz
     return means
 
 def class_means_from_loader(weibulInfo):
+    """
+    Creates the class means from the information gathered for the weibul model using the final batch output and the true labels.
+
+    inputs:
+        weibulInfo - a dictonary containing:
+                loader - a Dataloader containing the training data to be used to find the means
+                net - the network that is being trained    
+    """
     #Note, this masking is only due to how we are handling model outputs.
     #If I was to design things again I would have designed the model outputs not to need this masking.
     data_loader = weibulInfo["loader"]
@@ -56,9 +80,13 @@ def class_means_from_loader(weibulInfo):
         elif len(Z) == Config.parameters["batch_size"][0]:
             classmeans = [(x * num + y) / (num + 1) for x, y in zip(classmeans, class_means(Z, y))]
         else:
-            classmeans = [(x * num * Config.parameters["batch_size"][0] + y) / (num * Config.parameters["batch_size"][0] + len(y)) for x, y in zip(classmeans, class_means(Z, y))]
+            means = class_means(Z, y)
+            classmeans = [(x * num * Config.parameters["batch_size"][0] + y) / (num * Config.parameters["batch_size"][0] + len(y)) for x, y in zip(classmeans, means)]
+        del(X)
+        del(Y)
+        del(Z)
 
-
+    # del data_loader._iterator
     return classmeans
 
 #Derived from ChatGPT. Apparently.
@@ -84,20 +112,21 @@ class forwardHook():
         self.distFunct = "intra_spread"
     
     def __call__(self,module:torch.nn.Module,input:torch.Tensor,output:torch.Tensor):
-        # print("Forward hook called")
-        name = f"{module._get_name()}_{output[0].size()}"
-        if self.class_vals is None:
-            if output.ndim == 2:
-                self.class_vals = output.argmax(dim=1).cpu()
+        with torch.no_grad():
+            # print("Forward hook called")
+            name = f"{module._get_name()}_{output[0].size()}"
+            if self.class_vals is None:
+                if output.ndim == 2:
+                    self.class_vals = output.argmax(dim=1).cpu()
+                else:
+                    self.class_vals = output.cpu()
             else:
-                self.class_vals = output.cpu()
-        else:
-            if not name in self.means.keys():
-                self.means[name] = class_means(output,self.class_vals)
-            if not name in self.distances.keys():
-                self.distances[name] = distance_measures(output,self.means[name],self.class_vals,dist_types_dict[self.distFunct])
-            else:
-                self.distances[name] += distance_measures(output,self.means[name],self.class_vals,dist_types_dict[self.distFunct])
+                if not name in self.means.keys():
+                    self.means[name] = class_means(output,self.class_vals)
+                if not name in self.distances.keys():
+                    self.distances[name] = distance_measures(output,self.means[name],self.class_vals,dist_types_dict[self.distFunct])
+                else:
+                    self.distances[name] += distance_measures(output,self.means[name],self.class_vals,dist_types_dict[self.distFunct])
     
 
 dist_types_dict = {

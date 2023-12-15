@@ -33,7 +33,7 @@ def testrunall():
     Tries all of the algorithms. Except Openmax
     """
     main.Config.unit_test_mode = True
-    for x in main.Config.alg:
+    for x in ["Soft","Open","Energy","COOL","DOC","iiMod", "SoftThresh","Var"]:
         main.Config.parameters["OOD Type"][0] = x
         main.run_model(graphDefault=False)
 
@@ -81,7 +81,12 @@ def testLoadDatasetfromSave():
 
 def testfindSave():
     """Finds if the save exists"""
-    epochFound = ModelStruct.AttackTrainingClassification.findloadEpoch()
+    epochFound = -1
+    x = 0
+    while epochFound == -1 and x < len(main.Config.alg):
+        main.Config.parameters["OOD Type"][0] = main.Config.alg[x]
+        x += 1
+        epochFound = ModelStruct.AttackTrainingClassification.findloadEpoch()
     assert epochFound != -1, "CANNOT FIND MODEL"
         
     pathFound = ModelStruct.AttackTrainingClassification.findloadPath(epochFound)

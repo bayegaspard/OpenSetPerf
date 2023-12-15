@@ -38,6 +38,7 @@ class EndLayers(nn.Module):
         self.end_type = type
         self.DOO = Config.parameters["Degree of Overcompleteness"][0]    #Degree of Overcompleteness for COOL
         self.weibulInfo = None
+        self.var_cutoff = Config.parameters["Var_filtering_threshold"][0]
         self.resetvals()
 
 
@@ -62,17 +63,28 @@ class EndLayers(nn.Module):
         if type is None:
             type = self.end_type
         
-        if type == "Energy":
+        if type in ["Var"]:
             #Energy kind of reverses things.
-            self.rocData[0] = y==Config.parameters["CLASSES"][0]
+            self.rocData[0] = y==Config.parameters["CLASSES"][0] #True if data is unknown
         else:
-            self.rocData[0] = y!=Config.parameters["CLASSES"][0]
+            self.rocData[0] = y!=Config.parameters["CLASSES"][0] #True if data is known
 
         #modify outputs if nessisary for algorithm
         output_modified = self.typesOfMod.get(type,self.typesOfMod["none"])(self,output_true)
 
         #This is supposted to add an extra column for unknowns
         output_complete = self.typesOfUnknown[type](self,output_modified)
+
+
+        if self.var_cutoff > 0 and type not in ["COOL"]:
+            output_m_soft = self.typesOfMod.get("Soft",self.typesOfMod["none"])(self,output_true)
+            output_c_soft = self.typesOfUnknown["Soft"](self,output_m_soft,roc=False)
+            thresh_mask = torch.softmax(output_true,dim=1).max(dim=1)[0].less(0.5)
+            # thresh_mask is things to send to Var_mask
+            var_mask = self.varmax_mask(output_true)
+            # var_mask is things to send to OOD
+            output_complete[~(var_mask&thresh_mask)] = output_c_soft[~(var_mask&thresh_mask)]
+
 
         if False:
             print(f"Alg")
@@ -113,29 +125,6 @@ class EndLayers(nn.Module):
                 self.m_out = m_out
                 self.T = temp
 
-
-            def selectKnowns(self, modelOut, labels:torch.Tensor):
-                """
-                I think this is another version of helerFunctions.renameClassesLabeled(). That is what? The third version?
-                TODO: clean this up. We don't need three different versions of a function that does this.
-                """
-                labels = labels.clone()
-                lastval = -1
-                label = list(range(Config.parameters["CLASSES"][0]))
-                newout = []
-                for val in Config.parameters["Unknowns_clss"][0]:
-                    label.remove(val)
-                    if val > lastval+1:
-                        newout.append(modelOut[:,lastval+1:val])
-                    lastval = val
-
-                newout = torch.cat(newout, dim=1)
-
-                i = 0
-                for l in label:
-                    labels[labels==l] = i
-                    i+=1
-                return newout, labels
         args = argsc()
         
         self.args = args
@@ -157,7 +146,7 @@ class EndLayers(nn.Module):
     #---------------------------------------------------------------------------------------------
     #This is the section for adding unknown column
 
-    def softMaxUnknown(self,percentages:torch.Tensor):
+    def softMaxUnknown(self,percentages:torch.Tensor,roc=True):
         """
         This is just Softmax. It adds a column of zeros to fit in with the rest of the algorithms.
         """
@@ -166,7 +155,8 @@ class EndLayers(nn.Module):
         batchsize = len(percentages)
         unknownColumn = torch.zeros(batchsize,device=percentages.device)
         self.Save_score.append(unknownColumn)
-        self.rocData[1] = unknownColumn
+        if roc:
+            self.rocData[1] = unknownColumn
         return torch.cat((percentages,unknownColumn.unsqueeze(1)),dim=1)
 
     def normalThesholdUnknown(self,percentages:torch.Tensor):
@@ -331,16 +321,20 @@ class EndLayers(nn.Module):
         return torch.cat([percentages,unknowns.unsqueeze(dim=-1)],dim=-1)
 
     def varmax_final(self, logits:torch.Tensor):
-        import CodeFromImplementations.Varmax
-        self.rocData[1] = torch.var(torch.abs(logits), dim = 1)
-        varmax_mask = torch.var(torch.abs(logits), dim = 1) < self.cutoff
+        self.rocData[1] = self.var(logits)
+        var_mask = self.varmax_mask(logits)
         shape = logits.shape
         unknown = torch.zeros([shape[0],1], device=logits.device)
-        unknown[varmax_mask] = 2
+        unknown[var_mask] = 2
         output = torch.concat([torch.softmax(logits, dim=-1), unknown], dim = -1)
         return output
 
+    def varmax_mask(self, logits):
+        return self.var(logits) < self.var_cutoff
 
+    def var(self, logits):
+        logits = helperFunctions.renameClasses(logits)
+        return torch.var(torch.abs(logits), dim = 1)
     #all functions here return a mask with 1 in all valid locations and 0 in all invalid locations
     typesOfUnknown = {"Soft":softMaxUnknown, "Open":openMaxUnknown, "Energy":energyUnknown, "Odin":odinUnknown, "COOL":normalThesholdUnknown, "SoftThresh":normalThesholdUnknown, "DOC":DOCUnknown, "iiMod": iiUnknown, "Var":varmax_final}
 
@@ -466,4 +460,6 @@ class EndLayers(nn.Module):
         Finds the distances using iiMod's intra_spread function.
         """
         from CodeFromImplementations.iiMod import intra_spread
-        return intra_spread(outputs[:,Config.parameters["Knowns_clss"][0]][labels!=Config.parameters["CLASSES"][0]],means,labels[labels!=Config.parameters["CLASSES"][0]])
+        outputs_for_known_columns = outputs[:,Config.parameters["Knowns_clss"][0]]
+        anti_unknown_value_mask = labels!=Config.parameters["CLASSES"][0]
+        return intra_spread(outputs_for_known_columns[anti_unknown_value_mask],means,labels[anti_unknown_value_mask])

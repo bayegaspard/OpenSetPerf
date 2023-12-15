@@ -39,6 +39,9 @@ class AttackTrainingClassification(nn.Module):
         self.convolutional_channels = [32,64]
         
 
+        # This is for doing a convolution of the bits
+        self.bitpack = expand_bitPackets(numberOfFeatures,device=device)
+
         #This is the length of the packets in the dataset we are currently using.
         self.fullyConnectedStart = ((numberOfFeatures)/(self.maxpooling[0])//1)-1
         self.fullyConnectedStart =  ((self.fullyConnectedStart)/(self.maxpooling[1])//1)-1
@@ -119,6 +122,7 @@ class AttackTrainingClassification(nn.Module):
         self.sequencePackage.append(self.flatten)
         self.sequencePackage.append(self.fc1)
         if self.keep_batch_saves:
+            #I just realized this never activates. I made this 3 months ago.
             self.sequencePackage.append(RecordBatchVals_afterFC1(self.activation))
         else:
             self.sequencePackage.append(self.activation)
@@ -151,7 +155,8 @@ class AttackTrainingClassification(nn.Module):
         # x = to_device(x, device)
         x_before_model = x_before_model.float()
         x = x_before_model.unsqueeze(1)
-        
+        if Config.parameters["Experimental_bitConvolution"][0] == 1:
+            x = self.bitpack(x)
         x = self.sequencePackage(x)
         return x
         
@@ -245,7 +250,11 @@ class AttackTrainingClassification(nn.Module):
                     self.epoch = epoch+startingEpoch
         else:
             # Validation phase
-            epoch = self.loadPoint("Saves/models")
+            if Config.parameters["attemptLoadModel"][0] == 0:
+                # don't double load
+                epoch = self.loadPoint("Saves/models")
+            else:
+                epoch = startingEpoch
             result = self.evaluate(val_loader)
             result['train_loss'] = -1
             self.epoch_end(epoch, result)
@@ -521,7 +530,7 @@ class AttackTrainingClassification(nn.Module):
             to_save["batchSaveClassMeans"] = net.batch_fdHook.means
         to_save["parameter_keys"].remove("optimizer")
         to_save["parameter_keys"].remove("Unknowns")
-        torch.save(to_save, path + f"/Epoch{epoch:03d}{Config.parameters['OOD Type'][0]}")
+        torch.save(to_save, path + f"/Epoch{epoch:03d}{Config.parameters['OOD Type'][0]}.pth")
 
         oldPath = AttackTrainingClassification.findloadPath(epoch-5,path)
         if os.path.exists(oldPath):
@@ -576,13 +585,13 @@ class AttackTrainingClassification(nn.Module):
         i = 999
         epochFound = -1
         for i in range(1000,-1,-1):
-            if os.path.exists(path + f"/Epoch{i:03d}{Config.parameters['OOD Type'][0]}"):
+            if os.path.exists(path + f"/Epoch{i:03d}{Config.parameters['OOD Type'][0]}.pth"):
                 return i
         return -1
 
     @staticmethod
     def findloadPath(epoch:int, path="Saves/models"):
-        return path + f"/Epoch{epoch:03d}{Config.parameters['OOD Type'][0]}"
+        return path + f"/Epoch{epoch:03d}{Config.parameters['OOD Type'][0]}.pth"
     
     #This loops through all the thresholds without resetting the model.
     def thresholdTest(net,val_loader,measurement=None):
@@ -628,22 +637,18 @@ class AttackTrainingClassification(nn.Module):
         """
         self.store = GPU.to_device(torch.tensor([]), device), GPU.to_device(torch.tensor([]), device), GPU.to_device(torch.tensor([]), device)
     
-    def batchSaveMode(self,function=None,start_function=None):
+    def batchSaveMode(self,function=None):
         """
         This wraps the saving scores so that the values recorded are piped to a specific file.
         """
         if function is None:
-            function = FileHandling.Score_saver()
-        if start_function is None:
-            start_function = function.create_params_All
-        def funct2():
-            start_function(name="BatchSaves.csv")
+            function = FileHandling.Score_saver(path="BatchSaves.csv",newline=False)
+        def start():
+            function.create_params_All(name="BatchSaves.csv")
             function("Current threshold",self.end.cutoff,fileName="BatchSaves.csv")
-        self.batch_saves_start = funct2
+        self.batch_saves_start = start
         self.keep_batch_saves = True
-        def funct(name,val):
-            function(name,val,fileName="BatchSaves.csv")
-        self.batch_saves_fucnt = funct
+        self.batch_saves_fucnt = function
         self.eval()
         
 
@@ -652,10 +657,53 @@ class AttackTrainingClassification(nn.Module):
             self.batch_fdHook = Distance_Types.forwardHook()
         if self.end.end_type != "COOL":
             if len(self.batch_fdHook.means) == 0:
-                # print("Recalculating means Starting",flush=True)
+                print("Recalculating means Starting",flush=True)
                 self.batch_fdHook.means["End"] = Distance_Types.class_means_from_loader(self.end.weibulInfo)
-                # print("Recalculating means Saved",flush=True)
+                print("Recalculating means Saved",flush=True)
         
+
+class expand_bitPackets(nn.Module):
+    def __init__(self,lenExpand=1500, device=torch.cpu):
+        """
+        Expands the bit packets and then performs a convolution on them before returning them to the same dimentions.
+        The theory behind this is that a convolution will extract better information than just treating each byte as its own integer.
+        It has not worked so far.
+        
+        """
+        super().__init__()
+        self.length_to_expand = lenExpand
+
+        kernel = (50,4)
+        self.cnn = nn.Conv2d(1,20,kernel,device="cpu")
+
+        #equations from: https://pytorch.org/docs/stable/generated/torch.nn.Conv2d.html
+        #Simplified for our purposes
+        Hout = (lenExpand - (kernel[0]-1)) // 1
+        Wout = (8 - (kernel[1]-1)) // 1
+
+        self.fc = nn.Linear(Hout*Wout*20, lenExpand,device=device)
+
+    def forward(self, input:torch.Tensor):
+        #Gets  the bits out from the packet header information
+        toMod = input[:, :, :self.length_to_expand]
+
+        #the apply function does not work with gradients so we need to do everything inside of a nograd block
+        with torch.no_grad():
+            toMod = toMod.clone().cpu()
+            # Integer to binary from here: https://www.geeksforgeeks.org/python-decimal-to-binary-list-conversion/
+            #int(i) for i in bin(test_num)[2:]
+        
+            toMod.unsqueeze_(-1)
+            toMod = toMod.expand(-1, 1, self.length_to_expand,8)
+            for x in range(8):
+                #Format command from: https://stackoverflow.com/a/16926357
+                toMod[:, :, x].apply_(lambda y: int(format(int(y), '#010b')[x+2]))
+
+
+        afterMod = torch.flatten(self.cnn(toMod),start_dim=1).to(input.device)
+
+        input[:, :, :self.length_to_expand] = self.fc(afterMod).unsqueeze(1)
+        return input
 
 
 
