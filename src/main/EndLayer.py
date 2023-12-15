@@ -76,10 +76,15 @@ class EndLayers(nn.Module):
         output_complete = self.typesOfUnknown[type](self,output_modified)
 
 
-        if self.var_cutoff > 0 and type not in ["COOL"]:
+        #if self.var_cutoff > 0 and type not in ["COOL"]:
+        if self.var_cutoff[0] > 0 and type not in ["COOL"]:
             output_m_soft = self.typesOfMod.get("Soft",self.typesOfMod["none"])(self,output_true)
             output_c_soft = self.typesOfUnknown["Soft"](self,output_m_soft,roc=False)
-            thresh_mask = torch.softmax(output_true,dim=1).max(dim=1)[0].less(0.5)
+            #thresh_mask = torch.softmax(output_true,dim=1).max(dim=1)[0].less(0.5) # modify this to have the scores of the chosen class and second chosen
+            soft_Prob_scores = torch.softmax(output_true,dim=1)
+            top_k = torch.topk(soft_Prob_scores,2,dim=1)[0] # tensor  
+            diff_topk = top_k[:,0] - top_k[:,1] # diffecerence of the top 2 chosen classes
+            thresh_mask = diff_topk.less(0.5)
             # thresh_mask is things to send to Var_mask
             var_mask = self.varmax_mask(output_true)
             # var_mask is things to send to OOD
@@ -330,7 +335,8 @@ class EndLayers(nn.Module):
         return output
 
     def varmax_mask(self, logits):
-        return self.var(logits) < self.var_cutoff
+        #return self.var(logits) < self.var_cutoff 
+        return (self.var(logits) > self.var_cutoff[0]) & (self.var(logits) < self.var_cutoff[1])
 
     def var(self, logits):
         logits = helperFunctions.renameClasses(logits)
