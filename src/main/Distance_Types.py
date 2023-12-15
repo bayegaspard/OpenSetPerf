@@ -86,6 +86,7 @@ def class_means_from_loader(weibulInfo):
         del(Y)
         del(Z)
 
+    # del data_loader._iterator
     return classmeans
 
 #Derived from ChatGPT. Apparently.
@@ -111,20 +112,21 @@ class forwardHook():
         self.distFunct = "intra_spread"
     
     def __call__(self,module:torch.nn.Module,input:torch.Tensor,output:torch.Tensor):
-        # print("Forward hook called")
-        name = f"{module._get_name()}_{output[0].size()}"
-        if self.class_vals is None:
-            if output.ndim == 2:
-                self.class_vals = output.argmax(dim=1).cpu()
+        with torch.no_grad():
+            # print("Forward hook called")
+            name = f"{module._get_name()}_{output[0].size()}"
+            if self.class_vals is None:
+                if output.ndim == 2:
+                    self.class_vals = output.argmax(dim=1).cpu()
+                else:
+                    self.class_vals = output.cpu()
             else:
-                self.class_vals = output.cpu()
-        else:
-            if not name in self.means.keys():
-                self.means[name] = class_means(output,self.class_vals)
-            if not name in self.distances.keys():
-                self.distances[name] = distance_measures(output,self.means[name],self.class_vals,dist_types_dict[self.distFunct])
-            else:
-                self.distances[name] += distance_measures(output,self.means[name],self.class_vals,dist_types_dict[self.distFunct])
+                if not name in self.means.keys():
+                    self.means[name] = class_means(output,self.class_vals)
+                if not name in self.distances.keys():
+                    self.distances[name] = distance_measures(output,self.means[name],self.class_vals,dist_types_dict[self.distFunct])
+                else:
+                    self.distances[name] += distance_measures(output,self.means[name],self.class_vals,dist_types_dict[self.distFunct])
     
 
 dist_types_dict = {

@@ -63,11 +63,11 @@ class EndLayers(nn.Module):
         if type is None:
             type = self.end_type
         
-        if type == "Energy":
+        if type in ["Var"]:
             #Energy kind of reverses things.
-            self.rocData[0] = y==Config.parameters["CLASSES"][0]
+            self.rocData[0] = y==Config.parameters["CLASSES"][0] #True if data is unknown
         else:
-            self.rocData[0] = y!=Config.parameters["CLASSES"][0]
+            self.rocData[0] = y!=Config.parameters["CLASSES"][0] #True if data is known
 
         #modify outputs if nessisary for algorithm
         output_modified = self.typesOfMod.get(type,self.typesOfMod["none"])(self,output_true)
@@ -78,7 +78,7 @@ class EndLayers(nn.Module):
 
         if self.var_cutoff > 0 and type not in ["COOL"]:
             output_m_soft = self.typesOfMod.get("Soft",self.typesOfMod["none"])(self,output_true)
-            output_c_soft = self.typesOfUnknown["Soft"](self,output_m_soft)
+            output_c_soft = self.typesOfUnknown["Soft"](self,output_m_soft,roc=False)
             thresh_mask = torch.softmax(output_true,dim=1).max(dim=1)[0].less(0.5)
             # thresh_mask is things to send to Var_mask
             var_mask = self.varmax_mask(output_true)
@@ -146,7 +146,7 @@ class EndLayers(nn.Module):
     #---------------------------------------------------------------------------------------------
     #This is the section for adding unknown column
 
-    def softMaxUnknown(self,percentages:torch.Tensor):
+    def softMaxUnknown(self,percentages:torch.Tensor,roc=True):
         """
         This is just Softmax. It adds a column of zeros to fit in with the rest of the algorithms.
         """
@@ -155,7 +155,8 @@ class EndLayers(nn.Module):
         batchsize = len(percentages)
         unknownColumn = torch.zeros(batchsize,device=percentages.device)
         self.Save_score.append(unknownColumn)
-        self.rocData[1] = unknownColumn
+        if roc:
+            self.rocData[1] = unknownColumn
         return torch.cat((percentages,unknownColumn.unsqueeze(1)),dim=1)
 
     def normalThesholdUnknown(self,percentages:torch.Tensor):
@@ -320,8 +321,7 @@ class EndLayers(nn.Module):
         return torch.cat([percentages,unknowns.unsqueeze(dim=-1)],dim=-1)
 
     def varmax_final(self, logits:torch.Tensor):
-        import CodeFromImplementations.Varmax
-        self.rocData[1] = torch.var(torch.abs(logits), dim = 1)
+        self.rocData[1] = self.var(logits)
         var_mask = self.varmax_mask(logits)
         shape = logits.shape
         unknown = torch.zeros([shape[0],1], device=logits.device)
@@ -330,8 +330,11 @@ class EndLayers(nn.Module):
         return output
 
     def varmax_mask(self, logits):
-        return torch.var(torch.abs(logits), dim = 1) < self.var_cutoff
+        return self.var(logits) < self.var_cutoff
 
+    def var(self, logits):
+        logits = helperFunctions.renameClasses(logits)
+        return torch.var(torch.abs(logits), dim = 1)
     #all functions here return a mask with 1 in all valid locations and 0 in all invalid locations
     typesOfUnknown = {"Soft":softMaxUnknown, "Open":openMaxUnknown, "Energy":energyUnknown, "Odin":odinUnknown, "COOL":normalThesholdUnknown, "SoftThresh":normalThesholdUnknown, "DOC":DOCUnknown, "iiMod": iiUnknown, "Var":varmax_final}
 
