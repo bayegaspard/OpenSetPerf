@@ -86,7 +86,6 @@ def class_means_from_loader(weibulInfo):
         del(Y)
         del(Z)
 
-    # del data_loader._iterator
     return classmeans
 
 #Derived from ChatGPT. Apparently.
@@ -128,6 +127,8 @@ class forwardHook():
                 else:
                     self.distances[name] += distance_measures(output,self.means[name],self.class_vals,dist_types_dict[self.distFunct])
     
+    def reset(self):
+        self.distances = {}
 
 dist_types_dict = {
     "Cosine_dist": lambda x1,x2: 1-torch.nn.functional.cosine_similarity(x1,x2[:,:len(x1)]).sum(),

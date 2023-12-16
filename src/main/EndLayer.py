@@ -17,7 +17,7 @@ root_folder = os.path.abspath(os.path.dirname(root_folder))
 sys.path.append(root_folder)
 
 root_path = os.getcwd()
-
+print("config cutoff",Config.parameters["Var_filtering_threshold"][0])
 import helperFunctions
 from src.main.helperFunctions import NoExamples
 
@@ -75,7 +75,7 @@ class EndLayers(nn.Module):
         #This is supposted to add an extra column for unknowns
         output_complete = self.typesOfUnknown[type](self,output_modified)
 
-
+        print("var cutoff",self.var_cutoff)
         #if self.var_cutoff > 0 and type not in ["COOL"]:
         if self.var_cutoff[0] > 0 and type not in ["COOL"]:
             output_m_soft = self.typesOfMod.get("Soft",self.typesOfMod["none"])(self,output_true)
