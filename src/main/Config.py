@@ -89,8 +89,9 @@ parameters = {
     "ApplyPrelimSoft": [0, "This says to use a preliminary softmax and only use unknown detection on things that fail the softmax unknown detection"],
     "ItemLogitData": [0, "1: use item logit data and store it in 'Saves/item.csv', 0: disabled"],
     "SaveBatchData": [1, "1: Save some data from each batch in 'Saves/BatchSaves.csv', 0: disabled"],
-    "Var_filtering_threshold": [[1.2,12.4], "If not -1, the model will first apply a varmax layer to the endlayer to know if the 'OOD Type' algorithm should be applied. This will use the number given as the threshold."],
-    "Experimental_bitConvolution": [0, "Convolutional network contains an experimental 2 bit convolution over the bits"]
+    "Var_filtering_threshold": [1.2, "If not -1, the model will first apply a varmax layer to the endlayer to know if the 'OOD Type' algorithm should be applied. This will use the number given as the threshold.\n"\
+                                "Should the value be a list of two values there will be both a start and a stop value for the slection"],
+    "Experimental_bitConvolution": [0, "Convolutional network contains an experimental 2 bit convolution over the bits, did not work in practice."]
 }
 
 

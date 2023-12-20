@@ -67,6 +67,19 @@ def to_device(data, device):
 
 #Try to store all of the data in memory instead?
 def recreateDL(dl:torch.utils.data.DataLoader,shuffle=True):
+    """
+    Recreates the dataloader but keeps the values in memory.
+    Because the initial dataloaders are so unoptimized, this speeds up the process of loading each batch by a lot. 
+    (assuming around 10x but never calcuated)
+
+    The problem is that loading all of the data takes a lot of memory.
+
+    Input:
+        Torch Dataloader
+    Output:
+        Torch Dataloader
+
+    """
     xList= []
     yList= []
     for xs,ys in tqdm(dl,desc="Loading Dataloader into memory"):
@@ -364,6 +377,9 @@ class ClusterDivDataset(ClassDivDataset):
 
             
     def __len__(self) -> int:
+        """
+        returns the length of the tensor, if the length has not been calculated yet it first calculates the length.
+        """
         if self.listOfCounts is None:
             self.listOfCounts = pd.read_csv(self.countspath, index_col=0)
             self.totalListOfCounts = self.listOfCounts.copy()
