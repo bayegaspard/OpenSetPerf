@@ -76,10 +76,11 @@ class EndLayers(nn.Module):
         output_complete = self.typesOfUnknown[type](self,output_modified)
 
 
-        if self.var_cutoff > 0 and type not in ["COOL"]:
+        if self.var_cutoff[0] > 0 and type not in ["COOL"]:
             output_m_soft = self.typesOfMod.get("Soft",self.typesOfMod["none"])(self,output_true)
             output_c_soft = self.typesOfUnknown["Soft"](self,output_m_soft,roc=False)
-            thresh_mask = torch.softmax(output_true,dim=1).max(dim=1)[0].less(0.5)
+            soft_highest = torch.softmax(output_true,dim=1).topk(2,1)[0]
+            thresh_mask = (soft_highest[:, 0] - soft_highest[:, 1]).less(0.5)
             # thresh_mask is things to send to Var_mask
             var_mask = self.varmax_mask(output_true)
             # var_mask is things to send to OOD
@@ -322,15 +323,19 @@ class EndLayers(nn.Module):
 
     def varmax_final(self, logits:torch.Tensor):
         self.rocData[1] = self.var(logits)
-        var_mask = self.varmax_mask(logits)
+        var_mask = self.varmax_mask(logits, self.cutoff)
         shape = logits.shape
         unknown = torch.zeros([shape[0],1], device=logits.device)
         unknown[var_mask] = 2
         output = torch.concat([torch.softmax(logits, dim=-1), unknown], dim = -1)
         return output
 
-    def varmax_mask(self, logits):
-        return self.var(logits) < self.var_cutoff
+    def varmax_mask(self, logits, cutoff=None):
+        if cutoff is not None:
+            return self.var(logits) < cutoff
+        else:
+            var = self.var(logits)
+            return (var < self.var_cutoff[1]) & (var > self.var_cutoff[0])
 
     def var(self, logits):
         logits = helperFunctions.renameClasses(logits)

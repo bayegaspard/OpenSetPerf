@@ -89,7 +89,7 @@ parameters = {
     "ApplyPrelimSoft": [0, "This says to use a preliminary softmax and only use unknown detection on things that fail the softmax unknown detection"],
     "ItemLogitData": [0, "1: use item logit data and store it in 'Saves/item.csv', 0: disabled"],
     "SaveBatchData": [1, "1: Save some data from each batch in 'Saves/BatchSaves.csv', 0: disabled"],
-    "Var_filtering_threshold": [-1, "If not -1, the model will first apply a varmax layer to the endlayer to know if the 'OOD Type' algorithm should be applied. This will use the number given as the threshold."],
+    "Var_filtering_threshold": [[1.2,12.4], "If not -1, the model will first apply a varmax layer to the endlayer to know if the 'OOD Type' algorithm should be applied. This will use the number given as the threshold."],
     "Experimental_bitConvolution": [0, "Convolutional network contains an experimental 2 bit convolution over the bits"]
 }
 
@@ -97,7 +97,7 @@ parameters = {
 #Argparse tutorial: https://docs.python.org/3/howto/argparse.html 
 parser = argparse.ArgumentParser()
 for x in parameters.keys():
-    if x in ["batch_size", "num_workers", "MaxPerClass", "num_epochs", "Degree of Overcompleteness", "Number of Layers", "Nodes", "SchedulerStepSize", "Var_filtering_threshold"]:
+    if x in ["batch_size", "num_workers", "MaxPerClass", "num_epochs", "Degree of Overcompleteness", "Number of Layers", "Nodes", "SchedulerStepSize"]:
         parser.add_argument(f"--{x}", type=int, default=parameters[x][0], help=parameters[x][1], required=False)
     if x in ["testlength", "learningRate", "threshold", "Dropout", "Temperature", "SchedulerStep"]:
         parser.add_argument(f"--{x}", type=float, default=parameters[x][0], help=parameters[x][1], required=False)
@@ -107,7 +107,7 @@ for x in parameters.keys():
         parser.add_argument(f"--{x}", type=int, choices=[0, 1, 2, 3, 4], default=parameters[x][0], help=parameters[x][1], required=False)
     if x in ["model", "OOD Type", "Dataloader_Variation", "Activation", "Dataset"]:
         parser.add_argument(f"--{x}", choices=parameters[x].pop(), default=parameters[x][0], help=parameters[x][1], required=False)
-    if x in ["Unknowns_clss"]:
+    if x in ["Unknowns_clss", "Var_filtering_threshold"]:
         parser.add_argument(f"--{x}", default=f"{parameters[x][0]}", help=parameters[x][1], required=False)
 if "pytest" not in sys.modules:  # The argument parser appears to have issues with the pytest tests. I have no idea why.
     args = parser.parse_args()
@@ -120,6 +120,13 @@ if isinstance(parameters["Unknowns_clss"][0], str):
         parameters["Unknowns_clss"][0] = [int(y) for y in parameters["Unknowns_clss"][0].removesuffix("]").removeprefix("[").split(sep=", ")]
     else:
         parameters["Unknowns_clss"][0] = []
+
+if isinstance(parameters["Var_filtering_threshold"][0], str):
+    if len(parameters["Var_filtering_threshold"][0])>0 and len(parameters["Var_filtering_threshold"][0])!=2: #Not sure why I need this specifier but it breaks if the default is []
+        # print(len(parameters["Unknowns_clss"][0]))
+        parameters["Var_filtering_threshold"][0] = [float(y) for y in parameters["Var_filtering_threshold"][0].removesuffix("]").removeprefix("[").split(sep=", ")]
+    else:
+        parameters["Var_filtering_threshold"][0] = [-1,-1]
 
 
 DOC_kernels = [3, 4, 5]
