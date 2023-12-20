@@ -282,7 +282,10 @@ def definedLoops(path="datasets/hyperparamList.csv",row=0):
                     Config.parameters[x][0] = [int(y) for y in Config.parameters[x][0].removesuffix("]").removeprefix("[").split(sep=",")]
                 if x in ["Var_filtering_threshold"]:
                     # str.removesuffix("]").removeprefix("[").split(sep=",")
-                    Config.parameters[x][0] = [float(y) for y in Config.parameters[x][0].removesuffix("]").removeprefix("[").split(sep=",")]
+                    if "," in Config.parameters[x][0]:
+                        Config.parameters[x][0] = [float(y) for y in Config.parameters[x][0].removesuffix("]").removeprefix("[").split(sep=",")]
+                    else:
+                        Config.parameters[x][0] = float(Config.parameters[x][0])
         if "Knowns_clss" not in Config.parameters.keys():
             #If the Known classes are not explicitly stated then they will be regenerated
             Config.loopOverUnknowns()

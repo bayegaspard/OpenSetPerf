@@ -264,6 +264,8 @@ def run_model(measurement=None, graphDefault=False):
     if Config.parameters["attemptLoadModel"][0] == 0:
         model.savePoint("Saves/models",epoch=model.epoch)
 
+    del model
+
 def runExistingModel(model:ModelStruct.AttackTrainingClassification,data,name,history_final,class_names,measurement=None,graphDefault = False, print_vals = False):
     """
     Runs an existing and loaded model.
@@ -456,6 +458,7 @@ def loopType4(main=run_model,measurement=None):
     if Config.parameters["LOOP"][0] == 4:
         row = 0
         while Config.parameters["LOOP"][0]:
+            torch.cuda.empty_cache()
             measurement(f"Row of defined hyperparameter csv: ", row)
             row = helperFunctions.definedLoops(row=row)
             plots.name_override = f"Predefined loop row {row}"

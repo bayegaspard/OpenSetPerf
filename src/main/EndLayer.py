@@ -39,6 +39,8 @@ class EndLayers(nn.Module):
         self.DOO = Config.parameters["Degree of Overcompleteness"][0]    #Degree of Overcompleteness for COOL
         self.weibulInfo = None
         self.var_cutoff = Config.parameters["Var_filtering_threshold"][0]
+        if not isinstance(self.var_cutoff,list):
+            self.var_cutoff = [self.var_cutoff]
         self.resetvals()
 
 
@@ -76,11 +78,14 @@ class EndLayers(nn.Module):
         output_complete = self.typesOfUnknown[type](self,output_modified)
 
 
+        #This performs the multi stage selection using variance.
         if self.var_cutoff[0] > 0 and type not in ["COOL"]:
             output_m_soft = self.typesOfMod.get("Soft",self.typesOfMod["none"])(self,output_true)
             output_c_soft = self.typesOfUnknown["Soft"](self,output_m_soft,roc=False)
-            soft_highest = torch.softmax(output_true,dim=1).topk(2,1)[0]
-            thresh_mask = (soft_highest[:, 0] - soft_highest[:, 1]).less(0.5)
+            soft_Prob_scores = torch.softmax(output_true,dim=1)
+            top_k = torch.topk(soft_Prob_scores,2,dim=1)[0] # tensor  
+            diff_topk = top_k[:,0] - top_k[:,1] # diffecerence of the top 2 chosen classes
+            thresh_mask = diff_topk.less(0.5)
             # thresh_mask is things to send to Var_mask
             var_mask = self.varmax_mask(output_true)
             # var_mask is things to send to OOD
@@ -322,6 +327,14 @@ class EndLayers(nn.Module):
         return torch.cat([percentages,unknowns.unsqueeze(dim=-1)],dim=-1)
 
     def varmax_final(self, logits:torch.Tensor):
+        """
+        Varmax is a method that selects anything below a cutoff value and assumes that it is unknown because a high value means that one class is more highly selected than the rest.
+
+        This implementation does that by finding everywhere the filter selects as unknown and then performing softmax on the original logits.
+        Then the filter is multiplied by 2 and concatinated to the softmax as an "unknown" column. 
+        Since the max values outside of the unknown column sum to 1. The unknown column will always be selected in argmax if it is a 2.
+        This can be implemented in other ways though.
+        """
         self.rocData[1] = self.var(logits)
         var_mask = self.varmax_mask(logits, self.cutoff)
         shape = logits.shape
@@ -331,13 +344,28 @@ class EndLayers(nn.Module):
         return output
 
     def varmax_mask(self, logits, cutoff=None):
+        """
+        Varmax is a method that selects anything below a cutoff value and assumes that it is unknown because a high value means that one class is more highly selected than the rest.
+
+        Inputs:
+            logits, a series of logits
+            cutoff, a float for single cutoff
+
+        Outputs:
+            A single dimentional array that has a 1 where the value is more unknonw and a 0 where it is less.
+        """
         if cutoff is not None:
             return self.var(logits) < cutoff
+        elif len(self.var_cutoff) == 1:
+            return self.var(logits) < self.var_cutoff[0]
         else:
             var = self.var(logits)
             return (var < self.var_cutoff[1]) & (var > self.var_cutoff[0])
 
     def var(self, logits):
+        """
+        Just calculates variance.
+        """
         logits = helperFunctions.renameClasses(logits)
         return torch.var(torch.abs(logits), dim = 1)
     #all functions here return a mask with 1 in all valid locations and 0 in all invalid locations

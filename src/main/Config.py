@@ -122,9 +122,12 @@ if isinstance(parameters["Unknowns_clss"][0], str):
         parameters["Unknowns_clss"][0] = []
 
 if isinstance(parameters["Var_filtering_threshold"][0], str):
-    if len(parameters["Var_filtering_threshold"][0])>0 and len(parameters["Var_filtering_threshold"][0])!=2: #Not sure why I need this specifier but it breaks if the default is []
-        # print(len(parameters["Unknowns_clss"][0]))
-        parameters["Var_filtering_threshold"][0] = [float(y) for y in parameters["Var_filtering_threshold"][0].removesuffix("]").removeprefix("[").split(sep=", ")]
+    if len(parameters["Var_filtering_threshold"][0])>0 and ("," in parameters["Var_filtering_threshold"][0]):
+        if len(parameters["Var_filtering_threshold"][0])!=2: #Not sure why I need this specifier but it breaks if the default is []
+            # print(len(parameters["Unknowns_clss"][0]))
+            parameters["Var_filtering_threshold"][0] = [float(y) for y in parameters["Var_filtering_threshold"][0].removesuffix("]").removeprefix("[").split(sep=", ")]
+    elif len(parameters["Var_filtering_threshold"][0])>0 and ("," not in parameters["Var_filtering_threshold"][0]):
+        parameters["Var_filtering_threshold"][0] = float(parameters["Var_filtering_threshold"][0])
     else:
         parameters["Var_filtering_threshold"][0] = [-1,-1]
 
