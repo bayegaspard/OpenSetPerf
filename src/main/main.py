@@ -170,7 +170,7 @@ def run_model(measurement=None, graphDefault=False):
 
     #AUTOTHRESHOLD
 
-    if model.end.end_type != "Soft":
+    if False and model.end.end_type != "Soft":
         # model.thresholdTest(test_loader)
         roc = RocCurveDisplay.from_predictions(model.end.rocData[0],model.end.rocData[1],name=model.end.end_type)
         roc.plot()
