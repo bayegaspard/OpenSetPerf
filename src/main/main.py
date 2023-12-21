@@ -176,8 +176,8 @@ def run_model(measurement=None, graphDefault=False):
         roc.plot()
         plt.show()
         x = roc_curve(model.end.rocData[0],model.end.rocData[1])
-        pd.DataFrame(x, index=["FP","TP","Threhsold"]).T.to_csv("Saves/ROC.csv",mode="a")
-        pd.DataFrame([f1,model.end.end_type]).to_csv("Saves/ROC.csv",mode="a")
+        pd.DataFrame(x, index=["FP","TP","Threhsold"]).T.to_csv("Saves/roc/ROC.csv",mode="a")
+        pd.DataFrame([f1,model.end.end_type]).to_csv("Saves/roc/ROC.csv",mode="a")
     if False and (not torch.all(model.end.rocData[0])) and (not torch.all(model.end.rocData[0]==False)):
         #NOTE: The definitions of the rocData are as follows:
         #First row (rocData[0]) - the true values of unknown or known TODO: look to see if 1 is unknown or known

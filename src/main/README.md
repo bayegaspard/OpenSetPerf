@@ -4,9 +4,8 @@ This is a description of how to modify the hyperparameters in the `Config.py` fi
 ### Steps to modify the unknown classes
 
 - First you need to open the file `Config.py`
-- Find the definition of the dictionary `class_split`
-- Inside the fefinition you will find a key called `"unknowns_clss"`
-- That key links to another dictionary and inside that dictionary there is one key called `"unknowns"`
+- Find the definition of the dictionary `parameters`
+- Inside the definition you will find a key called `"unknowns_clss"` (the reason for class to be spelled clss is unknown)
 - To add classes to the unknowns you can simply add numbers 0 to 14 in the associated array. The key to which classes are which number cann be found in line 10 of the file `Dataload.py`.
 
 ### Alternatively
@@ -48,3 +47,8 @@ This is a description of how to modify the hyperparameters in the `Config.py` fi
     - Dataset - This is a hyperparameter that selects which dataset to use. Currently can only be "Payload_data_CICIDS2017" or "Payload_data_UNSW"
     - SchedulerStepSize - This states the number of epochs that are run with the current learning rate before it is reduced.
     - SchedulerStep - This is the multiplier for the leaerning rate every `SchedulerStepSize` epochs.
+    - ApplyPrelimSoft - Not used any more, but it applies a thresholded softmax and only uses OOD if that value is less than the threshold.
+    - ItemLogitData - Saves the final logits and labels for those logits in `Saves/items.csv`
+    - SaveBatchData - Saves the values and distances from each bach for further study.
+    - Var_filtering_threshold - Threshold for the var filtering method. This can either be a single value or a pair of values in an array, if it is a pair, the known values are the ones that fall outside of the range.
+    - Experimental_bitConvolution - A side project to use 2 dimentional convolutions over the bits instead of 1 dimentional convolutions over the bytes.

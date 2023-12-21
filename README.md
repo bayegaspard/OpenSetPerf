@@ -52,8 +52,9 @@ source opensetperf/bin/activate
       - `EndLayer.py` - This file works with the folder `CodeFromImplementations` to implement each of the diffrent algorithms.
       - `plots.py` - This file generates 4 png files of diffrent matplotlib graphs.
       - `GPU.py` - This file helps run the model on diffrent GPUs or move tensors from one GPU to the CPU.
-      - `GenerateImages` - This file reads the save file and generates images in `Saves/images/` to visualize the data.
+      - `GenerateImages.py` - This file reads the save file and generates images in `Saves/images/` to visualize the data.
       - `helperFunctions.py` - This file contains all other functions that are not contained in another file.
+      - `Distance_Types.py` - This file contains the distance calculations for logits.
 
   - `CodeFromImplementations`
     - This is the code we used to implement the diffrent algorithms including:
