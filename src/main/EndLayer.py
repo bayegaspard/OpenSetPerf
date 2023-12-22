@@ -80,16 +80,16 @@ class EndLayers(nn.Module):
 
         #This performs the multi stage selection using variance.
         if self.var_cutoff[0] > 0 and type not in ["COOL"]:
-            output_m_soft = self.typesOfMod.get("Soft",self.typesOfMod["none"])(self,output_true)
-            output_c_soft = self.typesOfUnknown["Soft"](self,output_m_soft,roc=False)
-            soft_Prob_scores = torch.softmax(output_true,dim=1)
-            top_k = torch.topk(soft_Prob_scores,2,dim=1)[0] # tensor  
+            output_m_soft = self.typesOfMod.get("Soft",self.typesOfMod["none"])(self,output_true) # Applies softmax
+            output_c_soft = self.typesOfUnknown["Soft"](self,output_m_soft,roc=False)   # Adds a column of zeros so that softmax matches the rest
+            top_k = torch.topk(output_m_soft,2,dim=1)[0] # tensor  
             diff_topk = top_k[:,0] - top_k[:,1] # diffecerence of the top 2 chosen classes
             thresh_mask = diff_topk.less(0.5)
             # thresh_mask is things to send to Var_mask
             var_mask = self.varmax_mask(output_true)
             # var_mask is things to send to OOD
-            output_complete[~(var_mask&thresh_mask)] = output_c_soft[~(var_mask&thresh_mask)]
+
+            output_complete[~(var_mask&thresh_mask)] = output_c_soft[~(var_mask&thresh_mask)] # This line replaces anywhere that does not pass both tests 
 
 
         if False:
@@ -148,6 +148,59 @@ class EndLayers(nn.Module):
         A nothing function if no function is to be applied.
         """
         return X
+
+    #---------------------------------------------------------------------------------------------
+    #This is the section for modifying the outputs for the final layer
+
+    def softMaxMod(self,percentages:torch.Tensor):
+        """
+        Just runs softmax
+        """
+        return torch.softmax(percentages, dim=1)
+
+    def odinMod(self, percentages:torch.Tensor):
+        """
+        Some prerequisites for ODIN. ODIN does not currently work.
+        """
+        print("ODIN is not working at the moment")
+        import CodeFromImplementations.OdinCodeByWetliu as Odin
+        self.model.openMax = False
+        new_percentages = torch.tensor(Odin.ODIN(self.OdinX,self.model(self.OdinX), self.model, self.temp, self.noise))
+        self.model.openMax = True
+        return new_percentages[:len(percentages)]
+
+    def FittedLearningEval(self, percentages:torch.Tensor):
+        """
+        Collapses COOL into the standard number of classes from the increased compettitive number of classes.
+        After that it is just standard Softmax Unknown.
+        """
+        import CodeFromImplementations.FittedLearningByYhenon as fitted
+        per = percentages.softmax(dim=1)
+        store = []
+        for x in per:
+            store.append(fitted.infer(x,self.DOO,self.classCount))
+        store = np.array(store)
+        return torch.tensor(store)
+
+    def DOCmod(self, logits:torch.Tensor):
+        """
+        DOC uses a sigmoid layer.
+        """
+        percent = torch.sigmoid(helperFunctions.renameClasses(logits))
+        return percent
+
+    def iiLoss_Means(self, percentages:torch.Tensor):
+        """
+        This just calculates and saves the means for each class for use in iiUnknown()
+        """
+        import CodeFromImplementations.iiMod as iiMod
+        self.iiLoss_means = iiMod.Algorithm_1(self.weibulInfo["loader"],self.weibulInfo["net"])
+        return percentages
+
+
+    #all functions here return a tensor, sometimes it has an extra column for unknowns
+    typesOfMod = {"Soft":softMaxMod, "Odin":odinMod, "COOL":FittedLearningEval, "SoftThresh":softMaxMod, "DOC":DOCmod, "iiMod":iiLoss_Means, "none":noChange, "Var": noChange}
+
 
     #---------------------------------------------------------------------------------------------
     #This is the section for adding unknown column
@@ -371,57 +424,6 @@ class EndLayers(nn.Module):
     #all functions here return a mask with 1 in all valid locations and 0 in all invalid locations
     typesOfUnknown = {"Soft":softMaxUnknown, "Open":openMaxUnknown, "Energy":energyUnknown, "Odin":odinUnknown, "COOL":normalThesholdUnknown, "SoftThresh":normalThesholdUnknown, "DOC":DOCUnknown, "iiMod": iiUnknown, "Var":varmax_final}
 
-    #---------------------------------------------------------------------------------------------
-    #This is the section for modifying the outputs for the final layer
-
-    def softMaxMod(self,percentages:torch.Tensor):
-        """
-        Just runs softmax
-        """
-        return torch.softmax(percentages, dim=1)
-
-    def odinMod(self, percentages:torch.Tensor):
-        """
-        Some prerequisites for ODIN. ODIN does not currently work.
-        """
-        print("ODIN is not working at the moment")
-        import CodeFromImplementations.OdinCodeByWetliu as Odin
-        self.model.openMax = False
-        new_percentages = torch.tensor(Odin.ODIN(self.OdinX,self.model(self.OdinX), self.model, self.temp, self.noise))
-        self.model.openMax = True
-        return new_percentages[:len(percentages)]
-
-    def FittedLearningEval(self, percentages:torch.Tensor):
-        """
-        Collapses COOL into the standard number of classes from the increased compettitive number of classes.
-        After that it is just standard Softmax Unknown.
-        """
-        import CodeFromImplementations.FittedLearningByYhenon as fitted
-        per = percentages.softmax(dim=1)
-        store = []
-        for x in per:
-            store.append(fitted.infer(x,self.DOO,self.classCount))
-        store = np.array(store)
-        return torch.tensor(store)
-
-    def DOCmod(self, logits:torch.Tensor):
-        """
-        DOC uses a sigmoid layer.
-        """
-        percent = torch.sigmoid(helperFunctions.renameClasses(logits))
-        return percent
-
-    def iiLoss_Means(self, percentages:torch.Tensor):
-        """
-        This just calculates and saves the means for each class for use in iiUnknown()
-        """
-        import CodeFromImplementations.iiMod as iiMod
-        self.iiLoss_means = iiMod.Algorithm_1(self.weibulInfo["loader"],self.weibulInfo["net"])
-        return percentages
-
-
-    #all functions here return a tensor, sometimes it has an extra column for unknowns
-    typesOfMod = {"Soft":softMaxMod, "Odin":odinMod, "COOL":FittedLearningEval, "SoftThresh":softMaxMod, "DOC":DOCmod, "iiMod":iiLoss_Means, "none":noChange, "Var": noChange}
 
     #---------------------------------------------------------------------------------------------
     #This is the section for training label modification

@@ -279,57 +279,58 @@ def runExistingModel(model:ModelStruct.AttackTrainingClassification,data,name,hi
         measurement (optional) - Function that is passed the results from the model in the form of (type_of_data,value_of_data)
         graphDefault - the default for desplaying graphs, normally False
     """
-    print(f"Running model with data/section: {name}")
-    if measurement is None:
-        measurement = FileHandling.Score_saver()
-    #Resets the stored values that are used to generate the above values.
-    model.storeReset()
+    with torch.no_grad():
+        print(f"Running model with data/section: {name}")
+        if measurement is None:
+            measurement = FileHandling.Score_saver()
+        #Resets the stored values that are used to generate the above values.
+        model.storeReset()
 
-    model.batch_saves_identifier = name
+        model.batch_saves_identifier = name
 
-    #model.evaluate() runs only the evaluation stage of running the model. model.fit() calls model.evaluate() after epochs
-    model.evaluate(data)
-    
-    model.eval()
+        #model.evaluate() runs only the evaluation stage of running the model. model.fit() calls model.evaluate() after epochs
+        model.evaluate(data)
+        
+        model.eval()
 
-    
-    #this creates plots as long as the model is not looping. 
-    # It is annoying when the model stops just to show you things when you are trying to run the model overnight
-    if not Config.parameters["LOOP"][0] and graphDefault:
-        plots.plot_all_losses(history_final)
-        plots.plot_losses(history_final)
-        plots.plot_accuracies(history_final)
-
-
-    #Generates the values when unknowns are thrown in to the testing set.
-    f1, recall, precision, accuracy = helperFunctions.getFscore(model.store)
-    measurement(f"{name}_F1",f1)
-    measurement(f"{name}_Recall",recall)
-    measurement(f"{name}_Precision",precision)
-    measurement(f"{name}_Accuracy",accuracy)
-    unknowns_scores = helperFunctions.getFoundUnknown(model.store)
-    measurement(f"{name}_Found_Unknowns",unknowns_scores[0]) #recall
-    measurement(f"{name}_Unknowns_accuracy",unknowns_scores[1])
-
-    # FileHandling.create_params_Fscore(root_path,f1)
-
-    if not Config.parameters["LOOP"][0] and graphDefault:
-        #More matrix stuff that we removed.
-        cnf_matrix = plots.confusionMatrix(model.store) 
-        plots.plot_confusion_matrix(cnf_matrix, classes=class_names, normalize=True, title=f'{Config.parameters["OOD Type"][0]} Test', knowns = Config.parameters["Knowns_clss"][0])
+        
+        #this creates plots as long as the model is not looping. 
+        # It is annoying when the model stops just to show you things when you are trying to run the model overnight
+        if not Config.parameters["LOOP"][0] and graphDefault:
+            plots.plot_all_losses(history_final)
+            plots.plot_losses(history_final)
+            plots.plot_accuracies(history_final)
 
 
-    
-    #This stores and prints the final results.
-    score_list = [recall,precision,f1]
-    FileHandling.write_hist_to_file(history_final,Config.parameters["num_epochs"][0],model.end.end_type)
-    FileHandling.write_scores_to_file(score_list,Config.parameters["num_epochs"][0],model.end.end_type)
-    if print_vals:
-        print("Type : ",model.end.end_type)
-        print(f"Now changing : {plots.name_override}")
-        print(f"F-Score : {f1*100:.2f}%")
-        print(f"Precision : {precision*100:.2f}%")
-        print(f"Recall : {recall*100:.2f}%")
+        #Generates the values when unknowns are thrown in to the testing set.
+        f1, recall, precision, accuracy = helperFunctions.getFscore(model.store)
+        measurement(f"{name}_F1",f1)
+        measurement(f"{name}_Recall",recall)
+        measurement(f"{name}_Precision",precision)
+        measurement(f"{name}_Accuracy",accuracy)
+        unknowns_scores = helperFunctions.getFoundUnknown(model.store)
+        measurement(f"{name}_Found_Unknowns",unknowns_scores[0]) #recall
+        measurement(f"{name}_Unknowns_accuracy",unknowns_scores[1])
+
+        # FileHandling.create_params_Fscore(root_path,f1)
+
+        if not Config.parameters["LOOP"][0] and graphDefault:
+            #More matrix stuff that we removed.
+            cnf_matrix = plots.confusionMatrix(model.store) 
+            plots.plot_confusion_matrix(cnf_matrix, classes=class_names, normalize=True, title=f'{Config.parameters["OOD Type"][0]} Test', knowns = Config.parameters["Knowns_clss"][0])
+
+
+        
+        #This stores and prints the final results.
+        score_list = [recall,precision,f1]
+        FileHandling.write_hist_to_file(history_final,Config.parameters["num_epochs"][0],model.end.end_type)
+        FileHandling.write_scores_to_file(score_list,Config.parameters["num_epochs"][0],model.end.end_type)
+        if print_vals:
+            print("Type : ",model.end.end_type)
+            print(f"Now changing : {plots.name_override}")
+            print(f"F-Score : {f1*100:.2f}%")
+            print(f"Precision : {precision*100:.2f}%")
+            print(f"Recall : {recall*100:.2f}%")
 
 def loopType1(main=run_model,measurement=None):
     """
@@ -458,10 +459,11 @@ def loopType4(main=run_model,measurement=None):
     if Config.parameters["LOOP"][0] == 4:
         row = 0
         while Config.parameters["LOOP"][0]:
-            torch.cuda.empty_cache()
             measurement(f"Row of defined hyperparameter csv: ", row)
             row = helperFunctions.definedLoops(row=row)
             plots.name_override = f"Predefined loop row {row}"
+            del measurement
+            torch.cuda.empty_cache()
             measurement = FileHandling.Score_saver()
             main(measurement=measurement)
 
