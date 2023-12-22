@@ -72,7 +72,7 @@ class EndLayers(nn.Module):
             self.rocData[0] = y!=Config.parameters["CLASSES"][0] #True if data is known
 
         #modify outputs if nessisary for algorithm
-        output_modified = self.typesOfMod.get(type,self.typesOfMod["none"])(self,output_true)
+        output_modified = self.typesOfMod.get(type,self.typesOfMod["Soft"])(self,output_true)
 
         #This is supposted to add an extra column for unknowns
         output_complete = self.typesOfUnknown[type](self,output_modified)
