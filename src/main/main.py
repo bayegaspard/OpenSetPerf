@@ -449,11 +449,13 @@ def loopType4(main=run_model,measurement=None):
     """
     Loop type 4 runs thrugh every line of datasets/hyperparamList.csv and changes any valid Config parameters to match.
     This means that you can predefine specific lists of hyperparameters to loop through. 
+    Or recreate old tests by just placing the scoresall.csv into the datasets/hyperparamList.csv
 
     parameters:
         main - the main function to run, this should be run_model unless being tested.
         measurement - Function that is passed the results from the model in the form of (type_of_data,value_of_data)
     """
+    import gc
     if measurement is None:
         measurement = FileHandling.Score_saver()
     if Config.parameters["LOOP"][0] == 4:
@@ -463,6 +465,7 @@ def loopType4(main=run_model,measurement=None):
             row = helperFunctions.definedLoops(row=row)
             plots.name_override = f"Predefined loop row {row}"
             del measurement
+            gc.collect()
             torch.cuda.empty_cache()
             measurement = FileHandling.Score_saver()
             main(measurement=measurement)
