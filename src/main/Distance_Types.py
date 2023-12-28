@@ -86,6 +86,7 @@ def class_means_from_loader(weibulInfo):
         del(Y)
         del(Z)
 
+    # del data_loader._iterator
     return classmeans
 
 #Derived from ChatGPT. Apparently.
@@ -104,13 +105,29 @@ def euclidean_distance(point1, point2):
 
 
 class forwardHook():
+    """
+    This is a module that collects logits from a model at given points within the model. 
+    It is designed to be attached as a forward hook in either one or several places within the model.
+
+    It is used by creating the forward hook, and then getting the final predicted values of the model and setting forwardHook.class_vals to those values (1 dimentional tensor)
+    After the class values are set, it is assumed that the next run will be the assoicated values and so the means will be generated.
+    """
     def __init__(self):
+        """
+        creates the forward hook, note: this does not set self.class_vals, that needs to be set manually with the predicted classes.
+        """
         self.distances = {}
         self.class_vals = None #these are the final classifications for each row in the batch
         self.means = {}
         self.distFunct = "intra_spread"
     
     def __call__(self,module:torch.nn.Module,input:torch.Tensor,output:torch.Tensor):
+        """
+        This is the function that activates the forward hook.
+        The first pass generates the means that the future passes will use (note that self.class_vals needs to be set first).
+        The future passes will generate some distance that will be used in a running total. To reset this running total use the reset() method.
+        The running total is not returned. You can get it using the self.distances attribute.
+        """
         with torch.no_grad():
             # print("Forward hook called")
             name = f"{module._get_name()}_{output[0].size()}"
@@ -128,7 +145,7 @@ class forwardHook():
                     self.distances[name] += distance_measures(output,self.means[name],self.class_vals,dist_types_dict[self.distFunct])
     
     def reset(self):
-        self.distances = {}
+        self.distances = {x:0 for x in self.distances.keys()}
 
 dist_types_dict = {
     "Cosine_dist": lambda x1,x2: 1-torch.nn.functional.cosine_similarity(x1,x2[:,:len(x1)]).sum(),

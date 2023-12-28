@@ -166,6 +166,10 @@ def incrementLoop(notes=(0)):
 
 #Resiliance loop
 def resilianceLoop():
+    """
+    Uses various percentages of unknown classes that are fed into the same model that allows detection of changes with respect to differing amounts of unknowns.
+    This is loop setting 2 and is not used anymore.
+    """
     Config.parameters["num_epochs"][0] = 0
     Config.parameters["testlength"][0] = 1
     current = Config.parameters["loopLevel"][0]
@@ -280,6 +284,12 @@ def definedLoops(path="datasets/hyperparamList.csv",row=0):
                 if x in ["Unknowns_clss","Knowns_clss"]:
                     # str.removesuffix("]").removeprefix("[").split(sep=",")
                     Config.parameters[x][0] = [int(y) for y in Config.parameters[x][0].removesuffix("]").removeprefix("[").split(sep=",")]
+                if x in ["Var_filtering_threshold"]:
+                    # str.removesuffix("]").removeprefix("[").split(sep=",")
+                    if isinstance(Config.parameters[x][0],str):
+                        Config.parameters[x][0] = [float(y) for y in Config.parameters[x][0].removesuffix("]").removeprefix("[").split(sep=",")]
+                    else:
+                        Config.parameters[x][0] = float(Config.parameters[x][0])
         if "Knowns_clss" not in Config.parameters.keys():
             #If the Known classes are not explicitly stated then they will be regenerated
             Config.loopOverUnknowns()

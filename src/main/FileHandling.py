@@ -509,24 +509,54 @@ class Score_saver():
         self.create_params_All()
 
 class items_with_classes_record():
-    def __init__(self, labels:torch.Tensor):
-        if labels.dim() == 2:
-            self.labels = labels[:, 1].unsqueeze(dim=-1).cpu()
-            self.known_binary = (labels[:, 0] == labels[:, 1]).unsqueeze(dim=-1).cpu()
+    """
+    This prepares a file that lists the final logits of any given layer and the predicted and true classifications of the associated items.
+    This is done so that amnual calculations can be performed on the logits if needed.
+    They are saved in Saves/items.csv by appending to the end.
+    To get clear data, make sure to delete the items.csv before running this.
+    """
+    def __init__(self, true_labels:torch.Tensor):
+        """
+        Initialize the items with attached classes. In order to do so we need the true labels of the items for comparison.
+        """
+        if true_labels.dim() == 2:
+            self.labels = true_labels[:, 1].unsqueeze(dim=-1).cpu()
+            self.known_binary = (true_labels[:, 0] == true_labels[:, 1]).unsqueeze(dim=-1).cpu()
         else:
-            self.labels = labels.unsqueeze(dim=-1).cpu()
+            self.labels = true_labels.unsqueeze(dim=-1).cpu()
             self.known_binary = None
         self.items = None
         self.predict = None
     
     def __call__(self, items:torch.Tensor, file = "Saves/items.csv"):
+        """
+        Using the class as a method will add items to the internal storage.
+        It is assumed that these items are logits assoicated with the true labels assigned at initialization. 
+        However, this does not nessisarily need to be the case.
+
+        The combined values will then be saved in the given file.
+
+        The items need to be in the form of a two dimentional tensor where the first dimention is of the same length as the true_labels from initialization.
+        """
         self.storeItems(items)
         self.useItems(file)
 
     def storeItems(self, items:torch.Tensor):
+        """
+        Stores the items associated with the true labels manually if not using the __call__ method.
+        The items need to be in the form of a two dimentional tensor where the first dimention is of the same length as the true_labels from initialization.
+        This method does not save these into a file, only stores them internally untill the useItems() method is called.
+        """
         self.items = items.cpu()
 
     def useItems(self, file = "Saves/items.csv"):
+        """
+        Saves items to a file maually instead of using the __call__ method.
+        It appends the given true values, logits, and predictions (if avalible) to the specified file in a csv format.
+        The storeItems() method must have been sucessfully run before this in order for this method to run properly.
+
+        It then resets the items and predictions to None.
+        """
         index_names = [f"Logit{x}" for x in range(len(self.items[0]))]
         items_with_varience = torch.concat([self.items,self.items.var(dim=1).unsqueeze(dim=-1)],dim=1)
         index_names.append("Variance")
@@ -547,5 +577,10 @@ class items_with_classes_record():
         self.predict = None
 
     def storePredictions(self, predictions:torch.Tensor):
+        """
+        Stores associated predictions for the values. Must be done before calling useItems().
+        predictions must be a single dimentional tensor with a length equal to the length of the true values provided during initialization.
+        These predicted values will be saved during the useItems() call.
+        """
         assert predictions.dim() == 1
         self.predict = predictions.unsqueeze(dim=-1).cpu()

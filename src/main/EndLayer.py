@@ -17,7 +17,7 @@ root_folder = os.path.abspath(os.path.dirname(root_folder))
 sys.path.append(root_folder)
 
 root_path = os.getcwd()
-print("config cutoff",Config.parameters["Var_filtering_threshold"][0])
+
 import helperFunctions
 from src.main.helperFunctions import NoExamples
 
@@ -39,6 +39,8 @@ class EndLayers(nn.Module):
         self.DOO = Config.parameters["Degree of Overcompleteness"][0]    #Degree of Overcompleteness for COOL
         self.weibulInfo = None
         self.var_cutoff = Config.parameters["Var_filtering_threshold"][0]
+        if not isinstance(self.var_cutoff,list):
+            self.var_cutoff = [self.var_cutoff]
         self.resetvals()
 
 
@@ -70,25 +72,24 @@ class EndLayers(nn.Module):
             self.rocData[0] = y!=Config.parameters["CLASSES"][0] #True if data is known
 
         #modify outputs if nessisary for algorithm
-        output_modified = self.typesOfMod.get(type,self.typesOfMod["none"])(self,output_true)
+        output_modified = self.typesOfMod.get(type,self.typesOfMod["Soft"])(self,output_true)
 
         #This is supposted to add an extra column for unknowns
         output_complete = self.typesOfUnknown[type](self,output_modified)
 
-        print("var cutoff",self.var_cutoff)
-        #if self.var_cutoff > 0 and type not in ["COOL"]:
+
+        #This performs the multi stage selection using variance.
         if self.var_cutoff[0] > 0 and type not in ["COOL"]:
-            output_m_soft = self.typesOfMod.get("Soft",self.typesOfMod["none"])(self,output_true)
-            output_c_soft = self.typesOfUnknown["Soft"](self,output_m_soft,roc=False)
-            #thresh_mask = torch.softmax(output_true,dim=1).max(dim=1)[0].less(0.5) # modify this to have the scores of the chosen class and second chosen
-            soft_Prob_scores = torch.softmax(output_true,dim=1)
-            top_k = torch.topk(soft_Prob_scores,2,dim=1)[0] # tensor  
+            output_m_soft = self.typesOfMod.get("Soft",self.typesOfMod["none"])(self,output_true) # Applies softmax
+            output_c_soft = self.typesOfUnknown["Soft"](self,output_m_soft,roc=False)   # Adds a column of zeros so that softmax matches the rest
+            top_k = torch.topk(output_m_soft,2,dim=1)[0] # tensor  
             diff_topk = top_k[:,0] - top_k[:,1] # diffecerence of the top 2 chosen classes
             thresh_mask = diff_topk.less(0.5)
             # thresh_mask is things to send to Var_mask
             var_mask = self.varmax_mask(output_true)
             # var_mask is things to send to OOD
-            output_complete[~(var_mask&thresh_mask)] = output_c_soft[~(var_mask&thresh_mask)]
+
+            output_complete[~(var_mask&thresh_mask)] = output_c_soft[~(var_mask&thresh_mask)] # This line replaces anywhere that does not pass both tests 
 
 
         if False:
@@ -147,6 +148,59 @@ class EndLayers(nn.Module):
         A nothing function if no function is to be applied.
         """
         return X
+
+    #---------------------------------------------------------------------------------------------
+    #This is the section for modifying the outputs for the final layer
+
+    def softMaxMod(self,percentages:torch.Tensor):
+        """
+        Just runs softmax
+        """
+        return torch.softmax(percentages, dim=1)
+
+    def odinMod(self, percentages:torch.Tensor):
+        """
+        Some prerequisites for ODIN. ODIN does not currently work.
+        """
+        print("ODIN is not working at the moment")
+        import CodeFromImplementations.OdinCodeByWetliu as Odin
+        self.model.openMax = False
+        new_percentages = torch.tensor(Odin.ODIN(self.OdinX,self.model(self.OdinX), self.model, self.temp, self.noise))
+        self.model.openMax = True
+        return new_percentages[:len(percentages)]
+
+    def FittedLearningEval(self, percentages:torch.Tensor):
+        """
+        Collapses COOL into the standard number of classes from the increased compettitive number of classes.
+        After that it is just standard Softmax Unknown.
+        """
+        import CodeFromImplementations.FittedLearningByYhenon as fitted
+        per = percentages.softmax(dim=1)
+        store = []
+        for x in per:
+            store.append(fitted.infer(x,self.DOO,self.classCount))
+        store = np.array(store)
+        return torch.tensor(store)
+
+    def DOCmod(self, logits:torch.Tensor):
+        """
+        DOC uses a sigmoid layer.
+        """
+        percent = torch.sigmoid(helperFunctions.renameClasses(logits))
+        return percent
+
+    def iiLoss_Means(self, percentages:torch.Tensor):
+        """
+        This just calculates and saves the means for each class for use in iiUnknown()
+        """
+        import CodeFromImplementations.iiMod as iiMod
+        self.iiLoss_means = iiMod.Algorithm_1(self.weibulInfo["loader"],self.weibulInfo["net"])
+        return percentages
+
+
+    #all functions here return a tensor, sometimes it has an extra column for unknowns
+    typesOfMod = {"Soft":softMaxMod, "Odin":odinMod, "COOL":FittedLearningEval, "SoftThresh":softMaxMod, "DOC":DOCmod, "iiMod":iiLoss_Means, "none":noChange, "Var": noChange}
+
 
     #---------------------------------------------------------------------------------------------
     #This is the section for adding unknown column
@@ -326,75 +380,50 @@ class EndLayers(nn.Module):
         return torch.cat([percentages,unknowns.unsqueeze(dim=-1)],dim=-1)
 
     def varmax_final(self, logits:torch.Tensor):
+        """
+        Varmax is a method that selects anything below a cutoff value and assumes that it is unknown because a high value means that one class is more highly selected than the rest.
+
+        This implementation does that by finding everywhere the filter selects as unknown and then performing softmax on the original logits.
+        Then the filter is multiplied by 2 and concatinated to the softmax as an "unknown" column. 
+        Since the max values outside of the unknown column sum to 1. The unknown column will always be selected in argmax if it is a 2.
+        This can be implemented in other ways though.
+        """
         self.rocData[1] = self.var(logits)
-        var_mask = self.varmax_mask(logits)
+        var_mask = self.varmax_mask(logits, self.cutoff)
         shape = logits.shape
         unknown = torch.zeros([shape[0],1], device=logits.device)
         unknown[var_mask] = 2
         output = torch.concat([torch.softmax(logits, dim=-1), unknown], dim = -1)
         return output
 
-    def varmax_mask(self, logits):
-        #return self.var(logits) < self.var_cutoff 
-        return (self.var(logits) > self.var_cutoff[0]) & (self.var(logits) < self.var_cutoff[1])
+    def varmax_mask(self, logits, cutoff=None):
+        """
+        Varmax is a method that selects anything below a cutoff value and assumes that it is unknown because a high value means that one class is more highly selected than the rest.
+
+        Inputs:
+            logits, a series of logits
+            cutoff, a float for single cutoff
+
+        Outputs:
+            A single dimentional array that has a 1 where the value is more unknonw and a 0 where it is less.
+        """
+        if cutoff is not None:
+            return self.var(logits) < cutoff
+        elif len(self.var_cutoff) == 1:
+            return self.var(logits) < self.var_cutoff[0]
+        else:
+            var = self.var(logits)
+            return (var < self.var_cutoff[1]) & (var > self.var_cutoff[0])
 
     def var(self, logits):
+        """
+        Just calculates variance.
+        """
         logits = helperFunctions.renameClasses(logits)
         return torch.var(torch.abs(logits), dim = 1)
     #all functions here return a mask with 1 in all valid locations and 0 in all invalid locations
     typesOfUnknown = {"Soft":softMaxUnknown, "Open":openMaxUnknown, "Energy":energyUnknown, "Odin":odinUnknown, "COOL":normalThesholdUnknown, "SoftThresh":normalThesholdUnknown, "DOC":DOCUnknown, "iiMod": iiUnknown, "Var":varmax_final}
 
-    #---------------------------------------------------------------------------------------------
-    #This is the section for modifying the outputs for the final layer
-
-    def softMaxMod(self,percentages:torch.Tensor):
-        """
-        Just runs softmax
-        """
-        return torch.softmax(percentages, dim=1)
-
-    def odinMod(self, percentages:torch.Tensor):
-        """
-        Some prerequisites for ODIN. ODIN does not currently work.
-        """
-        print("ODIN is not working at the moment")
-        import CodeFromImplementations.OdinCodeByWetliu as Odin
-        self.model.openMax = False
-        new_percentages = torch.tensor(Odin.ODIN(self.OdinX,self.model(self.OdinX), self.model, self.temp, self.noise))
-        self.model.openMax = True
-        return new_percentages[:len(percentages)]
-
-    def FittedLearningEval(self, percentages:torch.Tensor):
-        """
-        Collapses COOL into the standard number of classes from the increased compettitive number of classes.
-        After that it is just standard Softmax Unknown.
-        """
-        import CodeFromImplementations.FittedLearningByYhenon as fitted
-        per = percentages.softmax(dim=1)
-        store = []
-        for x in per:
-            store.append(fitted.infer(x,self.DOO,self.classCount))
-        store = np.array(store)
-        return torch.tensor(store)
-
-    def DOCmod(self, logits:torch.Tensor):
-        """
-        DOC uses a sigmoid layer.
-        """
-        percent = torch.sigmoid(helperFunctions.renameClasses(logits))
-        return percent
-
-    def iiLoss_Means(self, percentages:torch.Tensor):
-        """
-        This just calculates and saves the means for each class for use in iiUnknown()
-        """
-        import CodeFromImplementations.iiMod as iiMod
-        self.iiLoss_means = iiMod.Algorithm_1(self.weibulInfo["loader"],self.weibulInfo["net"])
-        return percentages
-
-
-    #all functions here return a tensor, sometimes it has an extra column for unknowns
-    typesOfMod = {"Soft":softMaxMod, "Odin":odinMod, "COOL":FittedLearningEval, "SoftThresh":softMaxMod, "DOC":DOCmod, "iiMod":iiLoss_Means, "none":noChange, "Var": noChange}
 
     #---------------------------------------------------------------------------------------------
     #This is the section for training label modification
