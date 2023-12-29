@@ -389,7 +389,9 @@ class AttackTrainingClassification(nn.Module):
             self.batch_saves_fucnt("Knowns/Unknowns_F1_Score",f1_score(labels_extended[:,0].cpu(),out_argmax, labels=[Config.parameters["CLASSES"][0]],average="weighted",zero_division=0))
             self.batch_saves_fucnt("Total F1_Score",f1_score(labels_extended[:,0].cpu(),out_argmax,average="weighted",zero_division=0))
             if len(labels_extended[labels_extended[:,0]!=Config.parameters["CLASSES"][0],0]) != 0:
-                self.batch_saves_fucnt("Knowns Only F1_Score",f1_score(labels_extended[labels_extended[:,0]!=Config.parameters["CLASSES"][0],0].cpu(),out_argmax[labels_extended[:,0]!=Config.parameters["CLASSES"][0]],average="weighted",zero_division=0))
+                labels_extended = labels_extended.cpu()
+                out_argmax = out_argmax.cpu()
+                self.batch_saves_fucnt("Knowns Only F1_Score",f1_score(labels_extended[labels_extended[:,0]!=Config.parameters["CLASSES"][0],0],out_argmax[labels_extended[:,0]!=Config.parameters["CLASSES"][0]],average="weighted",zero_division=0))
             self.batch_saves_fucnt("Time",time.time()-t)
             
             # torch.Tensor.bincount(minlength=Config.parameters["CLASSES"][0])
